@@ -19,6 +19,7 @@ import {
   ExternalLink,
   CheckCircle2,
   AlertCircle,
+  Info,
   Eye,
   EyeOff,
   Search,
@@ -969,11 +970,46 @@ export default function AdminDashboardPage() {
   // ---------------- RENDER: PRO SAAS DASHBOARD VIEW ---------------- //
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col md:flex-row">
-      {/* Toast Feedback */}
+      {/* Professional Floating Toast Notification (Bottom Right) */}
       {toastMessage && (
-        <div className="fixed top-5 right-5 z-50 bg-[#00183F] text-white px-5 py-3 rounded-2xl shadow-2xl border border-[#D4AF37]/50 text-sm font-semibold flex items-center gap-3 animate-in fade-in slide-in-from-top-4">
-          <Sparkles className="w-4 h-4 text-[#D4AF37]" />
-          <span>{toastMessage.text}</span>
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-6 right-6 z-[100] max-w-md w-[calc(100vw-3rem)] sm:w-auto animate-in fade-in slide-in-from-bottom-5 duration-200"
+        >
+          <div
+            className={`flex items-start gap-3 px-4 py-3.5 rounded-2xl shadow-2xl backdrop-blur-md border text-sm transition-all ${
+              toastMessage.type === 'error'
+                ? 'bg-rose-950/95 text-rose-50 border-rose-500/40 shadow-rose-950/40'
+                : toastMessage.type === 'info'
+                ? 'bg-sky-950/95 text-sky-50 border-sky-500/40 shadow-sky-950/40'
+                : 'bg-[#00183F]/95 text-white border-[#D4AF37]/50 shadow-slate-950/50'
+            }`}
+          >
+            <div className="shrink-0 mt-0.5">
+              {toastMessage.type === 'error' ? (
+                <AlertCircle className="w-5 h-5 text-rose-400" />
+              ) : toastMessage.type === 'info' ? (
+                <Info className="w-5 h-5 text-sky-400" />
+              ) : (
+                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+              )}
+            </div>
+            <div className="flex-1 pr-2">
+              <p className="font-semibold text-xs uppercase tracking-wider opacity-75 mb-0.5">
+                {toastMessage.type === 'error' ? 'Action Failed' : toastMessage.type === 'info' ? 'Notice' : 'Success'}
+              </p>
+              <p className="text-xs sm:text-sm font-medium leading-snug">{toastMessage.text}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setToastMessage(null)}
+              className="shrink-0 text-white/60 hover:text-white transition-colors p-1 -mr-1 rounded-lg hover:bg-white/10"
+              aria-label="Dismiss notification"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       )}
 
