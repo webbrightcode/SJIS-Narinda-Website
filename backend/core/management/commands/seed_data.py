@@ -102,7 +102,7 @@ class Command(BaseCommand):
                 "To be the preeminent educational institution recognized globally for academic supremacy, "
                 "innovative learning ecosystems, and steadfast ethical stewardship."
             ),
-            principal_name="Brother Leo Pereira, CSC",
+            principal_name="Brother Roktim Chiran, CSC",
             principal_title="Administrator",
             head_role_badge="Head of Institution",
             welcome_tag="WELCOME TO ST. JOSEPH NARINDA",

@@ -29,7 +29,7 @@ class AboutInfo(models.Model):
     history = models.TextField(blank=True)
     mission = models.TextField(blank=True)
     vision = models.TextField(blank=True)
-    principal_name = models.CharField(max_length=255, blank=True, default="Brother Leo Pereira, CSC")
+    principal_name = models.CharField(max_length=255, blank=True, default="Brother Roktim Chiran, CSC")
     principal_title = models.CharField(max_length=255, blank=True, default="Administrator")
     principal_message = models.TextField(blank=True)
     principal_image_url = models.URLField(max_length=1000, blank=True)

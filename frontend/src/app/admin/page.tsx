@@ -2770,7 +2770,7 @@ export default function AdminDashboardPage() {
                       </label>
                       <input
                         type="text"
-                        placeholder="Brother Leo Pereira, CSC"
+                        placeholder="Brother Roktim Chiran, CSC"
                         value={aboutInfo.principal_name}
                         onChange={(e) => setAboutInfo({ ...aboutInfo, principal_name: e.target.value })}
                         className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-[#00183F] outline-none font-semibold"

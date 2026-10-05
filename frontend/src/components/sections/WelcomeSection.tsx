@@ -23,7 +23,7 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({ about }) => {
     ? about.pillars
     : defaultPillars;
 
-  const headName = about?.principal_name || 'Brother Leo Pereira, CSC';
+  const headName = about?.principal_name || 'Brother Roktim Chiran, CSC';
   const headTitle = about?.principal_title || 'Administrator';
   const roleBadge = about?.head_role_badge || 'Head of Institution';
   const welcomeTag = about?.welcome_tag || 'Welcome to St. Joseph Narinda';
