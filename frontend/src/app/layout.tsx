@@ -13,14 +13,12 @@ const cinzel = Cinzel({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-cinzel',
-  weight: ['600', '700', '800', '900'],
 });
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-playfair',
-  weight: ['600', '700', '800', '900'],
 });
 
 export const metadata: Metadata = {
