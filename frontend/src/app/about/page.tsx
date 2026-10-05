@@ -27,6 +27,9 @@ export const metadata: Metadata = {
     'Discover the legacy, mission, leadership, and state-of-the-art facilities of St. Joseph International School, Narinda.',
 };
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function AboutPage() {
   const about = await getAboutInfo();
 

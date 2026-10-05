@@ -83,6 +83,19 @@ function getAuthHeaders(token?: string) {
   return headers;
 }
 
+export async function fetchWithTimeout(url: string, options?: RequestInit, timeoutMs = 8000): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 async function fetchWithFallback<T>(url: string, fallback: T, options?: RequestInit): Promise<T> {
   try {
     const controller = new AbortController();
@@ -104,7 +117,9 @@ async function fetchWithFallback<T>(url: string, fallback: T, options?: RequestI
     clearTimeout(timeoutId);
 
     if (!res.ok) {
-      console.warn(`API ${url} returned ${res.status}, falling back to static cache.`);
+      if (typeof window === 'undefined') {
+        console.warn(`[SSR API Warning] ${targetUrl} returned HTTP ${res.status}. Falling back to cached data.`);
+      }
       return fallback;
     }
 
@@ -113,7 +128,10 @@ async function fetchWithFallback<T>(url: string, fallback: T, options?: RequestI
       return data.results as T;
     }
     return data as T;
-  } catch (err) {
+  } catch (err: any) {
+    if (typeof window === 'undefined') {
+      console.warn(`[SSR API Notice] Backend at ${apiUrl(url)} not reached (${err?.message || err}). Using fallback.`);
+    }
     return fallback;
   }
 }
@@ -478,11 +496,11 @@ export async function deleteInquiry(id: number, token?: string): Promise<boolean
 // --- ABOUT INFO & SETTINGS ---
 export async function updateAboutInfo(data: Partial<AboutInfo>, token?: string): Promise<AboutInfo | null> {
   try {
-    const res = await fetch(apiUrl('/about/'), {
+    const res = await fetchWithTimeout(apiUrl('/about/'), {
       method: 'PUT',
       headers: getAuthHeaders(token),
       body: JSON.stringify(data),
-    });
+    }, 8000);
     if (res.ok) return await res.json();
   } catch (e) {}
   return null;
@@ -491,11 +509,11 @@ export async function updateAboutInfo(data: Partial<AboutInfo>, token?: string):
 // --- ADMISSION GUIDE ---
 export async function updateAdmissionGuide(data: Partial<AdmissionGuide>, token?: string): Promise<AdmissionGuide | null> {
   try {
-    const res = await fetch(apiUrl('/admission-guide/'), {
+    const res = await fetchWithTimeout(apiUrl('/admission-guide/'), {
       method: 'PUT',
       headers: getAuthHeaders(token),
       body: JSON.stringify(data),
-    });
+    }, 8000);
     if (res.ok) return await res.json();
   } catch (e) {}
   return null;
@@ -585,11 +603,11 @@ export async function updateSiteSettings(data: Partial<SiteSettings>, token?: st
 
   // 2. Persist to Django backend
   try {
-    const res = await fetch(apiUrl('/site-settings/'), {
+    const res = await fetchWithTimeout(apiUrl('/site-settings/'), {
       method: 'PUT',
       headers: getAuthHeaders(token),
       body: JSON.stringify(data),
-    });
+    }, 8000);
     if (res.ok) {
       const saved = await res.json();
       if (typeof window !== 'undefined') {
@@ -597,8 +615,13 @@ export async function updateSiteSettings(data: Partial<SiteSettings>, token?: st
         window.dispatchEvent(new CustomEvent('sjis_settings_updated', { detail: saved }));
       }
       return saved;
+    } else {
+      const err = await res.json().catch(() => null);
+      console.warn('Backend rejected site settings:', res.status, err);
     }
-  } catch (e) {}
+  } catch (e) {
+    console.warn('Network error or timeout on PUT /site-settings/:', e);
+  }
 
   // If backend was temporarily unreachable, return optimistic data so user experience is not blocked
   if (typeof window !== 'undefined') {
@@ -620,11 +643,11 @@ async function listResource<T>(path: string, activeOnly: boolean): Promise<T[]> 
 async function saveResource<T extends { id?: number }>(path: string, item: Partial<T>, token?: string): Promise<T | null> {
   try {
     const isUpdate = typeof item.id === 'number';
-    const res = await fetch(apiUrl(`/${path}/${isUpdate ? `${item.id}/` : ''}`), {
+    const res = await fetchWithTimeout(apiUrl(`/${path}/${isUpdate ? `${item.id}/` : ''}`), {
       method: isUpdate ? 'PUT' : 'POST',
       headers: getAuthHeaders(token),
       body: JSON.stringify(item),
-    });
+    }, 8000);
     if (res.ok) return await res.json();
   } catch (e) {}
   return null;

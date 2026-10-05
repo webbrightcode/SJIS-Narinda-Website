@@ -5,6 +5,7 @@ from rest_framework import viewsets, generics, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.authtoken.models import Token
 from .models import (
     SliderSlide,
@@ -271,7 +272,17 @@ class SiteSettingsView(APIView):
         return Response(SiteSettingsSerializer(get_site_settings()).data)
 
     def put(self, request):
-        serializer = SiteSettingsSerializer(get_site_settings(), data=request.data, partial=True)
+        data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+        # Sanitize optional URL fields to prevent validation errors on placeholders or missing protocol
+        for url_field in ['facebook_url', 'instagram_url', 'youtube_url', 'map_embed_url', 'map_link']:
+            if url_field in data and isinstance(data[url_field], str):
+                val = data[url_field].strip()
+                if val.endswith('…') or val.endswith('...') or val in ['https://', 'http://', '']:
+                    data[url_field] = ''
+                elif val and not val.startswith(('http://', 'https://')):
+                    data[url_field] = f'https://{val}'
+
+        serializer = SiteSettingsSerializer(get_site_settings(), data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)

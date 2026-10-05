@@ -13,11 +13,20 @@ from core.models import (
 class Command(BaseCommand):
     help = "Seeds comprehensive initial data for St. Joseph International School, Narinda"
 
-    def handle(self, *args, **kwargs):
-        self.stdout.write("Seeding SJIS Narinda database...")
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--clean',
+            action='store_true',
+            help='Wipe existing records before re-seeding',
+        )
+
+    def handle(self, *args, **options):
+        clean = options.get('clean', False)
+        self.stdout.write("Checking SJIS Narinda baseline data...")
 
         # 1. Slider Slides
-        SliderSlide.objects.all().delete()
+        if clean:
+            SliderSlide.objects.all().delete()
         slides_data = [
             {
                 "title": "Nurturing Excellence, Inspiring Leadership",
@@ -64,13 +73,18 @@ class Command(BaseCommand):
                 "order": 4,
             },
         ]
-        for data in slides_data:
-            SliderSlide.objects.create(**data)
-        self.stdout.write(self.style.SUCCESS(f"Created {len(slides_data)} Hero Slides."))
+        if clean or not SliderSlide.objects.exists():
+            for data in slides_data:
+                SliderSlide.objects.create(**data)
+            self.stdout.write(self.style.SUCCESS(f"Created {len(slides_data)} Hero Slides."))
+        else:
+            self.stdout.write("Hero slides already present, skipping.")
 
         # 2. About Info
-        AboutInfo.objects.all().delete()
-        AboutInfo.objects.create(
+        if clean:
+            AboutInfo.objects.all().delete()
+        if clean or not AboutInfo.objects.exists():
+            AboutInfo.objects.create(
             title="St. Joseph International School, Narinda",
             tagline="Fostering Academic Excellence & Moral Integrity",
             history=(
@@ -165,11 +179,14 @@ class Command(BaseCommand):
                     "icon": "Trophy"
                 }
             ]
-        )
-        self.stdout.write(self.style.SUCCESS("Created About Us profile and institutional data."))
+            )
+            self.stdout.write(self.style.SUCCESS("Created About Us profile and institutional data."))
+        else:
+            self.stdout.write("About Us profile already present, skipping.")
 
         # 3. Notices
-        Notice.objects.all().delete()
+        if clean:
+            Notice.objects.all().delete()
         today = datetime.date.today()
         notices_data = [
             {
@@ -248,12 +265,16 @@ class Command(BaseCommand):
                 "views_count": 890
             }
         ]
-        for data in notices_data:
-            Notice.objects.create(**data)
-        self.stdout.write(self.style.SUCCESS(f"Created {len(notices_data)} Notices."))
+        if clean or not Notice.objects.exists():
+            for data in notices_data:
+                Notice.objects.create(**data)
+            self.stdout.write(self.style.SUCCESS(f"Created {len(notices_data)} Notices."))
+        else:
+            self.stdout.write("Notices already present, skipping.")
 
         # 4. Clubs
-        Club.objects.all().delete()
+        if clean:
+            Club.objects.all().delete()
         clubs_data = [
             {
                 "name": "Josephite Science & Robotics Club (JSRC)",
@@ -402,13 +423,18 @@ class Command(BaseCommand):
                 "order": 6,
             }
         ]
-        for data in clubs_data:
-            Club.objects.create(**data)
-        self.stdout.write(self.style.SUCCESS(f"Created {len(clubs_data)} Student Clubs."))
+        if clean or not Club.objects.exists():
+            for data in clubs_data:
+                Club.objects.create(**data)
+            self.stdout.write(self.style.SUCCESS(f"Created {len(clubs_data)} Student Clubs."))
+        else:
+            self.stdout.write("Student clubs already present, skipping.")
 
         # 5. Admission Guide
-        AdmissionGuide.objects.all().delete()
-        AdmissionGuide.objects.create(
+        if clean:
+            AdmissionGuide.objects.all().delete()
+        if clean or not AdmissionGuide.objects.exists():
+            AdmissionGuide.objects.create(
             academic_year="2026-2027",
             title="Admissions for Academic Session 2026-2027",
             overview=(
@@ -512,11 +538,14 @@ class Command(BaseCommand):
                 {"event": "Publication of Merit List", "date": "December 8, 2026"},
                 {"event": "Orientation & Session Commencement", "date": "January 10, 2027"}
             ]
-        )
-        self.stdout.write(self.style.SUCCESS("Created comprehensive Admission Guide."))
+            )
+            self.stdout.write(self.style.SUCCESS("Created comprehensive Admission Guide."))
+        else:
+            self.stdout.write("Admission Guide already present, skipping.")
 
         # 6. Gallery Items
-        GalleryItem.objects.all().delete()
+        if clean:
+            GalleryItem.objects.all().delete()
         gallery_data = [
             {
                 "title": "Historic Narinda Campus Quadrangle",
@@ -609,8 +638,11 @@ class Command(BaseCommand):
                 "order": 10,
             }
         ]
-        for data in gallery_data:
-            GalleryItem.objects.create(**data)
-        self.stdout.write(self.style.SUCCESS(f"Created {len(gallery_data)} Gallery Items."))
+        if clean or not GalleryItem.objects.exists():
+            for data in gallery_data:
+                GalleryItem.objects.create(**data)
+            self.stdout.write(self.style.SUCCESS(f"Created {len(gallery_data)} Gallery Items."))
+        else:
+            self.stdout.write("Gallery items already present, skipping.")
 
         self.stdout.write(self.style.SUCCESS("All SJIS Narinda initial data seeded successfully!"))

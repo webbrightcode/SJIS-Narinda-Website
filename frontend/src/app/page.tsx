@@ -10,7 +10,8 @@ import { AdmissionCTA } from '@/components/sections/AdmissionCTA';
 import { TestimonialsSection } from '@/components/sections/TestimonialsSection';
 import { CampusLocation } from '@/components/sections/CampusLocation';
 
-export const revalidate = 60; // ISR cache revalidation
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function HomePage() {
   const bundle = await getLandingBundle();

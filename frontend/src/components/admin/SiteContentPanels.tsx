@@ -186,15 +186,20 @@ export const SiteSettingsPanel: React.FC<{ token?: string }> = ({ token }) => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    const saved = await updateSiteSettings(form, token);
-    setSaving(false);
-    if (saved) {
-      setForm({ ...DEFAULT_SITE_SETTINGS, ...saved });
-      setFlash({ ok: true, text: 'Site settings published. The live website will show the changes immediately.' });
-    } else {
-      setFlash({ ok: false, text: 'Could not save settings. Please check the fields (URLs must start with https://).' });
+    try {
+      const saved = await updateSiteSettings(form, token);
+      if (saved) {
+        setForm({ ...DEFAULT_SITE_SETTINGS, ...saved });
+        setFlash({ ok: true, text: 'Site settings published. The live website will show the changes immediately.' });
+      } else {
+        setFlash({ ok: false, text: 'Could not save settings. Please check that URLs start with https:// and all required fields are filled.' });
+      }
+    } catch (err) {
+      setFlash({ ok: false, text: 'Network request failed or timed out. Please verify server connection.' });
+    } finally {
+      setSaving(false);
+      setTimeout(() => setFlash(null), 5000);
     }
-    setTimeout(() => setFlash(null), 5000);
   };
 
   if (loading) {
@@ -549,13 +554,20 @@ export const TestimonialsManager: React.FC<{ token?: string }> = ({ token }) => 
     e.preventDefault();
     if (!editing) return;
     setSaving(true);
-    const saved = await saveTestimonial(editing, token);
-    setSaving(false);
-    if (saved) {
-      notify(true, editing.id ? 'Testimonial updated.' : 'Testimonial added.');
-      setEditing(null);
-      load();
-    } else notify(false, 'Could not save testimonial. Avatar must be a https:// URL.');
+    try {
+      const saved = await saveTestimonial(editing, token);
+      if (saved) {
+        notify(true, editing.id ? 'Testimonial updated.' : 'Testimonial added.');
+        setEditing(null);
+        load();
+      } else {
+        notify(false, 'Could not save testimonial. Avatar must be a https:// URL.');
+      }
+    } catch (err) {
+      notify(false, 'Request timed out or network error.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const [deletingItem, setDeletingItem] = useState<Testimonial | null>(null);
@@ -740,13 +752,20 @@ export const FaqManager: React.FC<{ token?: string }> = ({ token }) => {
     e.preventDefault();
     if (!editing) return;
     setSaving(true);
-    const saved = await saveFaq(editing, token);
-    setSaving(false);
-    if (saved) {
-      notify(true, editing.id ? 'FAQ updated.' : 'FAQ added.');
-      setEditing(null);
-      load();
-    } else notify(false, 'Could not save FAQ.');
+    try {
+      const saved = await saveFaq(editing, token);
+      if (saved) {
+        notify(true, editing.id ? 'FAQ updated.' : 'FAQ added.');
+        setEditing(null);
+        load();
+      } else {
+        notify(false, 'Could not save FAQ.');
+      }
+    } catch (err) {
+      notify(false, 'Request timed out or network error.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const [deletingFaq, setDeletingFaq] = useState<FAQ | null>(null);
@@ -915,16 +934,21 @@ export const FacultyManager: React.FC<{ token?: string }> = ({ token }) => {
     e.preventDefault();
     if (!editing) return;
     setSaving(true);
-    const saved = await saveStaffMember(editing, token);
-    setSaving(false);
-    if (saved) {
-      setFlash({ ok: true, text: `"${saved.name}" saved successfully.` });
-      setEditing(null);
-      load();
-    } else {
-      setFlash({ ok: false, text: 'Could not save member. Please verify required fields.' });
+    try {
+      const saved = await saveStaffMember(editing, token);
+      if (saved) {
+        setFlash({ ok: true, text: `"${saved.name}" saved successfully.` });
+        setEditing(null);
+        load();
+      } else {
+        setFlash({ ok: false, text: 'Could not save member. Please verify required fields.' });
+      }
+    } catch (err) {
+      setFlash({ ok: false, text: 'Request timed out or network error.' });
+    } finally {
+      setSaving(false);
+      setTimeout(() => setFlash(null), 4000);
     }
-    setTimeout(() => setFlash(null), 4000);
   };
 
   const [deletingMember, setDeletingMember] = useState<StaffMember | null>(null);
