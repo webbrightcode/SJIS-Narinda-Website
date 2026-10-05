@@ -22,8 +22,8 @@ import {
   Phone,
   HelpCircle,
 } from 'lucide-react';
-import { getNoticeBySlug, getNotices, getAboutInfo } from '@/lib/api';
-import { Notice, AboutInfo } from '@/lib/types';
+import { getNoticeBySlug, getNotices } from '@/lib/api';
+import { Notice } from '@/lib/types';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { NoticeActions } from './NoticeActions';
@@ -59,10 +59,9 @@ export async function generateMetadata({ params }: NoticeDetailPageProps) {
 
 export default async function NoticeDetailPage({ params }: NoticeDetailPageProps) {
   const { slug } = await params;
-  const [notice, allNotices, about] = await Promise.all([
+  const [notice, allNotices] = await Promise.all([
     getNoticeBySlug(slug),
     getNotices('all', '', true),
-    getAboutInfo(),
   ]);
 
   if (!notice) {
@@ -80,8 +79,6 @@ export default async function NoticeDetailPage({ params }: NoticeDetailPageProps
     ? '/circulars/sjis-official-circular.pdf'
     : rawAttachmentUrl;
   const isImageAttachment = safeAttachmentUrl && /\.(jpg|jpeg|png|webp|gif)$/i.test(safeAttachmentUrl);
-  const headTitle = about?.principal_title || 'Administrator';
-  const headName = about?.principal_name || 'Brother Leo Pereira, CSC';
 
   return (
     <div className="bg-slate-50 min-h-screen pb-24">
@@ -173,40 +170,12 @@ export default async function NoticeDetailPage({ params }: NoticeDetailPageProps
               </div>
 
               {/* Main Notice Content Body */}
-              <div className="py-8 prose prose-slate max-w-none text-slate-700 text-base sm:text-lg leading-relaxed whitespace-pre-line border-b border-slate-200">
+              <div className="py-8 prose prose-slate max-w-none text-slate-700 text-base sm:text-lg leading-relaxed whitespace-pre-line">
                 {notice.content}
               </div>
 
-              {/* Official Seal & Authorizing Sign-Off */}
-              <div className="pt-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-                <div className="space-y-1">
-                  <div className="text-xs uppercase font-bold text-slate-400 tracking-wider">
-                    Authorizing Authority
-                  </div>
-                  <div className="text-base sm:text-lg font-black text-[#00183F]">
-                    {headName}
-                  </div>
-                  <div className="text-xs font-semibold text-[#C8102E]">
-                    {headTitle} & Head of Institution
-                  </div>
-                  <div className="text-xs text-slate-500">
-                    St. Joseph International School, Narinda
-                  </div>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-black text-lg shadow-sm">
-                    SJ
-                  </div>
-                  <div className="text-xs">
-                    <div className="font-bold text-[#00183F]">Verified Academic Circular</div>
-                    <div className="text-slate-500 text-[11px]">Congregation of Holy Cross</div>
-                  </div>
-                </div>
-              </div>
-
               {/* Client Interactive Action Buttons (Print, Copy, Share, Counter) */}
-              <div className="mt-8 pt-6 border-t border-slate-100">
+              <div className="pt-6 border-t border-slate-200">
                 <NoticeActions
                   noticeId={notice.id}
                   noticeTitle={notice.title}
