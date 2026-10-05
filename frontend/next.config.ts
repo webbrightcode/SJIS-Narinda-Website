@@ -2,6 +2,12 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  async rewrites() {
+    const backend = (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api')
+      .replace(/\/api\/?$/, '');
+    if (!/^https?:\/\//.test(backend)) return [];
+    return [{ source: '/media/:path*', destination: `${backend}/media/:path*` }];
+  },
   images: {
     formats: ['image/webp'],
     remotePatterns: [

@@ -823,6 +823,8 @@ export default function AdminDashboardPage() {
     if (updated) {
       setAboutInfo(updated);
       showToast('School profile & settings saved!');
+    } else {
+      showToast('Could not save the profile. Please check the fields and try again.', 'error');
     }
   };
 
