@@ -138,7 +138,7 @@ export default function PrivacyPolicyPage() {
                   Questions regarding student records or data processing can be addressed directly to our administrative registrar.
                 </p>
                 <a
-                  href="mailto:privacy@sjis-narinda.edu.bd"
+                  href="mailto:sjisnarinda2021@gmail.com"
                   className="text-xs font-semibold text-[#C8102E] hover:underline inline-flex items-center gap-1 mt-1"
                 >
                   Contact Registrar <ArrowRight className="w-3 h-3" />
@@ -363,15 +363,15 @@ export default function PrivacyPolicyPage() {
                 <div className="text-xs text-slate-300 space-y-2">
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-[#D4AF37] shrink-0" />
-                    <span>83 Narinda Road, Narinda, Dhaka-1100, Bangladesh</span>
+                    <span>32 Shah Shaheb Lane, Narinda, Dhaka-1100, Bangladesh</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Mail className="w-4 h-4 text-[#D4AF37] shrink-0" />
-                    <span>info@sjis-narinda.edu.bd / registrar@sjis-narinda.edu.bd</span>
+                    <span>sjisnarinda2021@gmail.com</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Phone className="w-4 h-4 text-[#D4AF37] shrink-0" />
-                    <span>+880 2-47118234 / +880 1711-234567</span>
+                    <span>+880 1746-866393</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-[#D4AF37] shrink-0" />

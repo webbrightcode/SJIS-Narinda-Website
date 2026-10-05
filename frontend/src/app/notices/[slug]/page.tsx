@@ -438,11 +438,11 @@ export default async function NoticeDetailPage({ params }: NoticeDetailPageProps
               <div className="space-y-2 text-xs">
                 <div className="flex items-center gap-2.5 text-slate-200">
                   <Phone className="w-3.5 h-3.5 text-[#D4AF37] shrink-0" />
-                  <span>+880 2-47118234 / +880 1711-234567</span>
+                  <span>+880 1746-866393</span>
                 </div>
                 <div className="flex items-center gap-2.5 text-slate-200">
                   <Mail className="w-3.5 h-3.5 text-[#D4AF37] shrink-0" />
-                  <span>info@sjis-narinda.edu.bd</span>
+                  <span>sjisnarinda2021@gmail.com</span>
                 </div>
                 <div className="flex items-center gap-2.5 text-slate-300 text-[11px]">
                   <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />

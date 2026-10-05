@@ -374,15 +374,15 @@ export default function TermsAndConditionsPage() {
                 <div className="text-xs text-slate-300 space-y-2">
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-[#D4AF37] shrink-0" />
-                    <span>83 Narinda Road, Narinda, Dhaka-1100, Bangladesh</span>
+                    <span>32 Shah Shaheb Lane, Narinda, Dhaka-1100, Bangladesh</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Mail className="w-4 h-4 text-[#D4AF37] shrink-0" />
-                    <span>administration@sjis-narinda.edu.bd / headmaster@sjis-narinda.edu.bd</span>
+                    <span>sjisnarinda2021@gmail.com</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Phone className="w-4 h-4 text-[#D4AF37] shrink-0" />
-                    <span>+880 2-47118234 / +880 1711-234567</span>
+                    <span>+880 1746-866393</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-[#D4AF37] shrink-0" />
