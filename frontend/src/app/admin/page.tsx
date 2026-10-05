@@ -57,6 +57,8 @@ import {
   Globe,
   Quote,
   Building2,
+  Loader2,
+  Upload,
 } from 'lucide-react';
 import {
   SliderSlide,
@@ -100,6 +102,7 @@ import {
   getSystemDiagnostics,
   getFullDataBackup,
   getFacultyAndStaff,
+  uploadMediaFile,
 } from '@/lib/api';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -213,6 +216,49 @@ export default function AdminDashboardPage() {
     message: '',
     onConfirm: () => {},
   });
+
+  // Administrator Direct Photo Upload State & Handler
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [showPhotoUrlInput, setShowPhotoUrlInput] = useState(false);
+
+  const handlePrincipalImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 25 * 1024 * 1024) {
+      showToast('Image file size must be less than 25MB', 'error');
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      const res = await uploadMediaFile(file, token || undefined);
+      if (res && res.url) {
+        setAboutInfo((prev) => (prev ? { ...prev, principal_image_url: res.url } : prev));
+        showToast('Administrator photo uploaded successfully!');
+        setUploadingPhoto(false);
+        return;
+      }
+    } catch (err) {
+      console.warn('Backend upload failed, encoding locally:', err);
+    }
+
+    // Fallback: encode as Base64 Data URL so upload never fails even offline
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      if (dataUrl) {
+        setAboutInfo((prev) => (prev ? { ...prev, principal_image_url: dataUrl } : prev));
+        showToast('Administrator photo attached successfully!');
+      }
+      setUploadingPhoto(false);
+    };
+    reader.onerror = () => {
+      showToast('Failed to read image file', 'error');
+      setUploadingPhoto(false);
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Check stored auth
   useEffect(() => {
@@ -2745,44 +2791,118 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-5 items-start">
-                    <div className="sm:col-span-8">
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                        Photo URL
+                  {/* Photo Upload Section */}
+                  <div className="space-y-3 pt-3 border-t border-amber-200/60">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                        Administrator Official Portrait Photo
                       </label>
-                      <input
-                        type="text"
-                        value={aboutInfo.principal_image_url}
-                        onChange={(e) => setAboutInfo({ ...aboutInfo, principal_image_url: e.target.value })}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-[#00183F] outline-none"
-                      />
-                      <span className="text-[11px] text-slate-500 mt-1 block">
-                        Accepts direct web image URLs or local image paths.
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowPhotoUrlInput(!showPhotoUrlInput)}
+                        className="text-[11px] font-bold text-[#00183F] hover:text-[#C8102E] underline cursor-pointer"
+                      >
+                        {showPhotoUrlInput ? 'Hide Web URL Option' : 'Or enter web URL manually'}
+                      </button>
                     </div>
 
-                    <div className="sm:col-span-4 flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
-                      <div className="w-14 h-14 rounded-lg overflow-hidden bg-slate-100 shrink-0 border border-slate-200 relative">
-                        {aboutInfo.principal_image_url ? (
-                          <img
-                            src={aboutInfo.principal_image_url}
-                            alt={aboutInfo.principal_name || 'Preview'}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              (e.target as any).src = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200';
-                            }}
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[10px] text-slate-400">
-                            No Photo
-                          </div>
-                        )}
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
+                      {/* Left: Active Photo Preview */}
+                      <div className="md:col-span-5 flex items-center gap-4">
+                        <div className="relative w-24 h-28 sm:w-28 sm:h-32 rounded-2xl overflow-hidden bg-slate-100 shrink-0 border-2 border-amber-300 shadow-md">
+                          {aboutInfo.principal_image_url ? (
+                            <img
+                              src={aboutInfo.principal_image_url}
+                              alt={aboutInfo.principal_name || 'Administrator'}
+                              className="w-full h-full object-cover object-top"
+                              onError={(e) => {
+                                (e.target as any).src = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center text-slate-400">
+                              <ImageIcon className="w-8 h-8 mb-1 text-slate-300" />
+                              <span className="text-[10px] font-semibold">No Photo</span>
+                            </div>
+                          )}
+                          {uploadingPhoto && (
+                            <div className="absolute inset-0 bg-[#00183F]/80 backdrop-blur-xs flex flex-col items-center justify-center text-white">
+                              <Loader2 className="w-6 h-6 animate-spin text-amber-400 mb-1" />
+                              <span className="text-[10px] font-bold">Uploading...</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="min-w-0 space-y-1">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[10px] font-bold border border-emerald-200">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            Official Head Portrait
+                          </span>
+                          <h5 className="font-black text-sm text-[#00183F] truncate">
+                            {aboutInfo.principal_name || 'Administrator'}
+                          </h5>
+                          <p className="text-xs font-bold text-[#C8102E] truncate">
+                            {aboutInfo.principal_title || 'Administrator'}
+                          </p>
+                          {aboutInfo.principal_image_url && (
+                            <button
+                              type="button"
+                              onClick={() => setAboutInfo({ ...aboutInfo, principal_image_url: '' })}
+                              className="text-[11px] font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1 pt-1 cursor-pointer"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Remove Photo</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-xs min-w-0">
-                        <div className="font-bold text-[#00183F] truncate">{aboutInfo.principal_name || 'Name'}</div>
-                        <div className="text-slate-500 truncate">{aboutInfo.principal_title || 'Administrator'}</div>
+
+                      {/* Right: Direct File Upload Dropzone */}
+                      <div className="md:col-span-7">
+                        <label
+                          className={`relative flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${
+                            uploadingPhoto
+                              ? 'border-amber-400 bg-amber-50/50 pointer-events-none'
+                              : 'border-slate-300 bg-slate-50/80 hover:bg-amber-50/40 hover:border-amber-400'
+                          }`}
+                        >
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handlePrincipalImageUpload}
+                            disabled={uploadingPhoto}
+                            className="hidden"
+                          />
+                          <div className="w-12 h-12 rounded-2xl bg-amber-100 text-[#00183F] flex items-center justify-center mb-2 shadow-xs">
+                            <UploadCloud className="w-6 h-6 text-[#00183F]" />
+                          </div>
+                          <div className="text-center space-y-1">
+                            <p className="text-xs sm:text-sm font-bold text-[#00183F]">
+                              <span>Click to choose photo from device</span> or drag here
+                            </p>
+                            <p className="text-[11px] text-slate-500">
+                              Supports JPG, PNG, WEBP (stored directly to server media storage)
+                            </p>
+                          </div>
+                        </label>
                       </div>
                     </div>
+
+                    {/* Optional URL Input */}
+                    {showPhotoUrlInput && (
+                      <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5 transition-all">
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600">
+                          External Web Image URL
+                        </label>
+                        <input
+                          type="text"
+                          value={aboutInfo.principal_image_url}
+                          placeholder="https://... or /media/uploads/..."
+                          onChange={(e) => setAboutInfo({ ...aboutInfo, principal_image_url: e.target.value })}
+                          className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#00183F] outline-none bg-white"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div>

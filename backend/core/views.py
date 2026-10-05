@@ -508,3 +508,42 @@ class DataRestoreView(APIView):
         })
 
 
+class FileUploadView(APIView):
+    """
+    Direct file upload endpoint for administrator photos, sliders, notices, and documents.
+    Saves directly to MEDIA_ROOT / uploads and returns public media URL.
+    """
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request, format=None):
+        import uuid
+        import os
+        from django.core.files.storage import default_storage
+
+        file_obj = request.FILES.get('file') or request.FILES.get('image')
+        if not file_obj:
+            return Response({'error': 'No file uploaded'}, status=status.HTTP_400_BAD_REQUEST)
+
+        ext = os.path.splitext(file_obj.name)[1].lower()
+        allowed_extensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg', '.pdf']
+        if ext not in allowed_extensions:
+            return Response(
+                {'error': f'Unsupported file type {ext}. Allowed: {", ".join(allowed_extensions)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        safe_name = "".join(c for c in file_obj.name if c.isalnum() or c in "._-")
+        filename = f"{uuid.uuid4().hex[:10]}_{safe_name}"
+        save_path = os.path.join('uploads', filename)
+
+        actual_path = default_storage.save(save_path, file_obj)
+        file_url = f"{settings.MEDIA_URL}{actual_path}"
+
+        return Response({
+            'url': file_url,
+            'name': file_obj.name,
+            'size': file_obj.size,
+        }, status=status.HTTP_201_CREATED)
+
+
+

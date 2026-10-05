@@ -661,3 +661,31 @@ export async function getFacultyAndStaff(activeOnly = true, roleType?: string): 
 export const saveStaffMember = (m: Partial<StaffMember>, token?: string) => saveResource<StaffMember>('faculty', m, token);
 export const deleteStaffMember = (id: number, token?: string) => removeResource('faculty', id, token);
 
+// --- FILE & IMAGE UPLOAD ---
+export async function uploadMediaFile(
+  file: File,
+  token?: string
+): Promise<{ url: string; name?: string; size?: number } | null> {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    const authToken = token || (typeof window !== 'undefined' ? localStorage.getItem('sjis_admin_token') : null);
+    const headers: Record<string, string> = {};
+    if (authToken) {
+      headers['Authorization'] = `Token ${authToken}`;
+    }
+    const res = await fetch(apiUrl('/upload/'), {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn('API file upload failed, falling back to local encoding:', err);
+  }
+  return null;
+}
+
+

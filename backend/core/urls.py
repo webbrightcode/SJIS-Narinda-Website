@@ -19,6 +19,7 @@ from .views import (
     TestimonialViewSet,
     FAQViewSet,
     StaffMemberViewSet,
+    FileUploadView,
 )
 
 router = DefaultRouter()
@@ -34,6 +35,7 @@ router.register(r'inquiries', AdmissionInquiryViewSet, basename='inquiry')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('upload/', FileUploadView.as_view(), name='file-upload'),
     path('site-settings/', SiteSettingsView.as_view(), name='site-settings'),
     path('about/', AboutInfoView.as_view(), name='about-info'),
     path('admission-guide/', AdmissionGuideView.as_view(), name='admission-guide'),
