@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth import authenticate
 from django.shortcuts import get_object_or_404
 from django.db import models
@@ -543,17 +544,34 @@ class FileUploadView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        from django.core.files.base import ContentFile
+        from .image_utils import CONVERTIBLE_EXTENSIONS, image_to_webp_bytes, webp_name
+
         safe_name = "".join(c for c in file_obj.name if c.isalnum() or c in "._-")
         filename = f"{uuid.uuid4().hex[:10]}_{safe_name}"
-        save_path = os.path.join('uploads', filename)
+        content = file_obj
+        display_name = file_obj.name
+        size = file_obj.size
 
-        actual_path = default_storage.save(save_path, file_obj)
+        # Convert raster images to optimised WebP (SVG/GIF/WebP/PDF stored as-is).
+        if ext in CONVERTIBLE_EXTENSIONS:
+            try:
+                webp_bytes = image_to_webp_bytes(file_obj)
+                filename = webp_name(file_obj.name)
+                content = ContentFile(webp_bytes)
+                display_name = filename
+                size = len(webp_bytes)
+            except Exception:
+                file_obj.seek(0)  # unreadable image: keep the original upload
+
+        save_path = os.path.join('uploads', filename)
+        actual_path = default_storage.save(save_path, content)
         file_url = f"{settings.MEDIA_URL}{actual_path}"
 
         return Response({
             'url': file_url,
-            'name': file_obj.name,
-            'size': file_obj.size,
+            'name': display_name,
+            'size': size,
         }, status=status.HTTP_201_CREATED)
 
 

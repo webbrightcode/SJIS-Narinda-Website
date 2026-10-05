@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { ImageIcon, Upload, Sparkles, X, Check } from 'lucide-react';
+import { ImageIcon, Upload, Sparkles, X, Check, Loader2 } from 'lucide-react';
+import { uploadMediaFile } from '@/lib/api';
 
 interface ImageHelperProps {
   value: string;
@@ -18,6 +19,7 @@ export const ImageHelper: React.FC<ImageHelperProps> = ({
   required = false,
 }) => {
   const [showPresets, setShowPresets] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const presets = [
     {
@@ -54,10 +56,25 @@ export const ImageHelper: React.FC<ImageHelperProps> = ({
     },
   ];
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target;
+    const file = input.files?.[0];
     if (!file) return;
 
+    setUploading(true);
+    try {
+      // Preferred: upload to the server, which converts the image to optimised WebP.
+      const res = await uploadMediaFile(file);
+      if (res && res.url) {
+        onChange(res.url);
+        return;
+      }
+    } finally {
+      setUploading(false);
+      input.value = '';
+    }
+
+    // Fallback (server unreachable): embed as a data URL so the upload never fails.
     const reader = new FileReader();
     reader.onload = (event) => {
       const dataUrl = event.target?.result as string;
@@ -76,8 +93,8 @@ export const ImageHelper: React.FC<ImageHelperProps> = ({
         </label>
         <div className="flex items-center gap-2">
           <label className="text-[11px] font-bold text-[#00183F] hover:text-[#C8102E] cursor-pointer flex items-center gap-1">
-            <Upload className="w-3 h-3" />
-            <span>Upload Device File</span>
+            {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+            <span>{uploading ? 'Uploading…' : 'Upload Device File'}</span>
             <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
           </label>
           <span className="text-slate-300">•</span>
