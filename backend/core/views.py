@@ -205,12 +205,25 @@ class ClubViewSet(viewsets.ModelViewSet):
 
 
 class AdmissionGuideView(APIView):
+    @staticmethod
+    def _is_admin(request):
+        """True only if the request carries a valid admin auth token."""
+        from rest_framework.authentication import TokenAuthentication
+        try:
+            result = TokenAuthentication().authenticate(request)
+        except Exception:
+            return False
+        return bool(result and result[0] and result[0].is_active)
+
     def get(self, request):
         guide = AdmissionGuide.objects.first()
         if not guide:
             guide = AdmissionGuide.objects.create()
-        serializer = AdmissionGuideSerializer(guide)
-        return Response(serializer.data)
+        data = AdmissionGuideSerializer(guide).data
+        if not guide.show_fees and not self._is_admin(request):
+            # Fee amounts never leave the server for public visitors.
+            data['fee_structure'] = []
+        return Response(data)
 
     def put(self, request):
         guide = AdmissionGuide.objects.first()

@@ -143,6 +143,7 @@ class AdmissionGuide(models.Model):
     application_steps = models.JSONField(default=list, blank=True, help_text="[{'step': 1, 'title': '...', 'description': '...'}]")
     required_documents = models.JSONField(default=list, blank=True)
     fee_structure = models.JSONField(default=list, blank=True, help_text="[{'grade': '...', 'admission_fee': '...', 'monthly_tuition': '...'}]")
+    show_fees = models.BooleanField(default=True, help_text="If off, fee amounts are hidden from the public website and API (visible only to logged-in admins).")
     important_dates = models.JSONField(default=list, blank=True, help_text="[{'event': '...', 'date': '...'}]")
     updated_at = models.DateTimeField(auto_now=True)
 

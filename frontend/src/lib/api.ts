@@ -209,8 +209,14 @@ export async function getClubBySlug(slug: string): Promise<Club | null> {
   return FALLBACK_CLUBS.find((c) => c.slug === slug) || null;
 }
 
-export async function getAdmissionGuide(): Promise<AdmissionGuide> {
-  return fetchWithFallback<AdmissionGuide>('/admission-guide/', FALLBACK_ADMISSION);
+export async function getAdmissionGuide(token?: string): Promise<AdmissionGuide> {
+  // Fail-closed fallback: never show placeholder fees if the API is unreachable.
+  // Auth headers (admin only) let the admin panel see fees even when hidden publicly.
+  return fetchWithFallback<AdmissionGuide>(
+    '/admission-guide/',
+    { ...FALLBACK_ADMISSION, show_fees: false, fee_structure: [] },
+    { headers: getAuthHeaders(token) }
+  );
 }
 
 export async function getGallery(category?: string): Promise<GalleryItem[]> {

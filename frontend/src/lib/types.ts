@@ -125,6 +125,7 @@ export interface AdmissionGuide {
   application_steps: ApplicationStep[];
   required_documents: string[];
   fee_structure: FeeItem[];
+  show_fees?: boolean;
   important_dates: ImportantDate[];
 }
 

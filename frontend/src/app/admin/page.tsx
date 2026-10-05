@@ -338,7 +338,7 @@ export default function AdminDashboardPage() {
         getGallery('all'),
         getInquiries('all', '', currentToken),
         getAboutInfo(),
-        getAdmissionGuide(),
+        getAdmissionGuide(currentToken),
         getSystemDiagnostics(currentToken),
         getFacultyAndStaff(false, 'admin'),
       ]);
@@ -2417,6 +2417,21 @@ export default function AdminDashboardPage() {
                   <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
                     Tuition & Fee Structure (Editable Tiers)
                   </h4>
+                  <label className="flex items-start gap-3 p-4 rounded-2xl bg-amber-50 border border-amber-200 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={admissionGuide.show_fees !== false}
+                      onChange={(e) =>
+                        setAdmissionGuide({ ...admissionGuide, show_fees: e.target.checked })
+                      }
+                      className="mt-0.5 w-4 h-4 accent-[#00183F]"
+                    />
+                    <span className="text-xs text-slate-700">
+                      <strong className="block text-[#00183F]">Show fee amounts on the public website</strong>
+                      When unchecked, amounts are hidden from visitors (not even sent to their browser) and the
+                      admission page asks them to contact the office. Only admins see them here. Remember to click Save.
+                    </span>
+                  </label>
                   <div className="space-y-3">
                     {admissionGuide.fee_structure?.map((fee, idx) => (
                       <div

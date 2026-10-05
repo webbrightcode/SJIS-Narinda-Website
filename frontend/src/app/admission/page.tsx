@@ -24,7 +24,8 @@ import { AdmissionFAQ } from '@/components/sections/AdmissionFAQ';
 import { ScrollReveal } from '@/components/ui/ScrollReveal';
 
 export default function AdmissionPage() {
-  const [guide, setGuide] = useState<AdmissionGuide>(FALLBACK_ADMISSION);
+  const [guide, setGuide] = useState<AdmissionGuide>({ ...FALLBACK_ADMISSION, fee_structure: [] });
+  const [loaded, setLoaded] = useState(false);
   const [formData, setFormData] = useState({
     student_name: '',
     parent_name: '',
@@ -44,6 +45,7 @@ export default function AdmissionPage() {
     async function loadData() {
       const data = await getAdmissionGuide();
       setGuide(data);
+      setLoaded(true);
     }
     loadData();
   }, []);
@@ -212,6 +214,21 @@ export default function AdmissionPage() {
             />
           </ScrollReveal>
 
+          {loaded && (guide.show_fees === false || !guide.fee_structure?.length) && (
+            <ScrollReveal direction="up" distance={25} delay={100} duration={650}>
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 text-center">
+                <p className="text-[#00183F] font-bold text-lg mb-2">Fee details are shared by our admissions office</p>
+                <p className="text-sm text-slate-600 mb-5">
+                  Please submit an inquiry and our team will share the current fee structure with you.
+                </p>
+                <a href="#apply" className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#00183F] text-white text-sm font-bold hover:bg-[#C8102E] transition-colors">
+                  Request Fee Information <ArrowRight className="w-4 h-4" />
+                </a>
+              </div>
+            </ScrollReveal>
+          )}
+
+          {loaded && guide.show_fees !== false && !!guide.fee_structure?.length && (
           <ScrollReveal direction="up" distance={25} delay={100} duration={650}>
             <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
               {/* Desktop Table View */}
@@ -271,6 +288,7 @@ export default function AdmissionPage() {
               </div>
             </div>
           </ScrollReveal>
+          )}
         </section>
 
         {/* 4. Required Documents Checklist */}
