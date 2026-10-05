@@ -1,0 +1,128 @@
+services:
+  # ----------------------------------------------------------------------------
+  # Database: PostgreSQL 16
+  # ----------------------------------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    container_name: sjis_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-sjis_narinda_db}
+      POSTGRES_USER: ${POSTGRES_USER:-sjis_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sjis_secure_pass_2026}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sjis_user} -d ${POSTGRES_DB:-sjis_narinda_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 6
+    networks:
+      - sjis-net
+
+  # ----------------------------------------------------------------------------
+  # Backend: Django 6 + DRF + Gunicorn
+  # ----------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sjis_backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DEBUG: "False"
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-django-insecure-sjis-narinda-prod-key-739281a9}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-narinda.sjis.edu.bd,www.narinda.sjis.edu.bd,localhost,127.0.0.1,backend,web}
+      DATABASE_URL: postgres://${POSTGRES_USER:-sjis_user}:${POSTGRES_PASSWORD:-sjis_secure_pass_2026}@db:5432/${POSTGRES_DB:-sjis_narinda_db}
+      DJANGO_SUPERUSER_USERNAME: ${DJANGO_SUPERUSER_USERNAME:-admin}
+      DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD:-sjisadmin2026}
+      DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL:-admin@sjis-narinda.edu.bd}
+      FRONTEND_URL: ${FRONTEND_URL:-https://narinda.sjis.edu.bd}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://narinda.sjis.edu.bd,http://narinda.sjis.edu.bd,https://www.narinda.sjis.edu.bd,http://localhost:3000,http://127.0.0.1:3000}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-https://narinda.sjis.edu.bd,http://narinda.sjis.edu.bd,https://www.narinda.sjis.edu.bd,http://localhost:3000,http://127.0.0.1:3000}
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-3}
+    volumes:
+      - staticfiles:/app/staticfiles
+      - mediafiles:/app/media
+    networks:
+      - sjis-net
+
+  # ----------------------------------------------------------------------------
+  # Frontend: Next.js 16 (App Router + Turbopack Standalone)
+  # ----------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: /api
+        INTERNAL_API_URL: http://backend:8000/api
+    container_name: sjis_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_API_URL: /api
+      INTERNAL_API_URL: http://backend:8000/api
+    networks:
+      - sjis-net
+
+  # ----------------------------------------------------------------------------
+  # Reverse Proxy: Nginx (SSL, HTTP/2, Gzip, Caching, Routing)
+  # ----------------------------------------------------------------------------
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: sjis_nginx
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - frontend
+    ports:
+      - "80:80"
+      - "443:443"
+    entrypoint: ["/docker-entrypoint.sh"]
+    command: ["nginx", "-g", "daemon off;"]
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/docker-entrypoint.sh:/docker-entrypoint.sh:ro
+      - staticfiles:/var/www/static:ro
+      - mediafiles:/var/www/media:ro
+      - certbot_webroot:/var/www/certbot
+      - certbot_certs:/etc/letsencrypt
+    networks:
+      - sjis-net
+
+  # ----------------------------------------------------------------------------
+  # SSL Certificate Automation: Let's Encrypt Certbot (Optional profile)
+  # ----------------------------------------------------------------------------
+  certbot:
+    image: certbot/certbot:latest
+    container_name: sjis_certbot
+    profiles:
+      - certbot
+    volumes:
+      - certbot_webroot:/var/www/certbot
+      - certbot_certs:/etc/letsencrypt
+    entrypoint: ["certbot"]
+
+volumes:
+  postgres_data:
+    name: sjis_postgres_data
+  staticfiles:
+    name: sjis_staticfiles
+  mediafiles:
+    name: sjis_mediafiles
+  certbot_certs:
+    name: sjis_certbot_certs
+  certbot_webroot:
+    name: sjis_certbot_webroot
+
+networks:
+  sjis-net:
+    name: sjis_network
+    driver: bridge

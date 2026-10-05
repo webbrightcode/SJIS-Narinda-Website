@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <linearGradient id="goldGradShield" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FCE082"/>
+      <stop offset="45%" stop-color="#D4AF37"/>
+      <stop offset="100%" stop-color="#997300"/>
+    </linearGradient>
+    <linearGradient id="shieldNavy" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#00183F"/>
+      <stop offset="100%" stop-color="#000E26"/>
+    </linearGradient>
+    <filter id="subtleGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#subtleGlow)">
+    <!-- Outer Golden Shield Crest -->
+    <path d="M50 2 C77 2, 94 16, 94 45 C94 74, 50 96, 50 98 C50 96, 6 74, 6 45 C6 16, 23 2, 50 2 Z" 
+          fill="url(#goldGradShield)" stroke="#FFECA8" stroke-width="1.5"/>
+    <!-- Inner Navy Shield -->
+    <path d="M50 6 C73 6, 90 19, 90 45 C90 71, 50 92, 50 94 C50 92, 10 71, 10 45 C10 19, 27 6, 50 6 Z" 
+          fill="url(#shieldNavy)"/>
+
+    <!-- Sacred Cross of Holy Cross Tradition -->
+    <path d="M47 16 H53 V29 H66 V35 H53 V67 H47 V35 H34 V29 H47 Z" fill="url(#goldGradShield)"/>
+
+    <!-- Open Book of Wisdom -->
+    <path d="M30 74 C38 70, 47 71, 50 75 C53 71, 62 70, 70 74 V86 C62 82, 53 83, 50 87 C47 83, 38 82, 30 86 Z" 
+          fill="none" stroke="url(#goldGradShield)" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="50" y1="75" x2="50" y2="87" stroke="url(#goldGradShield)" stroke-width="2"/>
+
+    <!-- Star of Excellence -->
+    <polygon points="50,9 51.5,13.5 56,13.5 52.5,16 54,20.5 50,17.8 46,20.5 47.5,16 44,13.5 48.5,13.5" fill="#FFFBEB"/>
+  </g>
+</svg>

@@ -1,0 +1,21 @@
+[Unit]
+Description=Gunicorn SJIS Narinda Backend Service
+After=network.target postgresql.service
+
+[Service]
+Type=notify
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/sjis/backend
+Environment="PATH=/var/www/sjis/backend/venv/bin"
+EnvironmentFile=/var/www/sjis/backend/.env
+ExecStart=/var/www/sjis/backend/venv/bin/gunicorn -c gunicorn_conf.py sjis_backend.wsgi:application
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=30
+PrivateTmp=true
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
