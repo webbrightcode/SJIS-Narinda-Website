@@ -961,7 +961,7 @@ export const FacultyManager: React.FC<{ token?: string }> = ({ token }) => {
       const q = searchQuery.toLowerCase();
       const matchName = m.name.toLowerCase().includes(q);
       const matchDes = m.designation.toLowerCase().includes(q);
-      const matchDept = m.department.toLowerCase().includes(q);
+      const matchDept = m.department ? m.department.toLowerCase().includes(q) : false;
       if (!matchName && !matchDes && !matchDept) return false;
     }
     return true;
@@ -1083,7 +1083,11 @@ export const FacultyManager: React.FC<{ token?: string }> = ({ token }) => {
 
                 <div className="font-bold text-sm text-[#00183F] truncate mt-1">{m.name}</div>
                 <div className="text-xs font-semibold text-[#C8102E] truncate">{m.designation}</div>
-                <div className="text-[11px] text-slate-500 truncate mt-0.5">{m.department}</div>
+                {m.department ? (
+                  <div className="text-[11px] text-slate-500 truncate mt-0.5">{m.department}</div>
+                ) : (
+                  <div className="text-[11px] text-slate-400 italic truncate mt-0.5">No department specified</div>
+                )}
 
                 <div className="flex items-center gap-1 pt-3 mt-2 border-t border-slate-100 justify-end">
                   <Toggle active={m.is_active} onClick={() => toggleActive(m)} />
@@ -1155,12 +1159,12 @@ export const FacultyManager: React.FC<{ token?: string }> = ({ token }) => {
                 />
               </Field>
 
-              <Field label="Department / Division *" hint="e.g. Department of Physics">
+              <Field label="Department / Division" hint="Optional (e.g. Department of Physics)">
                 <input
-                  required
                   className={inputCls}
                   value={editing.department || ''}
                   onChange={(e) => setEditing({ ...editing, department: e.target.value })}
+                  placeholder="e.g. Department of Physics (or leave blank)"
                 />
               </Field>
             </div>

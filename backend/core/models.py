@@ -286,7 +286,7 @@ class StaffMember(models.Model):
     name = models.CharField(max_length=200)
     role_type = models.CharField(max_length=40, choices=ROLE_CHOICES, default='teacher')
     designation = models.CharField(max_length=200, help_text="e.g. Senior Cambridge Physics Faculty or Vice Principal")
-    department = models.CharField(max_length=150, help_text="e.g. Department of Science, Governing Council, IT & Systems")
+    department = models.CharField(max_length=150, blank=True, default="", help_text="e.g. Department of Science, Governing Council, IT & Systems")
     image_url = models.TextField(blank=True, default="", help_text="Image URL or base64 data URL")
     qualification = models.CharField(max_length=255, blank=True, help_text="e.g. M.Sc. in Physics (DU), Cambridge Certified")
     email = models.EmailField(blank=True, default="")

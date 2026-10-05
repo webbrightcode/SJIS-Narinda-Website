@@ -49,7 +49,7 @@ export default function FacultyPage() {
   const departments = useMemo(() => {
     const deps = new Set<string>();
     members.forEach((m) => {
-      if (m.department) deps.add(m.department);
+      if (m.department && m.department.trim()) deps.add(m.department.trim());
     });
     return ['all', ...Array.from(deps)];
   }, [members]);
@@ -63,7 +63,7 @@ export default function FacultyPage() {
         const query = searchQuery.toLowerCase();
         const matchesName = m.name.toLowerCase().includes(query);
         const matchesDesignation = m.designation.toLowerCase().includes(query);
-        const matchesDept = m.department.toLowerCase().includes(query);
+        const matchesDept = m.department ? m.department.toLowerCase().includes(query) : false;
         const matchesQual = m.qualification?.toLowerCase().includes(query);
         if (!matchesName && !matchesDesignation && !matchesDept && !matchesQual) return false;
       }
@@ -304,10 +304,12 @@ export default function FacultyPage() {
 
                       {/* Department & Qualification */}
                       <div className="space-y-2 text-xs text-slate-600 pt-2 border-t border-slate-100">
-                        <div className="flex items-center gap-1.5 font-medium">
-                          <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                          <span className="truncate">{member.department}</span>
-                        </div>
+                        {member.department && (
+                          <div className="flex items-center gap-1.5 font-medium">
+                            <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <span className="truncate">{member.department}</span>
+                          </div>
+                        )}
 
                         {member.qualification && (
                           <div className="flex items-center gap-1.5 font-medium text-slate-500">
@@ -408,11 +410,13 @@ export default function FacultyPage() {
                       </div>
 
                       {/* Department Tag */}
-                      <div className="mb-2">
-                        <span className="text-[11px] font-bold text-amber-900 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/80">
-                          {member.department}
-                        </span>
-                      </div>
+                      {member.department && (
+                        <div className="mb-2">
+                          <span className="text-[11px] font-bold text-amber-900 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/80">
+                            {member.department}
+                          </span>
+                        </div>
+                      )}
 
                       {/* Name & Title */}
                       <h3 className="text-base font-black text-[#00183F] group-hover:text-[#C8102E] transition-colors leading-snug">
@@ -505,11 +509,13 @@ export default function FacultyPage() {
                       </div>
 
                       {/* Department Tag */}
-                      <div className="mb-2">
-                        <span className="text-[11px] font-bold text-indigo-900 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200/80">
-                          {member.department}
-                        </span>
-                      </div>
+                      {member.department && (
+                        <div className="mb-2">
+                          <span className="text-[11px] font-bold text-indigo-900 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200/80">
+                            {member.department}
+                          </span>
+                        </div>
+                      )}
 
                       {/* Name & Title */}
                       <h3 className="text-base font-black text-[#00183F] group-hover:text-[#C8102E] transition-colors leading-snug">
@@ -594,9 +600,11 @@ export default function FacultyPage() {
                     </div>
 
                     <div className="space-y-1 flex-1 min-w-0">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block truncate">
-                        {member.department}
-                      </span>
+                      {member.department && (
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block truncate">
+                          {member.department}
+                        </span>
+                      )}
                       <h3 className="text-base font-black text-[#00183F] group-hover:text-[#C8102E] transition-colors leading-snug truncate">
                         {member.name}
                       </h3>
@@ -703,9 +711,11 @@ export default function FacultyPage() {
               </div>
 
               <div className="space-y-2 text-center sm:text-left flex-1">
-                <div className="text-xs font-bold text-amber-800 uppercase tracking-wider">
-                  {selectedMember.department}
-                </div>
+                {selectedMember.department && (
+                  <div className="text-xs font-bold text-amber-800 uppercase tracking-wider">
+                    {selectedMember.department}
+                  </div>
+                )}
                 <h3 className="text-2xl font-black text-[#00183F] tracking-tight">
                   {selectedMember.name}
                 </h3>

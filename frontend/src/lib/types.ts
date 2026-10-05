@@ -236,7 +236,7 @@ export interface StaffMember {
   role_type: 'admin' | 'teacher' | 'office' | 'staff';
   role_type_display?: string;
   designation: string;
-  department: string;
+  department?: string;
   image_url: string;
   qualification: string;
   email?: string;
