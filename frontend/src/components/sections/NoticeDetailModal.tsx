@@ -100,7 +100,11 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
 
   const refNumber = `SJIS/CIR/2026-${String(notice.id).padStart(3, '0')}`;
   const showViews = site.show_notice_views !== false;
-  const isImageAttachment = notice.attachment_url && /\.(jpg|jpeg|png|webp|gif)$/i.test(notice.attachment_url);
+  const rawAttachmentUrl = notice.attachment_url || '';
+  const safeAttachmentUrl = rawAttachmentUrl.includes('w3.org') || rawAttachmentUrl.includes('dummy.pdf')
+    ? '/circulars/sjis-official-circular.pdf'
+    : rawAttachmentUrl;
+  const isImageAttachment = safeAttachmentUrl && /\.(jpg|jpeg|png|webp|gif)$/i.test(safeAttachmentUrl);
 
   return (
     <Modal
@@ -159,9 +163,9 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
-            {notice.attachment_url && (
+            {safeAttachmentUrl && (
               <a
-                href={notice.attachment_url}
+                href={safeAttachmentUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-[#00183F] font-bold text-xs shadow-xs transition-colors cursor-pointer"
@@ -310,7 +314,7 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
                   </button>
 
                   <a
-                    href={notice.attachment_url}
+                    href={safeAttachmentUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-amber-300 bg-white hover:bg-amber-50 text-amber-900 text-xs font-bold transition-colors cursor-pointer"
@@ -352,7 +356,7 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
             </div>
 
             {/* Embedded Live Preview Below Memorandum */}
-            {notice.attachment_url && (
+            {safeAttachmentUrl && (
               <div className="space-y-3 pt-2">
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
@@ -360,7 +364,7 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
                     <span>Attached Official Document (Live Preview)</span>
                   </h4>
                   <a
-                    href={notice.attachment_url}
+                    href={safeAttachmentUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-xs font-bold text-[#00183F] hover:text-[#C8102E] flex items-center gap-1"
@@ -374,7 +378,7 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
                   {isImageAttachment ? (
                     <div className="p-4 flex items-center justify-center bg-slate-100">
                       <img
-                        src={notice.attachment_url}
+                        src={safeAttachmentUrl}
                         alt={notice.title}
                         className="max-h-[500px] w-auto object-contain rounded-xl shadow-xs"
                       />
@@ -382,15 +386,36 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
                   ) : (
                     <div className="relative w-full h-[520px] bg-slate-800">
                       <object
-                        data={`${notice.attachment_url}#toolbar=1&navpanes=0`}
+                        data={`${safeAttachmentUrl}#toolbar=1&navpanes=0`}
                         type="application/pdf"
                         className="w-full h-full border-0 bg-white"
                       >
-                        <iframe
-                          src={`${notice.attachment_url}#toolbar=1&navpanes=0`}
-                          title="Attached Notice Document Preview"
-                          className="w-full h-full border-0 bg-white"
-                        />
+                        <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-slate-900 text-center space-y-3">
+                          <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center text-amber-400">
+                            <FileText className="w-6 h-6" />
+                          </div>
+                          <h4 className="text-white font-bold text-sm">Official Certified Document</h4>
+                          <p className="text-slate-300 text-xs max-w-sm">
+                            Click below to open or download the complete signed institutional circular.
+                          </p>
+                          <div className="flex items-center gap-2 pt-1">
+                            <a
+                              href={safeAttachmentUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs"
+                            >
+                              Open External
+                            </a>
+                            <a
+                              href={safeAttachmentUrl}
+                              download
+                              className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-[#00183F] font-bold text-xs"
+                            >
+                              Download PDF
+                            </a>
+                          </div>
+                        </div>
                       </object>
                     </div>
                   )}
@@ -401,7 +426,7 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
                       <span>Certified CAIE Official Circular Document</span>
                     </span>
                     <a
-                      href={notice.attachment_url}
+                      href={safeAttachmentUrl}
                       download
                       className="text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1"
                     >
@@ -416,7 +441,7 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
         )}
 
         {/* VIEW 2: Dedicated Pro Document Preview Tab */}
-        {activeTab === 'preview' && notice.attachment_url && (
+        {activeTab === 'preview' && safeAttachmentUrl && (
           <div className="space-y-4">
             <div className="bg-slate-900 text-white rounded-t-2xl p-4 flex flex-wrap items-center justify-between gap-3 border border-slate-800">
               <div className="flex items-center gap-3">
@@ -435,7 +460,7 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
 
               <div className="flex items-center gap-2">
                 <a
-                  href={notice.attachment_url}
+                  href={safeAttachmentUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-colors"
@@ -445,7 +470,7 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
                 </a>
 
                 <a
-                  href={notice.attachment_url}
+                  href={safeAttachmentUrl}
                   download
                   className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#00183F] text-xs font-bold transition-colors"
                 >
@@ -461,23 +486,50 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
               {isImageAttachment ? (
                 <div className="w-full h-full flex items-center justify-center bg-slate-950 p-4">
                   <img
-                    src={notice.attachment_url}
+                    src={safeAttachmentUrl}
                     alt={notice.title}
                     className="max-h-full max-w-full object-contain rounded-xl"
                   />
                 </div>
               ) : (
-                <iframe
-                  src={`${notice.attachment_url}#toolbar=1&navpanes=0`}
-                  title="Notice Official PDF Viewer"
+                <object
+                  data={`${safeAttachmentUrl}#toolbar=1&navpanes=0`}
+                  type="application/pdf"
                   className="w-full h-full border-0 bg-white"
-                />
+                >
+                  <div className="w-full h-full flex flex-col items-center justify-center p-8 bg-slate-900 text-center space-y-4">
+                    <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center text-amber-400">
+                      <FileText className="w-8 h-8" />
+                    </div>
+                    <h4 className="text-white font-bold text-lg">Official Certified Circular Document</h4>
+                    <p className="text-slate-300 text-xs max-w-md">
+                      Click below to open or download the complete signed institutional document directly.
+                    </p>
+                    <div className="flex items-center gap-3 pt-2">
+                      <a
+                        href={safeAttachmentUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 rounded-xl bg-white/10 text-white font-bold text-xs"
+                      >
+                        Open In New Tab
+                      </a>
+                      <a
+                        href={safeAttachmentUrl}
+                        download
+                        className="px-4 py-2 rounded-xl bg-amber-500 text-[#00183F] font-bold text-xs"
+                      >
+                        Download PDF
+                      </a>
+                    </div>
+                  </div>
+                </object>
               )}
             </div>
 
             <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-500 flex items-center justify-between">
               <span>Notice Ref: <strong>{refNumber}</strong></span>
-              <span>Can&apos;t preview properly? <a href={notice.attachment_url} target="_blank" rel="noopener noreferrer" className="text-[#00183F] font-bold underline">Click here to open PDF directly</a></span>
+              <span>Can&apos;t preview properly? <a href={safeAttachmentUrl} target="_blank" rel="noopener noreferrer" className="text-[#00183F] font-bold underline">Click here to open PDF directly</a></span>
             </div>
           </div>
         )}

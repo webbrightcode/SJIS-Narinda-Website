@@ -89,7 +89,12 @@ export default async function NoticeDetailPage({ params }: NoticeDetailPageProps
   };
 
   const refNumber = `SJIS/CIR/2026-${String(notice.id).padStart(3, '0')}`;
-  const isImageAttachment = notice.attachment_url && /\.(jpg|jpeg|png|webp|gif)$/i.test(notice.attachment_url);
+  const rawAttachmentUrl = notice.attachment_url || '';
+  // Sanitize any blocked dummy external links (such as w3.org) that trigger Firefox X-Frame-Options errors
+  const safeAttachmentUrl = rawAttachmentUrl.includes('w3.org') || rawAttachmentUrl.includes('dummy.pdf')
+    ? '/circulars/sjis-official-circular.pdf'
+    : rawAttachmentUrl;
+  const isImageAttachment = safeAttachmentUrl && /\.(jpg|jpeg|png|webp|gif)$/i.test(safeAttachmentUrl);
   const headTitle = about?.principal_title || 'Administrator';
   const headName = about?.principal_name || 'Brother Leo Pereira, CSC';
 
@@ -261,13 +266,13 @@ export default async function NoticeDetailPage({ params }: NoticeDetailPageProps
                   noticeId={notice.id}
                   noticeTitle={notice.title}
                   initialViewsCount={notice.views_count || 0}
-                  attachmentUrl={notice.attachment_url}
+                  attachmentUrl={safeAttachmentUrl}
                 />
               </div>
             </article>
 
             {/* ATTACHMENT SECTION: Pro Document Viewer & Direct Download */}
-            {notice.attachment_url && (
+            {safeAttachmentUrl && (
               <section className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
                   <div className="flex items-center gap-3">
@@ -286,7 +291,7 @@ export default async function NoticeDetailPage({ params }: NoticeDetailPageProps
 
                   <div className="flex items-center gap-2">
                     <a
-                      href={notice.attachment_url}
+                      href={safeAttachmentUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-colors"
@@ -296,7 +301,7 @@ export default async function NoticeDetailPage({ params }: NoticeDetailPageProps
                     </a>
 
                     <a
-                      href={notice.attachment_url}
+                      href={safeAttachmentUrl}
                       download
                       className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#00183F] hover:bg-[#C8102E] text-white text-xs font-bold transition-colors shadow-xs"
                     >
@@ -311,24 +316,47 @@ export default async function NoticeDetailPage({ params }: NoticeDetailPageProps
                   {isImageAttachment ? (
                     <div className="p-4 flex items-center justify-center bg-slate-100 min-h-[400px]">
                       <img
-                        src={notice.attachment_url}
+                        src={safeAttachmentUrl}
                         alt={notice.title}
                         className="max-h-[600px] w-auto object-contain rounded-xl shadow-md"
                       />
                     </div>
                   ) : (
                     <div className="relative w-full h-[650px] sm:h-[750px] bg-slate-800">
-                      {/* Robust PDF Viewer with Object / Iframe Embed */}
+                      {/* Robust PDF Viewer with Object Embed & Direct Interactive Fallback */}
                       <object
-                        data={`${notice.attachment_url}#toolbar=1&navpanes=0`}
+                        data={`${safeAttachmentUrl}#toolbar=1&navpanes=0`}
                         type="application/pdf"
                         className="w-full h-full border-0 bg-white"
                       >
-                        <iframe
-                          src={`${notice.attachment_url}#toolbar=1&navpanes=0`}
-                          title="Attached Official Notice Document"
-                          className="w-full h-full border-0 bg-white"
-                        />
+                        <div className="w-full h-full flex flex-col items-center justify-center p-8 bg-slate-900 text-center space-y-4">
+                          <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center text-amber-400">
+                            <FileText className="w-8 h-8" />
+                          </div>
+                          <h4 className="text-white font-bold text-lg">Official Certified Circular Document</h4>
+                          <p className="text-slate-300 text-xs max-w-md leading-relaxed">
+                            Click below to open the complete signed institutional document in high resolution or download a copy to your device.
+                          </p>
+                          <div className="flex items-center gap-3 pt-2">
+                            <a
+                              href={safeAttachmentUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-colors"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                              <span>Open Document</span>
+                            </a>
+                            <a
+                              href={safeAttachmentUrl}
+                              download
+                              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-[#00183F] font-bold text-xs transition-colors shadow-md"
+                            >
+                              <Download className="w-4 h-4" />
+                              <span>Download PDF</span>
+                            </a>
+                          </div>
+                        </div>
                       </object>
                     </div>
                   )}
@@ -341,7 +369,7 @@ export default async function NoticeDetailPage({ params }: NoticeDetailPageProps
                     </span>
 
                     <a
-                      href={notice.attachment_url}
+                      href={safeAttachmentUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 transition-colors"

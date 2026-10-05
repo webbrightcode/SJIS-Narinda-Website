@@ -33,6 +33,13 @@ class NoticeSerializer(serializers.ModelSerializer):
         model = Notice
         fields = '__all__'
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        url = data.get('attachment_url')
+        if url and ('w3.org' in url or 'dummy.pdf' in url):
+            data['attachment_url'] = '/circulars/sjis-official-circular.pdf'
+        return data
+
 
 class ClubSerializer(serializers.ModelSerializer):
     category_display = serializers.CharField(source='get_category_display', read_only=True)
