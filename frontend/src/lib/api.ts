@@ -28,7 +28,7 @@ import {
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   school_name: 'St. Joseph International School',
   school_subtitle: 'INTERNATIONAL SCHOOL \u2022 NARINDA',
-  logo_url: '/sjis-emblem.svg',
+  logo_url: '/sjis-crest-logo.png',
   phone_primary: '+880 2-47118234',
   phone_secondary: '+880 1711-234567',
   email: 'info@sjis-narinda.edu.bd',

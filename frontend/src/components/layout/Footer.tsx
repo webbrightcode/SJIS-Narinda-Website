@@ -29,22 +29,14 @@ export const Footer: React.FC = () => {
           {/* Col 1: Identity & Crest */}
           <div className="lg:col-span-4 xl:col-span-4 space-y-4 pr-2">
             <div className="flex items-center gap-4">
-              {site.logo_url && !logoError ? (
-                <div className="h-16 sm:h-20 max-w-[260px] flex items-center justify-center shrink-0">
-                  <img
-                    src={site.logo_url}
-                    alt={site.school_name || 'St. Joseph International School'}
-                    onError={() => setLogoError(true)}
-                    className="max-h-16 sm:max-h-20 w-auto object-contain rounded-xl drop-shadow-md"
-                  />
-                </div>
-              ) : (
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-[#D4AF37] to-[#C8102E] p-0.5 shadow-md flex items-center justify-center shrink-0">
-                  <div className="w-full h-full bg-[#00183F] rounded-[14px] flex items-center justify-center">
-                    <GraduationCap className="w-9 h-9 sm:w-11 sm:h-11 text-[#D4AF37]" />
-                  </div>
-                </div>
-              )}
+              <div className="h-16 w-16 sm:h-20 sm:w-20 max-w-[260px] flex items-center justify-center shrink-0">
+                <img
+                  src={logoError || !site.logo_url ? '/sjis-crest-logo.png' : site.logo_url}
+                  alt={site.school_name || 'St. Joseph International School'}
+                  onError={() => setLogoError(true)}
+                  className="max-h-16 sm:max-h-20 w-auto object-contain drop-shadow-md rounded-full"
+                />
+              </div>
               <div className="min-w-0">
                 <h3 className="font-cinzel text-white font-extrabold text-lg sm:text-xl leading-snug whitespace-nowrap">
                   {site.school_name || 'St. Joseph International School'}

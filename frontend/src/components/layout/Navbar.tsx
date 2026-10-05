@@ -54,22 +54,14 @@ export const Navbar: React.FC = () => {
         <div className="flex items-center justify-between gap-2 sm:gap-4 xl:gap-8">
           {/* Logo & School Branding */}
           <Link href="/" className="flex items-center gap-2 sm:gap-3.5 group min-w-0 flex-1 sm:flex-initial overflow-hidden">
-            {site.logo_url && !logoError ? (
-              <div className="h-10 w-10 sm:h-14 sm:w-14 lg:h-16 lg:w-16 max-w-[280px] flex items-center justify-center group-hover:scale-105 transition-transform duration-300 shrink-0">
-                <img
-                  src={site.logo_url}
-                  alt={site.school_name || 'St. Joseph International School'}
-                  onError={() => setLogoError(true)}
-                  className="max-h-10 sm:max-h-14 lg:max-h-16 w-auto object-contain rounded-xl drop-shadow-md"
-                />
-              </div>
-            ) : (
-              <div className="w-10 h-10 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-2xl bg-gradient-to-br from-[#D4AF37] to-[#C8102E] p-0.5 shadow-md flex items-center justify-center group-hover:scale-105 transition-transform duration-300 shrink-0">
-                <div className="w-full h-full bg-[#00183F] rounded-[14px] flex items-center justify-center">
-                  <GraduationCap className="w-5 h-5 sm:w-8 sm:h-8 lg:w-9 lg:h-9 text-[#D4AF37]" />
-                </div>
-              </div>
-            )}
+            <div className="h-10 w-10 sm:h-14 sm:w-14 lg:h-16 lg:w-16 max-w-[280px] flex items-center justify-center group-hover:scale-105 transition-transform duration-300 shrink-0">
+              <img
+                src={logoError || !site.logo_url ? '/sjis-crest-logo.png' : site.logo_url}
+                alt={site.school_name || 'St. Joseph International School'}
+                onError={() => setLogoError(true)}
+                className="max-h-10 sm:max-h-14 lg:max-h-16 w-auto object-contain drop-shadow-md rounded-full"
+              />
+            </div>
             <div className="flex flex-col justify-center min-w-0 overflow-hidden">
               <span className="font-cinzel text-white font-extrabold text-[12px] xs:text-sm sm:text-base md:text-lg lg:text-xl 2xl:text-[22px] tracking-tight sm:tracking-wide truncate group-hover:text-[#D4AF37] transition-colors drop-shadow-sm leading-tight block">
                 {site.school_name || 'St. Joseph International School'}

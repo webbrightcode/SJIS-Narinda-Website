@@ -50,21 +50,16 @@ export const BrandSplash: React.FC = () => {
       <div className="flex flex-col items-center text-center space-y-4 px-6 animate-in fade-in zoom-in-95 duration-500">
         {/* Crest */}
         <div className="relative">
-          {site.logo_url ? (
-            <div className="h-28 max-w-[280px] flex items-center justify-center">
-              <img
-                src={site.logo_url}
-                alt={site.school_name || 'Logo'}
-                className="max-h-28 w-auto object-contain rounded-2xl shadow-2xl drop-shadow-2xl"
-              />
-            </div>
-          ) : (
-            <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-[#D4AF37] to-[#C8102E] p-0.5 shadow-2xl shadow-amber-500/20">
-              <div className="w-full h-full bg-[#00183F] rounded-[14px] flex items-center justify-center">
-                <GraduationCap className="w-12 h-12 text-[#D4AF37]" />
-              </div>
-            </div>
-          )}
+          <div className="h-28 max-w-[280px] flex items-center justify-center">
+            <img
+              src={site.logo_url || '/sjis-crest-logo.png'}
+              alt={site.school_name || 'Logo'}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/sjis-crest-logo.png';
+              }}
+              className="max-h-28 w-auto object-contain rounded-2xl shadow-2xl drop-shadow-2xl"
+            />
+          </div>
           <span className="absolute -inset-1 rounded-2xl bg-[#D4AF37]/30 blur-md -z-10 animate-pulse" />
         </div>
 
