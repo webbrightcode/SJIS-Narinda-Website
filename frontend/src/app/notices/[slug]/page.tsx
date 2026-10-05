@@ -32,7 +32,8 @@ interface NoticeDetailPageProps {
   params: Promise<{ slug: string }>;
 }
 
-export const revalidate = 30; // ISR cache revalidation
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function generateMetadata({ params }: NoticeDetailPageProps) {
   const { slug } = await params;
@@ -73,22 +74,6 @@ export default async function NoticeDetailPage({ params }: NoticeDetailPageProps
     .filter((n) => n.id !== notice.id && n.slug !== notice.slug)
     .slice(0, 6);
 
-  const getCategoryBadgeVariant = (cat: string) => {
-    switch (cat) {
-      case 'admission':
-        return 'gold';
-      case 'exams':
-        return 'crimson';
-      case 'events':
-        return 'navy';
-      case 'holidays':
-        return 'emerald';
-      default:
-        return 'slate';
-    }
-  };
-
-  const refNumber = `SJIS/CIR/2026-${String(notice.id).padStart(3, '0')}`;
   const rawAttachmentUrl = notice.attachment_url || '';
   // Sanitize any blocked dummy external links (such as w3.org) that trigger Firefox X-Frame-Options errors
   const safeAttachmentUrl = rawAttachmentUrl.includes('w3.org') || rawAttachmentUrl.includes('dummy.pdf')
@@ -137,57 +122,17 @@ export default async function NoticeDetailPage({ params }: NoticeDetailPageProps
               {/* Top Accent Gradient Bar */}
               <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#00183F] via-[#D4AF37] to-[#C8102E]" />
 
-              {/* Meta Pill Strip */}
-              <div className="flex flex-wrap items-center justify-between gap-3 pb-6 border-b border-slate-100 text-xs">
-                <div className="flex items-center gap-2 flex-wrap">
-                  {notice.is_pinned && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#C8102E] text-white text-[11px] font-black uppercase tracking-wider shadow-xs">
-                      <Pin className="w-3 h-3 fill-current" />
-                      Pinned Circular
-                    </span>
-                  )}
-                  <Badge variant={getCategoryBadgeVariant(notice.category)}>
-                    {notice.category_display || notice.category}
-                  </Badge>
-                  <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full font-bold border border-emerald-200/70">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                    Verified Official Notice
+              {notice.is_pinned && (
+                <div className="pt-2 pb-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#C8102E] text-white text-[11px] font-black uppercase tracking-wider shadow-xs">
+                    <Pin className="w-3.5 h-3.5 fill-current" />
+                    Pinned Circular
                   </span>
                 </div>
-
-                <div className="flex items-center gap-3 text-slate-500 font-mono">
-                  <span className="font-semibold text-slate-400">REF:</span>
-                  <span className="font-bold text-[#00183F] bg-slate-100 px-2.5 py-0.5 rounded-md">
-                    {refNumber}
-                  </span>
-                </div>
-              </div>
-
-              {/* Official Institutional Letterhead */}
-              <div className="py-6 sm:py-8 border-b-2 border-slate-900/10 text-center space-y-2">
-                <div className="flex items-center justify-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-[#00183F] flex items-center justify-center shadow-md">
-                    <Building2 className="w-7 h-7 text-[#D4AF37]" />
-                  </div>
-                  <div className="text-left">
-                    <h2 className="text-base sm:text-lg font-black text-[#00183F] tracking-tight leading-none uppercase">
-                      St. Joseph International School
-                    </h2>
-                    <p className="text-[11px] font-bold text-[#C8102E] tracking-widest uppercase mt-0.5">
-                      Narinda • Dhaka-1100, Bangladesh
-                    </p>
-                  </div>
-                </div>
-
-                <div className="pt-2">
-                  <div className="inline-block px-3 py-1 rounded-md bg-slate-100 text-[#00183F] text-xs font-black uppercase tracking-wider">
-                    Office of the {headTitle} & Academic Council
-                  </div>
-                </div>
-              </div>
+              )}
 
               {/* Circular Title & Publish Meta */}
-              <div className="pt-6 sm:pt-8 space-y-4">
+              <div className="pt-2 space-y-4">
                 <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap">
                   <span className="flex items-center gap-1.5 font-medium">
                     <Calendar className="w-4 h-4 text-[#C8102E]" />
