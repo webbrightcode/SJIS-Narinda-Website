@@ -66,7 +66,7 @@ RETRIES=40
 READY=0
 
 while [ $RETRIES -gt 0 ]; do
-    if $COMPOSE ps | grep -q "sjis_backend.*Up" && $COMPOSE logs backend 2>&1 | grep -q "Launching Gunicorn"; then
+    if $COMPOSE ps | grep -q "sjis_web_backend.*Up" && $COMPOSE logs backend 2>&1 | grep -q "Launching Gunicorn"; then
         READY=1
         break
     fi
@@ -83,13 +83,13 @@ else
     $COMPOSE logs --tail=20 backend
 fi
 
-# 5. Verify Nginx Reverse Proxy
-echo -e "\n${CYAN}[3/4] Verifying Nginx reverse proxy routing...${NC}"
+# 5. Verify Isolated Nginx Reverse Proxy
+echo -e "\n${CYAN}[3/4] Verifying isolated Nginx reverse proxy on port ${WEBSITE_PORT:-8088}...${NC}"
 NGINX_RETRIES=15
 NGINX_READY=0
 
 while [ $NGINX_RETRIES -gt 0 ]; do
-    if curl -s -k http://localhost/nginx-health 2>/dev/null | grep -q "healthy"; then
+    if curl -s http://127.0.0.1:${WEBSITE_PORT:-8088}/nginx-health 2>/dev/null | grep -q "healthy"; then
         NGINX_READY=1
         break
     fi
@@ -98,9 +98,9 @@ while [ $NGINX_RETRIES -gt 0 ]; do
 done
 
 if [ $NGINX_READY -eq 1 ]; then
-    echo -e "${GREEN}[✓] Nginx is routing traffic correctly on ports 80 and 443!${NC}"
+    echo -e "${GREEN}[✓] School website isolated engine is running on http://127.0.0.1:${WEBSITE_PORT:-8088}!${NC}"
 else
-    echo -e "${YELLOW}[!] Nginx starting up...${NC}"
+    echo -e "${YELLOW}[!] School website Nginx starting up...${NC}"
 fi
 
 # 6. Optional SSL Provisioning
