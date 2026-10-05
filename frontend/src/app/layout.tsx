@@ -1,7 +1,8 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans, Cinzel, Playfair_Display } from 'next/font/google';
 import './globals.css';
 import { AppShell } from '@/components/layout/AppShell';
+import { SITE_URL, SCHOOL, BASE_KEYWORDS, schoolJsonLd, websiteJsonLd } from '@/lib/seo';
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -21,23 +22,43 @@ const playfair = Playfair_Display({
   variable: '--font-playfair',
 });
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#00183F',
+};
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     template: '%s | St. Joseph International School, Narinda',
-    default: 'St. Joseph International School, Narinda | Excellence in Education',
+    default: 'St. Joseph International School, Narinda (SJIS Narinda) | Holy Cross School, Old Dhaka',
   },
-  description:
-    'Official website of St. Joseph International School (SJIS), Narinda, Dhaka. A premier Holy Cross institution offering Cambridge Assessment International Education (CAIE) with rich co-curriculars, moral integrity, and modern STEM facilities.',
-  keywords: [
-    'St. Joseph International School',
-    'SJIS Narinda',
-    'St Joseph School Dhaka',
-    'English Medium School Old Dhaka',
-    'Cambridge School Narinda',
-    'Holy Cross School Bangladesh',
-    'Admission 2026-2027',
-  ],
-  authors: [{ name: 'St. Joseph International School, Narinda' }],
+  description: SCHOOL.description,
+  applicationName: SCHOOL.name,
+  keywords: BASE_KEYWORDS,
+  authors: [{ name: SCHOOL.name, url: SITE_URL }],
+  creator: SCHOOL.name,
+  publisher: SCHOOL.name,
+  category: 'education',
+  formatDetection: { telephone: false, email: false, address: false },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: SCHOOL.name,
+    description: SCHOOL.description,
+    images: [SCHOOL.ogImage],
+  },
   icons: {
     icon: [
       { url: '/favicon.ico' },
@@ -51,11 +72,13 @@ export const metadata: Metadata = {
     shortcut: '/favicon.ico',
   },
   openGraph: {
-    title: 'St. Joseph International School, Narinda',
-    description: 'Premier Holy Cross institution offering Cambridge curriculum with intellectual rigor and moral leadership in Old Dhaka.',
+    title: SCHOOL.name,
+    description: SCHOOL.description,
+    url: SITE_URL,
     type: 'website',
-    locale: 'en_US',
-    siteName: 'St. Joseph International School, Narinda',
+    locale: 'en_BD',
+    siteName: SCHOOL.name,
+    images: [{ url: SCHOOL.ogImage, alt: `${SCHOOL.name} crest` }],
   },
 };
 
@@ -67,6 +90,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${plusJakarta.variable} ${cinzel.variable} ${playfair.variable} font-sans`}>
       <body className="min-h-screen flex flex-col bg-[#00183F] text-slate-900 antialiased selection:bg-[#D4AF37] selection:text-[#00183F] w-full max-w-full">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify([schoolJsonLd(), websiteJsonLd()]) }}
+        />
         <AppShell>{children}</AppShell>
       </body>
     </html>

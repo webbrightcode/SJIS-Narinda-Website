@@ -20,12 +20,15 @@ import { SectionHeading } from '@/components/ui/SectionHeading';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { ScrollReveal } from '@/components/ui/ScrollReveal';
+import { buildMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = {
-  title: 'About Us',
+export const metadata: Metadata = buildMetadata({
+  title: 'About Us - History, Mission & Leadership',
   description:
-    'Discover the legacy, mission, leadership, and state-of-the-art facilities of St. Joseph International School, Narinda.',
-};
+    'Discover the legacy, mission, leadership, and facilities of St. Joseph International School, Narinda, a Holy Cross institution in Old Dhaka.',
+  path: '/about',
+  keywords: ['SJIS Narinda history', 'Holy Cross Narinda', 'school administrator Narinda'],
+});
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;

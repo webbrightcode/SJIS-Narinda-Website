@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import { getNoticeBySlug, getNotices } from '@/lib/api';
 import { Notice } from '@/lib/types';
+import type { Metadata } from 'next';
+import { buildMetadata, SCHOOL, absoluteUrl, breadcrumbJsonLd } from '@/lib/seo';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { NoticeActions } from './NoticeActions';
@@ -35,26 +37,28 @@ interface NoticeDetailPageProps {
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export async function generateMetadata({ params }: NoticeDetailPageProps) {
+export async function generateMetadata({ params }: NoticeDetailPageProps): Promise<Metadata> {
   const { slug } = await params;
   const notice = await getNoticeBySlug(slug);
 
   if (!notice) {
     return {
-      title: 'Notice Not Found | St. Joseph International School',
+      title: 'Notice Not Found',
+      robots: { index: false, follow: false },
     };
   }
 
-  return {
-    title: `${notice.title} | St. Joseph International School, Narinda`,
-    description: notice.content.slice(0, 160),
-    openGraph: {
-      title: notice.title,
-      description: notice.content.slice(0, 160),
-      type: 'article',
-      publishedTime: notice.publish_date,
-    },
-  };
+  const plain = notice.content.replace(/\s+/g, ' ').trim();
+  const description = plain.length > 155 ? `${plain.slice(0, 155).trim()}…` : plain;
+
+  return buildMetadata({
+    title: notice.title,
+    description: description || `Official notice from ${SCHOOL.name}.`,
+    path: `/notices/${notice.slug}`,
+    type: 'article',
+    publishedTime: notice.publish_date,
+    keywords: ['SJIS Narinda notice', notice.category_display || notice.category],
+  });
 }
 
 export default async function NoticeDetailPage({ params }: NoticeDetailPageProps) {
@@ -80,8 +84,28 @@ export default async function NoticeDetailPage({ params }: NoticeDetailPageProps
     : rawAttachmentUrl;
   const isImageAttachment = safeAttachmentUrl && /\.(jpg|jpeg|png|webp|gif)$/i.test(safeAttachmentUrl);
 
+  const jsonLd = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'NewsArticle',
+      headline: notice.title,
+      datePublished: notice.publish_date,
+      dateModified: notice.publish_date,
+      mainEntityOfPage: absoluteUrl(`/notices/${notice.slug}`),
+      author: { '@type': 'Organization', name: SCHOOL.name },
+      publisher: { '@type': 'Organization', name: SCHOOL.name, logo: { '@type': 'ImageObject', url: SCHOOL.logo } },
+      image: [SCHOOL.ogImage],
+    },
+    breadcrumbJsonLd([
+      { name: 'Home', path: '/' },
+      { name: 'Notices', path: '/notices' },
+      { name: notice.title, path: `/notices/${notice.slug}` },
+    ]),
+  ];
+
   return (
     <div className="bg-slate-50 min-h-screen pb-24">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       {/* Top Breadcrumb & Navigation Bar */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-2xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">

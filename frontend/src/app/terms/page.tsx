@@ -23,9 +23,10 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 
 export const metadata: Metadata = {
-  title: 'Terms & Conditions | St. Joseph International School, Narinda',
+  title: 'Terms & Conditions',
   description:
     'Official academic terms, administrative regulations, student code of conduct, and fee guidelines of St. Joseph International School, Narinda.',
+  alternates: { canonical: '/terms' },
 };
 
 export default function TermsAndConditionsPage() {

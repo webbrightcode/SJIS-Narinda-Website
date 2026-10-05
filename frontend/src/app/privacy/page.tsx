@@ -22,9 +22,10 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy | St. Joseph International School, Narinda',
+  title: 'Privacy Policy',
   description:
     'Institutional data privacy policy and protection standards for students, parents, and visitors of St. Joseph International School, Narinda.',
+  alternates: { canonical: '/privacy' },
 };
 
 export default function PrivacyPolicyPage() {

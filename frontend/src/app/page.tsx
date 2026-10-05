@@ -9,6 +9,12 @@ import { GalleryPreview } from '@/components/sections/GalleryPreview';
 import { AdmissionCTA } from '@/components/sections/AdmissionCTA';
 import { TestimonialsSection } from '@/components/sections/TestimonialsSection';
 import { CampusLocation } from '@/components/sections/CampusLocation';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: { absolute: 'St. Joseph International School, Narinda (SJIS Narinda) | Holy Cross School, Old Dhaka' },
+  alternates: { canonical: '/' },
+};
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
