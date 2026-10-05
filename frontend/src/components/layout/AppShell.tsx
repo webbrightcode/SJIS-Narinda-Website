@@ -10,7 +10,6 @@ import { EmergencyBanner } from '@/components/layout/EmergencyBanner';
 import { SiteSettingsProvider } from '@/components/layout/SiteSettingsContext';
 import { BackToTop } from '@/components/layout/BackToTop';
 import { QuickInquiryFloating } from '@/components/layout/QuickInquiryFloating';
-import { MobileBottomDock } from '@/components/layout/MobileBottomDock';
 import { RouteProgressBar } from '@/components/layout/RouteProgressBar';
 import { BrandSplash } from '@/components/layout/BrandSplash';
 
@@ -32,11 +31,10 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
       <EmergencyBanner />
       <TopHeader />
       <Navbar />
-      <main className="flex-1 pb-16 lg:pb-0 w-full max-w-full">{children}</main>
+      <main className="flex-1 w-full max-w-full">{children}</main>
       <Footer />
       <BackToTop />
       <QuickInquiryFloating />
-      <MobileBottomDock />
     </SiteSettingsProvider>
   );
 };
