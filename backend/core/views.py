@@ -1,4 +1,5 @@
 from django.contrib.auth import authenticate
+from django.shortcuts import get_object_or_404
 from django.db import models
 from rest_framework import viewsets, generics, status, permissions
 from rest_framework.decorators import action
@@ -168,6 +169,15 @@ class NoticeViewSet(viewsets.ModelViewSet):
 
         return queryset.order_by('-is_pinned', '-publish_date', '-created_at')
 
+    def get_object(self):
+        lookup = self.kwargs.get('id')
+        queryset = self.filter_queryset(self.get_queryset())
+        if lookup and not str(lookup).isdigit():
+            obj = get_object_or_404(queryset, slug=lookup)
+            self.check_object_permissions(self.request, obj)
+            return obj
+        return super().get_object()
+
     @action(detail=True, methods=['post'], permission_classes=[permissions.AllowAny])
     def increment_view(self, request, id=None):
         notice = self.get_object()
@@ -322,6 +332,29 @@ class LandingPageBundleView(APIView):
     def get(self, request):
         slides = SliderSlide.objects.filter(is_active=True).order_by('order')[:6]
         about = AboutInfo.objects.first()
+        about_data = None
+        if about:
+            about_data = AboutInfoSerializer(about).data
+            if not about_data.get('pillars'):
+                about_data['pillars'] = [
+                    'Cambridge Assessment International Education (CAIE)',
+                    'Dedicated Congregation of Holy Cross Mentorship',
+                    'Comprehensive STEM & Robotics Laboratories',
+                    'Champion Debating & Co-Curricular Guilds',
+                ]
+            if not about_data.get('principal_title'):
+                about_data['principal_title'] = 'Administrator'
+            if not about_data.get('head_role_badge'):
+                about_data['head_role_badge'] = 'Head of Institution'
+            if not about_data.get('welcome_tag'):
+                about_data['welcome_tag'] = 'WELCOME TO ST. JOSEPH NARINDA'
+            if not about_data.get('welcome_title'):
+                about_data['welcome_title'] = 'Educating Hearts & Minds for Generations.'
+            if not about_data.get('heritage_years'):
+                about_data['heritage_years'] = '70+'
+            if not about_data.get('heritage_label'):
+                about_data['heritage_label'] = 'Years of Heritage'
+
         notices = Notice.objects.filter(is_active=True).order_by('-is_pinned', '-publish_date')[:6]
         clubs = Club.objects.filter(is_active=True).order_by('order')[:6]
         gallery = GalleryItem.objects.filter(is_featured=True).order_by('order')[:8]
@@ -330,7 +363,7 @@ class LandingPageBundleView(APIView):
 
         return Response({
             "slides": SliderSlideSerializer(slides, many=True).data,
-            "about": AboutInfoSerializer(about).data if about else None,
+            "about": about_data,
             "notices": NoticeSerializer(notices, many=True).data,
             "clubs": ClubSerializer(clubs, many=True).data,
             "gallery": GalleryItemSerializer(gallery, many=True).data,

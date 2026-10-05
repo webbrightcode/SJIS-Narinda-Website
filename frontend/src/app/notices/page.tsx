@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   Bell,
   Search,
@@ -135,10 +136,10 @@ export default function NoticesPage() {
           {/* Notices Grid */}
           <div className="space-y-4">
             {filteredNotices.map((notice) => (
-              <div
+              <Link
                 key={notice.id}
-                onClick={() => setActiveNotice(notice)}
-                className={`bg-white rounded-2xl p-6 border transition-all duration-300 hover:shadow-lg cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-6 group ${
+                href={`/notices/${notice.slug || notice.id}`}
+                className={`block bg-white rounded-2xl p-6 border transition-all duration-300 hover:shadow-lg cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-6 group hover:-translate-y-0.5 ${
                   notice.is_pinned
                     ? 'border-amber-300/80 bg-gradient-to-r from-amber-50/30 to-white'
                     : 'border-slate-200'
@@ -189,7 +190,7 @@ export default function NoticesPage() {
                     <ArrowRight className="w-3.5 h-3.5" />
                   </span>
                 </div>
-              </div>
+              </Link>
             ))}
 
             {filteredNotices.length === 0 && (

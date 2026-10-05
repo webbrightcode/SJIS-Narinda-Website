@@ -261,7 +261,7 @@ export default function PrivacyPolicyPage() {
                   <Camera className="w-4 h-4 text-[#D4AF37]" /> Opt-Out Protocol for Parents
                 </div>
                 <p className="text-slate-600 leading-relaxed">
-                  Parents wishing to exclude their child from public photographic spotlights can submit an official <em>Media Opt-Out Declaration</em> to the Principal&apos;s office during annual registration.
+                  Parents wishing to exclude their child from public photographic spotlights can submit an official <em>Media Opt-Out Declaration</em> to the Administrator&apos;s office during annual registration.
                 </p>
               </div>
             </section>

@@ -44,6 +44,16 @@ export interface AboutInfo {
   principal_title: string;
   principal_message: string;
   principal_image_url: string;
+  head_role_badge?: string;
+  welcome_tag?: string;
+  welcome_title?: string;
+  heritage_years?: string;
+  heritage_label?: string;
+  pillars?: string[];
+  primary_button_text?: string;
+  primary_button_url?: string;
+  secondary_button_text?: string;
+  secondary_button_url?: string;
   stats: Record<string, string>;
   emergency_alert?: EmergencyAlert;
   core_values: CoreValue[];

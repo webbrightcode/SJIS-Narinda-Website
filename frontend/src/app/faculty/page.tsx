@@ -261,7 +261,7 @@ export default function FacultyPage() {
               </span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {adminMembers.map((member, idx) => (
                 <ScrollReveal
                   key={member.id}
@@ -272,62 +272,70 @@ export default function FacultyPage() {
                 >
                   <div
                     onClick={() => setSelectedMember(member)}
-                    className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 cursor-pointer flex flex-col justify-between group relative overflow-hidden"
+                    className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 cursor-pointer flex flex-col justify-between group relative overflow-hidden"
                   >
                     {/* Top gold accent line */}
                     <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#00183F] via-[#D4AF37] to-[#C8102E]" />
 
                     <div>
-                      {/* Avatar & Department Pill */}
-                      <div className="flex items-start gap-4 mb-4">
-                        <div className="relative w-20 h-20 sm:w-22 sm:h-22 rounded-2xl overflow-hidden shadow-md shrink-0 bg-slate-100 border-2 border-amber-300/80 group-hover:border-[#00183F] transition-colors">
-                          <img
-                            src={member.image_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop'}
-                            alt={member.name}
-                            className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
-                          />
+                      {/* Big Portrait Photo */}
+                      <div className="relative aspect-[4/4.5] w-full rounded-2xl overflow-hidden shadow-md mb-4 bg-slate-100 border border-slate-100">
+                        <img
+                          src={member.image_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop'}
+                          alt={member.name}
+                          className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#00183F]/85 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3.5">
+                          <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                            <span>View Executive Profile</span>
+                            <ChevronRight className="w-3.5 h-3.5 text-amber-400" />
+                          </span>
                         </div>
 
-                        <div className="space-y-1">
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-900 border border-amber-200">
+                        {/* Top Leadership Badge */}
+                        <div className="absolute top-2.5 left-2.5">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#00183F]/90 backdrop-blur-md text-amber-300 text-[10px] font-bold uppercase tracking-wider border border-amber-300/40 shadow-sm">
                             <ShieldCheck className="w-3 h-3 text-[#D4AF37]" />
                             Leadership
                           </span>
-                          <h3 className="text-lg font-black text-[#00183F] group-hover:text-[#C8102E] transition-colors leading-snug">
-                            {member.name}
-                          </h3>
-                          <p className="text-xs font-bold text-[#C8102E] leading-tight">
-                            {member.designation}
-                          </p>
                         </div>
                       </div>
 
-                      {/* Department & Qualification */}
-                      <div className="space-y-2 text-xs text-slate-600 pt-2 border-t border-slate-100">
-                        {member.department && (
-                          <div className="flex items-center gap-1.5 font-medium">
-                            <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                            <span className="truncate">{member.department}</span>
-                          </div>
-                        )}
+                      {/* Department / Council Tag */}
+                      {member.department && (
+                        <div className="mb-2">
+                          <span className="text-[11px] font-bold text-amber-900 bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-200/80 inline-block line-clamp-1">
+                            {member.department.replace(/principal/gi, 'Administrator')}
+                          </span>
+                        </div>
+                      )}
 
-                        {member.qualification && (
-                          <div className="flex items-center gap-1.5 font-medium text-slate-500">
-                            <GraduationCap className="w-3.5 h-3.5 text-[#D4AF37] shrink-0" />
-                            <span className="line-clamp-1">{member.qualification}</span>
-                          </div>
-                        )}
-                      </div>
+                      {/* Name & Title */}
+                      <h3 className="text-base font-black text-[#00183F] group-hover:text-[#C8102E] transition-colors leading-snug">
+                        {member.name}
+                      </h3>
+                      <p className="text-xs font-bold text-[#C8102E] mt-1 leading-snug">
+                        {member.designation}
+                      </p>
 
+                      {/* Qualification */}
+                      {member.qualification && (
+                        <p className="text-xs text-slate-600 mt-2 flex items-start gap-1.5 leading-relaxed">
+                          <GraduationCap className="w-3.5 h-3.5 text-[#D4AF37] shrink-0 mt-0.5" />
+                          <span className="line-clamp-2">{member.qualification}</span>
+                        </p>
+                      )}
+
+                      {/* Executive Bio */}
                       {member.bio && (
-                        <p className="mt-3 text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                        <p className="mt-2.5 text-xs text-slate-500 line-clamp-2 leading-relaxed">
                           {member.bio}
                         </p>
                       )}
                     </div>
 
                     {/* Bottom Action Strip */}
-                    <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
                       {member.email ? (
                         <a
                           href={`mailto:${member.email}`}
@@ -338,10 +346,10 @@ export default function FacultyPage() {
                           <span>Official Contact</span>
                         </a>
                       ) : (
-                        <span className="text-slate-400">Office of Principal</span>
+                        <span className="text-slate-400 text-[11px]">Office of Administration</span>
                       )}
 
-                      <span className="font-bold text-[#00183F] group-hover:text-[#C8102E] flex items-center gap-1 transition-colors">
+                      <span className="font-bold text-[11px] text-[#00183F] group-hover:text-[#C8102E] flex items-center gap-1 transition-colors">
                         View Profile
                         <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                       </span>

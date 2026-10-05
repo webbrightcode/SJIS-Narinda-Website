@@ -112,9 +112,9 @@ export const NoticeBoardWidget: React.FC<NoticeBoardWidgetProps> = ({ notices })
               duration={550}
               className="h-full"
             >
-              <div
-                onClick={() => setActiveNotice(notice)}
-                className="h-full bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer flex flex-col justify-between group relative overflow-hidden"
+              <Link
+                href={`/notices/${notice.slug || notice.id}`}
+                className="h-full bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer flex flex-col justify-between group relative overflow-hidden block"
               >
                 {notice.is_pinned && (
                   <div className="absolute top-0 right-0 w-16 h-16 overflow-hidden">
@@ -170,7 +170,7 @@ export const NoticeBoardWidget: React.FC<NoticeBoardWidgetProps> = ({ notices })
                     </span>
                   )}
                 </div>
-              </div>
+              </Link>
             </ScrollReveal>
           ))}
         </div>

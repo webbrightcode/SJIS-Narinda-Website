@@ -30,9 +30,23 @@ class AboutInfo(models.Model):
     mission = models.TextField(blank=True)
     vision = models.TextField(blank=True)
     principal_name = models.CharField(max_length=255, blank=True, default="Brother Leo Pereira, CSC")
-    principal_title = models.CharField(max_length=255, blank=True, default="Principal & Headmaster")
+    principal_title = models.CharField(max_length=255, blank=True, default="Administrator")
     principal_message = models.TextField(blank=True)
     principal_image_url = models.URLField(max_length=1000, blank=True)
+    head_role_badge = models.CharField(max_length=150, blank=True, default="Head of Institution")
+    welcome_tag = models.CharField(max_length=255, blank=True, default="WELCOME TO ST. JOSEPH NARINDA")
+    welcome_title = models.CharField(max_length=255, blank=True, default="Educating Hearts & Minds for Generations.")
+    heritage_years = models.CharField(max_length=50, blank=True, default="70+")
+    heritage_label = models.CharField(max_length=150, blank=True, default="Years of Heritage")
+    pillars = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of strings e.g. ['Cambridge Assessment International Education (CAIE)', ...]"
+    )
+    primary_button_text = models.CharField(max_length=100, blank=True, default="Read Full School History")
+    primary_button_url = models.CharField(max_length=255, blank=True, default="/about")
+    secondary_button_text = models.CharField(max_length=100, blank=True, default="Admission Information")
+    secondary_button_url = models.CharField(max_length=255, blank=True, default="/admission")
     stats = models.JSONField(default=dict, blank=True, help_text="e.g. {'students': '3,000+', 'teachers': '140+', 'clubs': '25+', 'success_rate': '100%'}")
     emergency_alert = models.JSONField(default=dict, blank=True, help_text="Emergency banner e.g. {'is_active': False, 'message': '', 'type': 'urgent', 'link_text': '', 'link_url': ''}")
     core_values = models.JSONField(default=list, blank=True, help_text="List of objects: [{'title': 'Faith', 'desc': '...'}]")

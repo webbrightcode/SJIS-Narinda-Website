@@ -144,10 +144,21 @@ export async function getNotices(category?: string, search?: string, activeOnly 
 }
 
 export async function getNoticeBySlug(slug: string): Promise<Notice | null> {
+  try {
+    const res = await fetch(apiUrl(`/notices/${encodeURIComponent(slug)}/`), {
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store',
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.id) return data as Notice;
+    }
+  } catch (e) {}
+
   const notices = await getNotices();
-  const found = notices.find((n) => n.slug === slug);
+  const found = notices.find((n) => n.slug === slug || String(n.id) === slug);
   if (found) return found;
-  return FALLBACK_NOTICES.find((n) => n.slug === slug) || null;
+  return FALLBACK_NOTICES.find((n) => n.slug === slug || String(n.id) === slug) || null;
 }
 
 export async function incrementNoticeView(id: number): Promise<number | null> {

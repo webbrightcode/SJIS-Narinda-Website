@@ -170,7 +170,7 @@ export const AdmissionSlipModal: React.FC<AdmissionSlipModalProps> = ({ inquiry,
             </div>
             <div>
               <div className="border-t border-[#00183F] pt-2 font-bold text-[#00183F]">
-                Authorized Admissions Officer / Principal
+                Authorized Admissions Officer / Administrator
               </div>
               <span className="text-[10px] text-slate-400">Official Seal & Approval Stamp</span>
             </div>

@@ -70,7 +70,7 @@ export const Footer: React.FC = () => {
             <ul className="space-y-2.5 text-sm">
               {[
                 { name: 'About Our Heritage', href: '/about' },
-                { name: 'Principal’s Message', href: '/about#principal' },
+                { name: 'Administrator’s Message', href: '/about#principal' },
                 { name: 'Faculty & Administration', href: '/faculty' },
                 { name: 'Notice Board & Circulars', href: '/notices' },
                 { name: 'Student Clubs & Guilds', href: '/clubs' },

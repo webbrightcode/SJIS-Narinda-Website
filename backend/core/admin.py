@@ -25,7 +25,21 @@ class SliderSlideAdmin(admin.ModelAdmin):
 
 @admin.register(AboutInfo)
 class AboutInfoAdmin(admin.ModelAdmin):
-    list_display = ('title', 'principal_name', 'updated_at')
+    list_display = ('title', 'principal_name', 'principal_title', 'updated_at')
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('title', 'tagline', 'history', 'mission', 'vision')
+        }),
+        ('Head of Institution / Leadership', {
+            'fields': ('principal_name', 'principal_title', 'head_role_badge', 'principal_image_url', 'principal_message')
+        }),
+        ('Homepage Welcome Section Customization', {
+            'fields': ('welcome_tag', 'welcome_title', 'heritage_years', 'heritage_label', 'pillars', 'primary_button_text', 'primary_button_url', 'secondary_button_text', 'secondary_button_url')
+        }),
+        ('Institutional Stats & Extras', {
+            'fields': ('stats', 'core_values', 'facilities', 'emergency_alert')
+        }),
+    )
 
 
 @admin.register(Notice)

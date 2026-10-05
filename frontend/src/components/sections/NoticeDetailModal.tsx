@@ -339,7 +339,7 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
                 <div className="text-left sm:text-right space-y-1">
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px] font-bold">
                     <Building2 className="w-3.5 h-3.5 text-[#D4AF37]" />
-                    Office of the Principal
+                    Office of the Administrator
                   </div>
                   <div className="text-xs font-bold text-[#00183F]">
                     St. Joseph International School
@@ -380,12 +380,18 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
                       />
                     </div>
                   ) : (
-                    <div className="relative w-full h-[520px]">
-                      <iframe
-                        src={`${notice.attachment_url}#toolbar=1&navpanes=0`}
-                        title="Attached Notice Document Preview"
+                    <div className="relative w-full h-[520px] bg-slate-800">
+                      <object
+                        data={`${notice.attachment_url}#toolbar=1&navpanes=0`}
+                        type="application/pdf"
                         className="w-full h-full border-0 bg-white"
-                      />
+                      >
+                        <iframe
+                          src={`${notice.attachment_url}#toolbar=1&navpanes=0`}
+                          title="Attached Notice Document Preview"
+                          className="w-full h-full border-0 bg-white"
+                        />
+                      </object>
                     </div>
                   )}
 

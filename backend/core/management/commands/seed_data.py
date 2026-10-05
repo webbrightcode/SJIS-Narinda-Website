@@ -89,7 +89,22 @@ class Command(BaseCommand):
                 "innovative learning ecosystems, and steadfast ethical stewardship."
             ),
             principal_name="Brother Leo Pereira, CSC",
-            principal_title="Principal & Head of School",
+            principal_title="Administrator",
+            head_role_badge="Head of Institution",
+            welcome_tag="WELCOME TO ST. JOSEPH NARINDA",
+            welcome_title="Educating Hearts & Minds for Generations.",
+            heritage_years="70+",
+            heritage_label="Years of Heritage",
+            pillars=[
+                "Cambridge Assessment International Education (CAIE)",
+                "Dedicated Congregation of Holy Cross Mentorship",
+                "Comprehensive STEM & Robotics Laboratories",
+                "Champion Debating & Co-Curricular Guilds",
+            ],
+            primary_button_text="Read Full School History",
+            primary_button_url="/about",
+            secondary_button_text="Admission Information",
+            secondary_button_url="/admission",
             principal_message=(
                 "Welcome to St. Joseph International School, Narinda. For over seven decades, our sacred mission has "
                 "been to awaken intellectual curiosity and sculpt human character. We believe that true education does not "
@@ -165,7 +180,7 @@ class Command(BaseCommand):
                     "for the academic session 2026-2027 is now officially open. Prospective parents and guardians "
                     "are requested to review the eligibility criteria and submit applications before November 15, 2026."
                 ),
-                "attachment_url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+                "attachment_url": "/circulars/sjis-official-circular.pdf",
                 "publish_date": today,
                 "is_pinned": True,
                 "views_count": 1420
@@ -178,7 +193,7 @@ class Command(BaseCommand):
                     "has been published. Students are advised to collect their admit cards from the academic coordinator "
                     "and review the examination hall protocols."
                 ),
-                "attachment_url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+                "attachment_url": "/circulars/sjis-official-circular.pdf",
                 "publish_date": today - datetime.timedelta(days=2),
                 "is_pinned": True,
                 "views_count": 980
@@ -191,7 +206,7 @@ class Command(BaseCommand):
                     "Participating institutions will compete in Project Display, Olympiads, Hackathons, and Robo-Soccer. "
                     "Registration opens on October 10."
                 ),
-                "attachment_url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+                "attachment_url": "/circulars/sjis-official-circular.pdf",
                 "publish_date": today - datetime.timedelta(days=5),
                 "is_pinned": True,
                 "views_count": 2150

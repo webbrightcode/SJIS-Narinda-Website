@@ -168,12 +168,12 @@ export default async function AboutPage() {
                   </div>
                   <h4 className="text-xl font-bold text-white">{about.principal_name}</h4>
                   <p className="text-xs sm:text-sm text-[#D4AF37] font-semibold mt-1">
-                    {about.principal_title}
+                    {about.principal_title || 'Administrator'}
                   </p>
                 </div>
 
                 <div className="lg:col-span-8 space-y-4">
-                  <Badge variant="gold">Message From Headmaster</Badge>
+                  <Badge variant="gold">Message From {about.principal_title || 'Administrator'}</Badge>
                   <h3 className="text-2xl sm:text-3xl font-extrabold leading-snug">
                     &quot;Awakening Minds, Shaping Future Stewards&quot;
                   </h3>
