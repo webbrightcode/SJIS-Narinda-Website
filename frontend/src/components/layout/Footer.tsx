@@ -184,13 +184,9 @@ export const Footer: React.FC = () => {
               rel="noopener noreferrer"
               className="text-amber-400/90 hover:text-amber-300 font-semibold transition-colors flex items-center gap-1"
             >
-              <span>Campus Portal</span>
+              <span>Student Portal</span>
               <ExternalLink className="w-3 h-3 opacity-80" />
             </a>
-            <span className="text-slate-600">|</span>
-            <Link href="/admin" className="text-amber-400/90 hover:text-amber-300 font-semibold transition-colors">
-              Admin Portal
-            </Link>
           </div>
         </div>
       </div>

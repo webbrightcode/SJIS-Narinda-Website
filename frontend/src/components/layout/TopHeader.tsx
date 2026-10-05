@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Phone, Mail, Clock, ShieldCheck, Lock, ArrowUpRight, GraduationCap } from 'lucide-react';
+import { Phone, Mail, Clock, ShieldCheck, ArrowUpRight, GraduationCap } from 'lucide-react';
 import Link from 'next/link';
 import { useSiteSettings, telHref } from '@/components/layout/SiteSettingsContext';
 
@@ -67,19 +67,9 @@ export const TopHeader: React.FC = () => {
             className={`${itemClass} text-[#D4AF37] hover:text-amber-300 font-semibold transition-colors bg-white/5 hover:bg-white/10 px-2.5 py-1 rounded-md border border-[#D4AF37]/30`}
           >
             <GraduationCap className="w-3.5 h-3.5 text-[#D4AF37]" />
-            <span>Campus Portal</span>
+            <span>Student Portal</span>
             <ArrowUpRight className="w-3 h-3 opacity-70" />
           </a>
-
-          <span className="h-4 w-px bg-white/15" />
-
-          <Link
-            href="/admin"
-            className={`${itemClass} text-slate-300 hover:text-white font-medium transition-colors`}
-          >
-            <Lock className="w-3.5 h-3.5 text-slate-400" />
-            <span>Admin Portal</span>
-          </Link>
         </div>
       </div>
     </div>
