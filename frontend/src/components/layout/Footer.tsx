@@ -37,12 +37,12 @@ export const Footer: React.FC = () => {
                   className="max-h-16 sm:max-h-20 w-auto object-contain drop-shadow-md rounded-full"
                 />
               </div>
-              <div className="min-w-0">
-                <h3 className="font-cinzel text-white font-extrabold text-lg sm:text-xl leading-snug whitespace-nowrap">
+              <div className="min-w-0 flex-1">
+                <h3 className="font-cinzel text-white font-extrabold text-base sm:text-lg lg:text-xl leading-tight break-words">
                   {site.school_name || 'St. Joseph International School'}
                 </h3>
-                <div className="flex items-center gap-2 mt-1 whitespace-nowrap">
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold tracking-widest uppercase bg-gradient-to-r from-amber-400/20 via-[#D4AF37]/30 to-amber-500/20 text-[#D4AF37] border border-[#D4AF37]/40">
+                <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold tracking-widest uppercase bg-gradient-to-r from-amber-400/20 via-[#D4AF37]/30 to-amber-500/20 text-[#D4AF37] border border-[#D4AF37]/40 shrink-0">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#D4AF37]" />
                     Narinda
                   </span>
