@@ -9,7 +9,6 @@ import { EmergencyBanner } from '@/components/layout/EmergencyBanner';
 
 import { SiteSettingsProvider } from '@/components/layout/SiteSettingsContext';
 import { BackToTop } from '@/components/layout/BackToTop';
-import { QuickInquiryFloating } from '@/components/layout/QuickInquiryFloating';
 import { RouteProgressBar } from '@/components/layout/RouteProgressBar';
 import { BrandSplash } from '@/components/layout/BrandSplash';
 
@@ -34,7 +33,6 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
       <main className="flex-1 w-full max-w-full">{children}</main>
       <Footer />
       <BackToTop />
-      <QuickInquiryFloating />
     </SiteSettingsProvider>
   );
 };

@@ -168,7 +168,7 @@ export const Footer: React.FC = () => {
         {/* Bottom Bar */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
           <p>
-            © {new Date().getFullYear()} St. Joseph International School, Narinda. All Rights Reserved. Managed by Congregation of Holy Cross.
+            © {new Date().getFullYear()} St. Joseph International School, Narinda. All Rights Reserved.
           </p>
           <div className="flex items-center gap-6">
             <Link href="/privacy" className="hover:text-slate-300 transition-colors">
