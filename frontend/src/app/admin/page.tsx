@@ -20,6 +20,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Eye,
+  EyeOff,
   Search,
   Calendar,
   Save,
@@ -110,8 +111,9 @@ export default function AdminDashboardPage() {
   // Authentication State
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<AdminUser | null>(null);
-  const [usernameInput, setUsernameInput] = useState('admin');
-  const [passwordInput, setPasswordInput] = useState('sjisadmin2026');
+  const [usernameInput, setUsernameInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loginLoading, setLoginLoading] = useState(false);
 
@@ -843,10 +845,11 @@ export default function AdminDashboardPage() {
                 <input
                   type="text"
                   required
+                  autoComplete="username"
                   value={usernameInput}
                   onChange={(e) => setUsernameInput(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl bg-black/40 border border-white/15 focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] text-white text-sm outline-none transition-all placeholder-slate-500"
-                  placeholder="admin"
+                  placeholder="Enter staff username"
                 />
               </div>
 
@@ -854,14 +857,25 @@ export default function AdminDashboardPage() {
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
                   Secure Password
                 </label>
-                <input
-                  type="password"
-                  required
-                  value={passwordInput}
-                  onChange={(e) => setPasswordInput(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-black/40 border border-white/15 focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] text-white text-sm outline-none transition-all placeholder-slate-500"
-                  placeholder="••••••••"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    autoComplete="current-password"
+                    value={passwordInput}
+                    onChange={(e) => setPasswordInput(e.target.value)}
+                    className="w-full px-4 py-3 pr-11 rounded-xl bg-black/40 border border-white/15 focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] text-white text-sm outline-none transition-all placeholder-slate-500"
+                    placeholder="Enter your password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                    title={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <div className="pt-2">
@@ -877,17 +891,9 @@ export default function AdminDashboardPage() {
                 </Button>
               </div>
 
-              <div className="pt-2 text-center">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setUsernameInput('admin');
-                    setPasswordInput('sjisadmin2026');
-                  }}
-                  className="text-xs text-[#D4AF37] hover:underline"
-                >
-                  Quick Fill Demo Credentials (admin / sjisadmin2026)
-                </button>
+              <div className="pt-2 text-center flex items-center justify-center gap-1.5 text-[11px] text-slate-400">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#D4AF37]" />
+                <span>Authorized SJIS Personnel Only • TLS Encrypted</span>
               </div>
 
               <div className="pt-4 border-t border-white/10 text-center">
