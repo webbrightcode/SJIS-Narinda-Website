@@ -383,3 +383,50 @@ class StaffMember(models.Model):
     def __str__(self):
         return f"{self.name} ({self.get_role_type_display()}) - {self.designation}"
 
+
+class SyllabusItem(models.Model):
+    SECTION_CHOICES = [
+        ('cambridge_primary', 'Cambridge Primary (Playgroup - Grade 5)'),
+        ('cambridge_lower_sec', 'Cambridge Lower Secondary (Grade 6 - 8)'),
+        ('cambridge_igcse', 'Cambridge Upper Secondary / IGCSE (Grade 9 - 10)'),
+        ('gce_alevel', 'Cambridge Advanced / A-Level (Grade 11 - 12)'),
+        ('general', 'General Curriculum & Assessment Overview'),
+    ]
+
+    title = models.CharField(max_length=255, help_text="e.g. Grade 1 Annual Academic Syllabus & Curriculum Booklet")
+    slug = models.SlugField(max_length=300, unique=True, blank=True)
+    grade = models.CharField(max_length=100, help_text="e.g. Grade 1, Grade 9 (IGCSE), Playgroup")
+    subject = models.CharField(max_length=150, blank=True, default="All Subjects", help_text="Optional subject or 'All Subjects'")
+    subjects_included = models.TextField(blank=True, default="", help_text="e.g. English, Mathematics, Science, Bengali, ICT, Art & Craft")
+    academic_year = models.CharField(max_length=50, default="2026-2027")
+    curriculum_section = models.CharField(max_length=50, choices=SECTION_CHOICES, default='cambridge_primary')
+    file_url = models.TextField(help_text="PDF file URL or /circulars/...")
+    file_size = models.CharField(max_length=50, blank=True, default="PDF Document", help_text="e.g. 1.2 MB or 24 Pages")
+    description = models.TextField(blank=True, default="", help_text="Syllabus overview, objectives and assessment structure")
+    version = models.CharField(max_length=50, blank=True, default="v2026.1")
+    term = models.CharField(max_length=100, blank=True, default="Full Academic Year", help_text="e.g. Full Academic Year, Term 1 & 2")
+    order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    download_count = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['order', 'grade', '-created_at']
+        verbose_name = "Syllabus Item"
+        verbose_name_plural = "Syllabus Items"
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base_slug = slugify(f"{self.grade}-{self.academic_year}") or 'syllabus'
+            slug = base_slug
+            counter = 1
+            while SyllabusItem.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"[{self.grade}] {self.title} ({self.academic_year})"
+

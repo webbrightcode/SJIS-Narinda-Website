@@ -71,6 +71,7 @@ export const Footer: React.FC = () => {
               {[
                 { name: 'About Our Heritage', href: '/about' },
                 { name: 'Administrator’s Message', href: '/about#principal' },
+                { name: 'Curriculum & Syllabus', href: '/syllabus' },
                 { name: 'Faculty & Administration', href: '/faculty' },
                 { name: 'News & Events', href: '/news' },
                 { name: 'Notice Board & Circulars', href: '/notices' },

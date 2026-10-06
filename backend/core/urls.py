@@ -20,6 +20,7 @@ from .views import (
     TestimonialViewSet,
     FAQViewSet,
     StaffMemberViewSet,
+    SyllabusItemViewSet,
     FileUploadView,
 )
 
@@ -27,6 +28,7 @@ router = DefaultRouter()
 router.register(r'slides', SliderSlideViewSet, basename='slide')
 router.register(r'notices', NoticeViewSet, basename='notice')
 router.register(r'news', NewsViewSet, basename='news')
+router.register(r'syllabus', SyllabusItemViewSet, basename='syllabus')
 router.register(r'clubs', ClubViewSet, basename='club')
 router.register(r'gallery', GalleryItemViewSet, basename='gallery')
 router.register(r'testimonials', TestimonialViewSet, basename='testimonial')

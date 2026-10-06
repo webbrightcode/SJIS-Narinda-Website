@@ -111,6 +111,33 @@ export interface News {
   views_count: number;
 }
 
+export interface SyllabusItem {
+  id: number;
+  title: string;
+  slug: string;
+  grade: string;
+  subject?: string;
+  subjects_included?: string;
+  academic_year: string;
+  curriculum_section:
+    | 'cambridge_primary'
+    | 'cambridge_lower_sec'
+    | 'cambridge_igcse'
+    | 'gce_alevel'
+    | 'general';
+  curriculum_section_display?: string;
+  file_url: string;
+  file_size?: string;
+  description?: string;
+  version?: string;
+  term?: string;
+  order: number;
+  is_active: boolean;
+  download_count: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Club {
   id: number;
   name: string;

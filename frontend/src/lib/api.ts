@@ -14,6 +14,7 @@ import {
   Testimonial,
   FAQ,
   StaffMember,
+  SyllabusItem,
 } from './types';
 import {
   FALLBACK_BUNDLE,
@@ -25,6 +26,7 @@ import {
   FALLBACK_ADMISSION,
   FALLBACK_GALLERY,
   FALLBACK_FACULTY,
+  FALLBACK_SYLLABUS,
 } from './fallback-data';
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
@@ -811,5 +813,56 @@ export async function uploadMediaFile(
   }
   return null;
 }
+
+// --- SYLLABUS API ---
+export async function getSyllabus(
+  curriculumSection?: string,
+  grade?: string,
+  search?: string,
+  academicYear?: string,
+  activeOnly = true
+): Promise<SyllabusItem[]> {
+  const params: string[] = [];
+  if (activeOnly) params.push('active=true');
+  if (curriculumSection && curriculumSection !== 'all') params.push(`curriculum_section=${encodeURIComponent(curriculumSection)}`);
+  if (grade && grade !== 'all') params.push(`grade=${encodeURIComponent(grade)}`);
+  if (academicYear && academicYear !== 'all') params.push(`academic_year=${encodeURIComponent(academicYear)}`);
+  if (search) params.push(`search=${encodeURIComponent(search)}`);
+  const query = params.length > 0 ? `?${params.join('&')}` : '';
+  return fetchWithFallback<SyllabusItem[]>(`/syllabus/${query}`, FALLBACK_SYLLABUS);
+}
+
+export async function getSyllabusBySlug(slug: string): Promise<SyllabusItem | null> {
+  try {
+    const res = await fetch(apiUrl(`/syllabus/${encodeURIComponent(slug)}/`), {
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store',
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.id) return data as SyllabusItem;
+    }
+  } catch (e) {}
+
+  const all = await getSyllabus();
+  return all.find((s) => s.slug === slug || String(s.id) === slug) || null;
+}
+
+export async function incrementSyllabusDownload(id: number): Promise<number | null> {
+  try {
+    const res = await fetch(apiUrl(`/syllabus/${id}/increment_download/`), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return typeof data.download_count === 'number' ? data.download_count : null;
+  } catch {
+    return null;
+  }
+}
+
+export const saveSyllabusItem = (item: Partial<SyllabusItem>, token?: string) => saveResource<SyllabusItem>('syllabus', item, token);
+export const deleteSyllabusItem = (id: number, token?: string) => removeResource('syllabus', id, token);
 
 

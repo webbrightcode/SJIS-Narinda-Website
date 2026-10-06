@@ -9,6 +9,7 @@ from .models import (
     AdmissionInquiry,
     GalleryItem,
     StaffMember,
+    SyllabusItem,
 )
 
 admin.site.site_header = "St. Joseph International School, Narinda - Administration"
@@ -98,4 +99,13 @@ class StaffMemberAdmin(admin.ModelAdmin):
     list_editable = ('order', 'is_featured', 'is_active')
     list_filter = ('role_type', 'department', 'is_featured', 'is_active')
     search_fields = ('name', 'designation', 'department', 'qualification', 'bio')
+
+
+@admin.register(SyllabusItem)
+class SyllabusItemAdmin(admin.ModelAdmin):
+    list_display = ('title', 'grade', 'subject', 'academic_year', 'curriculum_section', 'order', 'is_active', 'download_count')
+    list_editable = ('order', 'is_active')
+    list_filter = ('curriculum_section', 'academic_year', 'grade', 'is_active')
+    search_fields = ('title', 'subject', 'grade', 'description')
+    prepopulated_fields = {'slug': ('title',)}
 

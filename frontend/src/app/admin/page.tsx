@@ -113,7 +113,7 @@ import { CommandPalette } from '@/components/admin/CommandPalette';
 import { AdmissionSlipModal } from '@/components/admin/AdmissionSlipModal';
 import { DatabaseRestoreModal } from '@/components/admin/DatabaseRestoreModal';
 import { ImageHelper } from '@/components/admin/ImageHelper';
-import { SiteSettingsPanel, TestimonialsManager, FaqManager, FacultyManager } from '@/components/admin/SiteContentPanels';
+import { SiteSettingsPanel, TestimonialsManager, FaqManager, FacultyManager, SyllabusManager } from '@/components/admin/SiteContentPanels';
 import { FacilitiesManager } from '@/components/admin/FacilitiesManager';
 import { AboutPageManager } from '@/components/admin/AboutPageManager';
 
@@ -146,6 +146,7 @@ export default function AdminDashboardPage() {
     | 'testimonials'
     | 'faqs'
     | 'faculty'
+    | 'syllabus'
   >('overview');
 
   // Search & Filter state for lists
@@ -1127,6 +1128,7 @@ export default function AdminDashboardPage() {
               { id: 'about_page', label: 'About Us Page & Heritage', icon: BookOpen },
               { id: 'slides', label: 'Hero Sliders', icon: Sliders, count: slides.length },
               { id: 'notices', label: 'Notice Board', icon: Bell, count: notices.length },
+              { id: 'syllabus', label: 'Academic Syllabus', icon: FileSpreadsheet },
               { id: 'faculty', label: 'Faculty & Staff Body', icon: GraduationCap },
               { id: 'clubs', label: 'Clubs & Guilds', icon: Users, count: clubs.length },
               { id: 'facilities', label: 'Campus Facilities', icon: Building2, count: aboutInfo?.facilities?.length || 4 },
@@ -1315,6 +1317,7 @@ export default function AdminDashboardPage() {
           {activeTab === 'testimonials' && <TestimonialsManager token={token || undefined} />}
           {activeTab === 'faqs' && <FaqManager token={token || undefined} />}
           {activeTab === 'faculty' && <FacultyManager token={token || undefined} />}
+          {activeTab === 'syllabus' && <SyllabusManager token={token || undefined} />}
           {activeTab === 'facilities' && (
             <FacilitiesManager
               token={token || undefined}

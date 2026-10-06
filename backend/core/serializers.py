@@ -12,6 +12,7 @@ from .models import (
     Testimonial,
     FAQ,
     StaffMember,
+    SyllabusItem,
 )
 
 
@@ -133,4 +134,20 @@ class StaffMemberSerializer(serializers.ModelSerializer):
     class Meta:
         model = StaffMember
         fields = '__all__'
+
+
+class SyllabusItemSerializer(serializers.ModelSerializer):
+    curriculum_section_display = serializers.CharField(source='get_curriculum_section_display', read_only=True)
+
+    class Meta:
+        model = SyllabusItem
+        fields = '__all__'
+        extra_kwargs = {'slug': {'required': False}}
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        url = data.get('file_url')
+        if url and ('w3.org' in url or 'dummy.pdf' in url):
+            data['file_url'] = '/circulars/sjis-official-circular.pdf'
+        return data
 

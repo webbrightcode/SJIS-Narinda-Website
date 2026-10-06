@@ -21,6 +21,7 @@ from .models import (
     Testimonial,
     FAQ,
     StaffMember,
+    SyllabusItem,
 )
 from .serializers import (
     SliderSlideSerializer,
@@ -35,6 +36,7 @@ from .serializers import (
     TestimonialSerializer,
     FAQSerializer,
     StaffMemberSerializer,
+    SyllabusItemSerializer,
 )
 
 
@@ -224,6 +226,55 @@ class NewsViewSet(viewsets.ModelViewSet):
         News.objects.filter(pk=story.pk).update(views_count=models.F('views_count') + 1)
         story.refresh_from_db()
         return Response({'views_count': story.views_count})
+
+
+class SyllabusItemViewSet(viewsets.ModelViewSet):
+    serializer_class = SyllabusItemSerializer
+    lookup_field = 'id'
+
+    def get_queryset(self):
+        queryset = SyllabusItem.objects.all()
+        active_only = self.request.query_params.get('active')
+        if active_only and active_only.lower() in ['true', '1']:
+            queryset = queryset.filter(is_active=True)
+
+        section = self.request.query_params.get('section')
+        grade = self.request.query_params.get('grade')
+        year = self.request.query_params.get('year')
+        search = self.request.query_params.get('search')
+
+        if section and section != 'all':
+            queryset = queryset.filter(curriculum_section=section)
+        if grade and grade != 'all':
+            queryset = queryset.filter(grade__iexact=grade)
+        if year and year != 'all':
+            queryset = queryset.filter(academic_year=year)
+        if search:
+            queryset = (
+                queryset.filter(title__icontains=search)
+                | queryset.filter(subject__icontains=search)
+                | queryset.filter(subjects_included__icontains=search)
+                | queryset.filter(grade__icontains=search)
+                | queryset.filter(description__icontains=search)
+            )
+
+        return queryset.order_by('order', 'grade', '-created_at')
+
+    def get_object(self):
+        lookup = self.kwargs.get('id')
+        queryset = self.filter_queryset(self.get_queryset())
+        if lookup and not str(lookup).isdigit():
+            obj = get_object_or_404(queryset, slug=lookup)
+            self.check_object_permissions(self.request, obj)
+            return obj
+        return super().get_object()
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.AllowAny])
+    def increment_download(self, request, id=None):
+        item = self.get_object()
+        SyllabusItem.objects.filter(pk=item.pk).update(download_count=models.F('download_count') + 1)
+        item.refresh_from_db()
+        return Response({'download_count': item.download_count})
 
 
 class ClubViewSet(viewsets.ModelViewSet):

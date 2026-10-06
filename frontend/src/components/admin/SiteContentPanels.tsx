@@ -25,8 +25,11 @@ import {
   Briefcase,
   Mail,
   Search,
+  FileText,
+  Download,
+  Upload,
 } from 'lucide-react';
-import { FAQ, HighlightItem, SiteSettings, Testimonial, StaffMember } from '@/lib/types';
+import { FAQ, HighlightItem, SiteSettings, Testimonial, StaffMember, SyllabusItem } from '@/lib/types';
 import {
   DEFAULT_SITE_SETTINGS,
   deleteFaq,
@@ -40,6 +43,10 @@ import {
   getFacultyAndStaff,
   saveStaffMember,
   deleteStaffMember,
+  getSyllabus,
+  saveSyllabusItem,
+  deleteSyllabusItem,
+  uploadMediaFile,
 } from '@/lib/api';
 import { Modal } from '@/components/ui/Modal';
 import { ImageHelper } from '@/components/admin/ImageHelper';
@@ -1298,4 +1305,478 @@ export const FacultyManager: React.FC<{ token?: string }> = ({ token }) => {
     </div>
   );
 };
+
+/* ---------- Academic Syllabus Manager ---------- */
+
+const emptySyllabusItem: Partial<SyllabusItem> = {
+  title: '',
+  grade: 'Grade 1',
+  subject: 'All Subjects (Consolidated)',
+  subjects_included: 'English, Mathematics, Science, Bengali, ICT, Art & Craft',
+  academic_year: '2026-2027',
+  curriculum_section: 'cambridge_primary',
+  file_url: '',
+  file_size: '',
+  description: '',
+  version: 'v2026.1',
+  term: 'Full Academic Session',
+  order: 0,
+  is_active: true,
+};
+
+export const SyllabusManager: React.FC<{ token?: string }> = ({ token }) => {
+  const [items, setItems] = useState<SyllabusItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<Partial<SyllabusItem> | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [flash, setFlash] = useState<Flash>(null);
+  const [filterSection, setFilterSection] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [deletingItem, setDeletingItem] = useState<SyllabusItem | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    getSyllabus('all', 'all', '', 'all', false).then((data) => {
+      setItems(data);
+      setLoading(false);
+    });
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editing) return;
+    setUploading(true);
+    try {
+      const res = await uploadMediaFile(file, token);
+      if (res && res.url) {
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+        setEditing({
+          ...editing,
+          file_url: res.url,
+          file_size: `${sizeMb} MB PDF`,
+        });
+        setFlash({ ok: true, text: `PDF uploaded successfully (${file.name}).` });
+      } else {
+        setFlash({ ok: false, text: 'File upload failed. Please try again or use direct URL.' });
+      }
+    } catch {
+      setFlash({ ok: false, text: 'Network error during PDF upload.' });
+    } finally {
+      setUploading(false);
+      setTimeout(() => setFlash(null), 3000);
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editing) return;
+    if (!editing.title || !editing.grade || !editing.file_url) {
+      setFlash({ ok: false, text: 'Please fill in Grade, Title, and File URL.' });
+      return;
+    }
+    setSaving(true);
+    try {
+      const saved = await saveSyllabusItem(editing, token);
+      if (saved) {
+        setFlash({ ok: true, text: `"${saved.title}" saved successfully.` });
+        setEditing(null);
+        load();
+      } else {
+        setFlash({ ok: false, text: 'Could not save syllabus. Please verify input fields.' });
+      }
+    } catch {
+      setFlash({ ok: false, text: 'Network error while saving syllabus.' });
+    } finally {
+      setSaving(false);
+      setTimeout(() => setFlash(null), 4000);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingItem) return;
+    const target = deletingItem;
+    setDeleteLoading(true);
+    setItems((prev) => prev.filter((i) => i.id !== target.id));
+    setDeletingItem(null);
+
+    const ok = await deleteSyllabusItem(target.id, token);
+    setDeleteLoading(false);
+    if (ok) {
+      setFlash({ ok: true, text: `"${target.title}" deleted.` });
+    } else {
+      setItems((prev) => [target, ...prev]);
+      setFlash({ ok: false, text: `Failed to delete "${target.title}".` });
+    }
+    setTimeout(() => setFlash(null), 3000);
+  };
+
+  const filteredItems = items.filter((item) => {
+    if (filterSection !== 'all' && item.curriculum_section !== filterSection) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const match =
+        item.title.toLowerCase().includes(q) ||
+        item.grade.toLowerCase().includes(q) ||
+        (item.subjects_included || '').toLowerCase().includes(q);
+      if (!match) return false;
+    }
+    return true;
+  });
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+            <FileText className="w-5 h-5 text-amber-500" />
+            Academic Syllabi &amp; Curriculum Documents
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Manage Cambridge International syllabuses, subject curriculum guides, and downloadable PDF documents for all grades.
+          </p>
+        </div>
+        <button
+          onClick={() => setEditing({ ...emptySyllabusItem })}
+          className="px-4 py-2.5 rounded-xl bg-[#00183F] hover:bg-navy-900 text-white text-xs font-bold flex items-center gap-2 shadow-md cursor-pointer transition-all shrink-0"
+        >
+          <Plus className="w-4 h-4 text-amber-300" />
+          <span>Upload / Add Syllabus</span>
+        </button>
+      </div>
+
+      {flash && (
+        <div
+          className={`p-3.5 rounded-xl text-xs font-medium flex items-center gap-2 ${
+            flash.ok ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'
+          }`}
+        >
+          {flash.ok ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <AlertCircle className="w-4 h-4 text-red-600" />}
+          {flash.text}
+        </div>
+      )}
+
+      {/* Filters Toolbar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200/80 shadow-sm">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Search syllabus by title, subject or grade..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#00183F] outline-none"
+          />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <select
+            value={filterSection}
+            onChange={(e) => setFilterSection(e.target.value)}
+            className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white outline-none cursor-pointer"
+          >
+            <option value="all">All Stages</option>
+            <option value="cambridge_primary">Cambridge Primary</option>
+            <option value="cambridge_lower_sec">Lower Secondary</option>
+            <option value="cambridge_igcse">Cambridge IGCSE</option>
+            <option value="gce_alevel">International A Level</option>
+            <option value="general">General / Other</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Syllabi List / Table */}
+      {loading ? (
+        <div className="py-20 text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-amber-500 mx-auto mb-2" />
+          <p className="text-xs text-slate-500">Loading syllabus records...</p>
+        </div>
+      ) : filteredItems.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-12 text-center">
+          <FileText className="w-12 h-12 text-slate-300 mx-auto mb-2" />
+          <p className="text-sm font-bold text-slate-700">No syllabus documents found</p>
+          <p className="text-xs text-slate-400 mt-1">Click &quot;Upload / Add Syllabus&quot; above to create the first entry.</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 font-bold text-slate-500 uppercase tracking-wider text-[10px]">
+                  <th className="py-3 px-4">Class / Grade</th>
+                  <th className="py-3 px-4">Syllabus Booklet Document</th>
+                  <th className="py-3 px-4">Stage</th>
+                  <th className="py-3 px-4">Covered Subjects</th>
+                  <th className="py-3 px-4">Session</th>
+                  <th className="py-3 px-4">Size</th>
+                  <th className="py-3 px-4">Downloads</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredItems.map((item) => (
+                  <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
+                    <td className="py-3 px-4">
+                      <span className="px-2.5 py-1 rounded-lg bg-navy-50 text-navy-950 font-bold border border-navy-200 text-xs">
+                        {item.grade}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="font-bold text-slate-800">{item.title}</div>
+                      <div className="text-[11px] text-emerald-700 font-semibold">All Subjects in Single PDF</div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                        {item.curriculum_section.replace('cambridge_', '').replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 max-w-xs truncate text-[11px] text-slate-600">
+                      {item.subjects_included || 'All Core & Elective Subjects'}
+                    </td>
+                    <td className="py-3 px-4 font-mono text-slate-500">{item.academic_year}</td>
+                    <td className="py-3 px-4 font-mono text-slate-500">{item.file_size || 'PDF'}</td>
+                    <td className="py-3 px-4 font-mono text-slate-500">{item.download_count}</td>
+                    <td className="py-3 px-4">
+                      {item.is_active ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Active</span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200">Hidden</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <a
+                          href={item.file_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-navy-950 hover:bg-slate-100"
+                          title="Open PDF in new tab"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                        <button
+                          onClick={() => setEditing(item)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-navy-950 hover:bg-slate-100"
+                          title="Edit"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setDeletingItem(item)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Edit / Create Syllabus Modal */}
+      {editing && (
+        <Modal
+          isOpen={!!editing}
+          title={editing.id ? 'Edit Syllabus Document' : 'Create / Upload New Syllabus'}
+          onClose={() => setEditing(null)}
+          maxWidth="lg"
+        >
+          <form onSubmit={handleSave} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="Class / Grade *">
+                <input
+                  required
+                  className={inputCls}
+                  placeholder="e.g. Grade 1, Grade 9 (IGCSE), Playgroup"
+                  value={editing.grade || ''}
+                  onChange={(e) => setEditing({ ...editing, grade: e.target.value })}
+                />
+              </Field>
+
+              <Field label="Document Title *">
+                <input
+                  required
+                  className={inputCls}
+                  placeholder="e.g. Grade 1 Cambridge Primary Academic Syllabus Booklet"
+                  value={editing.title || ''}
+                  onChange={(e) => setEditing({ ...editing, title: e.target.value })}
+                />
+              </Field>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="Curriculum Stage *">
+                <select
+                  className={inputCls}
+                  value={editing.curriculum_section || 'cambridge_primary'}
+                  onChange={(e) => setEditing({ ...editing, curriculum_section: e.target.value as SyllabusItem['curriculum_section'] })}
+                >
+                  <option value="cambridge_primary">Cambridge Primary (PG–Gr 5)</option>
+                  <option value="cambridge_lower_sec">Lower Secondary (Gr 6–8)</option>
+                  <option value="cambridge_igcse">Cambridge IGCSE (Gr 9–10)</option>
+                  <option value="gce_alevel">International A Level (Gr 11–12)</option>
+                  <option value="general">General / Guidelines</option>
+                </select>
+              </Field>
+
+              <Field label="Academic Session">
+                <input
+                  className={inputCls}
+                  placeholder="e.g. 2026-2027"
+                  value={editing.academic_year || ''}
+                  onChange={(e) => setEditing({ ...editing, academic_year: e.target.value })}
+                />
+              </Field>
+            </div>
+
+            <Field label="Subjects Included in this Grade PDF *">
+              <input
+                className={inputCls}
+                placeholder="e.g. English, Mathematics, Science, Bengali, ICT, Art & Craft"
+                value={editing.subjects_included || ''}
+                onChange={(e) => setEditing({ ...editing, subjects_included: e.target.value })}
+              />
+              <span className="text-[11px] text-slate-400 mt-1 block">
+                List the subjects included inside this single consolidated PDF booklet.
+              </span>
+            </Field>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="Term / Session Span">
+                <input
+                  className={inputCls}
+                  placeholder="e.g. Full Academic Session, Term 1 & 2"
+                  value={editing.term || ''}
+                  onChange={(e) => setEditing({ ...editing, term: e.target.value })}
+                />
+              </Field>
+
+              <Field label="Version">
+                <input
+                  className={inputCls}
+                  placeholder="e.g. v2026.1"
+                  value={editing.version || ''}
+                  onChange={(e) => setEditing({ ...editing, version: e.target.value })}
+                />
+              </Field>
+            </div>
+
+            {/* PDF File URL & Direct File Uploader */}
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <label className={labelCls}>PDF Document *</label>
+                {uploading && (
+                  <span className="text-xs text-amber-600 font-semibold flex items-center gap-1">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Uploading PDF...
+                  </span>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <input
+                  required
+                  className={inputCls}
+                  placeholder="https://... or upload local PDF file below"
+                  value={editing.file_url || ''}
+                  onChange={(e) => setEditing({ ...editing, file_url: e.target.value })}
+                />
+                <label className="px-4 py-2 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 flex items-center gap-1.5 cursor-pointer shrink-0">
+                  <Upload className="w-3.5 h-3.5 text-navy-700" />
+                  <span>Choose File</span>
+                  <input
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                  />
+                </label>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="File Size Label">
+                  <input
+                    className={inputCls}
+                    placeholder="e.g. 2.4 MB PDF"
+                    value={editing.file_size || ''}
+                    onChange={(e) => setEditing({ ...editing, file_size: e.target.value })}
+                  />
+                </Field>
+
+                <Field label="Display Order">
+                  <input
+                    type="number"
+                    className={inputCls}
+                    value={editing.order ?? 0}
+                    onChange={(e) => setEditing({ ...editing, order: Number(e.target.value) || 0 })}
+                  />
+                </Field>
+              </div>
+            </div>
+
+            <Field label="Description &amp; Syllabus Overview">
+              <textarea
+                rows={3}
+                className={inputCls}
+                placeholder="Prescribed Cambridge textbook series, term modules, practical examination details..."
+                value={editing.description || ''}
+                onChange={(e) => setEditing({ ...editing, description: e.target.value })}
+              />
+            </Field>
+
+            <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 cursor-pointer">
+              <input
+                type="checkbox"
+                className="w-4 h-4 accent-[#00183F]"
+                checked={editing.is_active ?? true}
+                onChange={(e) => setEditing({ ...editing, is_active: e.target.checked })}
+              />
+              Visible on public website
+            </label>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setEditing(null)}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving || uploading}
+                className="px-5 py-2 rounded-xl bg-[#00183F] text-white text-sm font-bold flex items-center gap-2 disabled:opacity-60 cursor-pointer shadow-md"
+              >
+                {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                {editing.id ? 'Save Changes' : 'Publish Syllabus'}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={!!deletingItem}
+        title="Delete Syllabus Document"
+        itemName={deletingItem?.title}
+        loading={deleteLoading}
+        onClose={() => setDeletingItem(null)}
+        onConfirm={confirmDelete}
+      />
+    </div>
+  );
+};
+
 
