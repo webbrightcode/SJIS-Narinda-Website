@@ -79,7 +79,7 @@ export default function FacultyPage() {
   return (
     <div className="min-h-screen bg-slate-50/60 pb-24">
       {/* Hero Header Section */}
-      <section className="relative bg-[#00183F] text-white pt-16 pb-20 overflow-hidden border-b-4 border-[#D4AF37]">
+      <section className="relative bg-[#00183F] text-white pt-14 pb-16 overflow-hidden border-b-4 border-[#D4AF37]">
         {/* Background decorative elements */}
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#D4AF37_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
         <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
@@ -95,31 +95,6 @@ export default function FacultyPage() {
             <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-tight">
               Our Educators & Leadership Body
             </h1>
-
-            <p className="text-slate-300 text-base sm:text-lg leading-relaxed font-light">
-              Guided by the Congregation of Holy Cross, our distinguished educators, administrators, and staff
-              are dedicated to cultivating intellectual brilliance, moral integrity, and lifelong leadership.
-            </p>
-
-            {/* Quick Stat Pills */}
-            <div className="pt-6 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-2xl mx-auto">
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 backdrop-blur-xs">
-                <div className="text-2xl sm:text-3xl font-black text-amber-400">140+</div>
-                <div className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider mt-0.5">Faculty Members</div>
-              </div>
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 backdrop-blur-xs">
-                <div className="text-2xl sm:text-3xl font-black text-emerald-400">100%</div>
-                <div className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider mt-0.5">CAIE Certified</div>
-              </div>
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 backdrop-blur-xs">
-                <div className="text-2xl sm:text-3xl font-black text-amber-400">70+</div>
-                <div className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider mt-0.5">Years Legacy</div>
-              </div>
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 backdrop-blur-xs">
-                <div className="text-2xl sm:text-3xl font-black text-sky-400">1:15</div>
-                <div className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider mt-0.5">Mentor Ratio</div>
-              </div>
-            </div>
           </div>
         </div>
       </section>
