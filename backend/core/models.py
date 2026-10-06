@@ -51,6 +51,15 @@ class AboutInfo(models.Model):
     emergency_alert = models.JSONField(default=dict, blank=True, help_text="Emergency banner e.g. {'is_active': False, 'message': '', 'type': 'urgent', 'link_text': '', 'link_url': ''}")
     core_values = models.JSONField(default=list, blank=True, help_text="List of objects: [{'title': 'Faith', 'desc': '...'}]")
     facilities = models.JSONField(default=list, blank=True, help_text="List of facilities: [{'name': '...', 'desc': '...'}]")
+    facilities_badge = models.CharField(max_length=150, blank=True, default="Modern Infrastructure")
+    facilities_title = models.CharField(max_length=255, blank=True, default="World-Class Campus Facilities")
+    facilities_subtitle = models.CharField(
+        max_length=500,
+        blank=True,
+        default="Providing our students with inspiring physical and digital learning environments."
+    )
+    facilities_cta_text = models.CharField(max_length=150, blank=True, default="Apply For Admission 2026-2027")
+    facilities_cta_link = models.CharField(max_length=255, blank=True, default="/admission")
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

@@ -14,6 +14,13 @@ import {
   History,
   Target,
   Sparkles,
+  FlaskConical,
+  Laptop,
+  Dumbbell,
+  Palette,
+  Building2,
+  Wifi,
+  Compass,
 } from 'lucide-react';
 import { getAboutInfo } from '@/lib/api';
 import { SectionHeading } from '@/components/ui/SectionHeading';
@@ -56,11 +63,31 @@ export default async function AboutPage() {
       case 'Cpu':
         return <Cpu className="w-6 h-6 text-amber-500" />;
       case 'BookMarked':
+      case 'BookOpen':
         return <BookMarked className="w-6 h-6 text-rose-500" />;
       case 'Music':
         return <Music className="w-6 h-6 text-purple-500" />;
       case 'Trophy':
         return <Trophy className="w-6 h-6 text-emerald-500" />;
+      case 'FlaskConical':
+        return <FlaskConical className="w-6 h-6 text-cyan-500" />;
+      case 'Laptop':
+        return <Laptop className="w-6 h-6 text-blue-500" />;
+      case 'Dumbbell':
+        return <Dumbbell className="w-6 h-6 text-orange-500" />;
+      case 'Palette':
+        return <Palette className="w-6 h-6 text-pink-500" />;
+      case 'Building2':
+      case 'Building':
+        return <Building2 className="w-6 h-6 text-indigo-500" />;
+      case 'Wifi':
+        return <Wifi className="w-6 h-6 text-teal-500" />;
+      case 'Compass':
+        return <Compass className="w-6 h-6 text-violet-500" />;
+      case 'ShieldCheck':
+        return <ShieldCheck className="w-6 h-6 text-emerald-600" />;
+      case 'HeartHandshake':
+        return <HeartHandshake className="w-6 h-6 text-rose-500" />;
       default:
         return <Award className="w-6 h-6 text-[#D4AF37]" />;
     }
@@ -238,13 +265,16 @@ export default async function AboutPage() {
       </section>
 
       {/* Campus Facilities Section */}
-      <section className="py-20 bg-white">
+      <section id="facilities" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <ScrollReveal direction="up" distance={20} duration={600}>
             <SectionHeading
-              badge="Modern Infrastructure"
-              title="World-Class Campus Facilities"
-              subtitle="Providing our students with inspiring physical and digital learning environments."
+              badge={about.facilities_badge || 'Modern Infrastructure'}
+              title={about.facilities_title || 'World-Class Campus Facilities'}
+              subtitle={
+                about.facilities_subtitle ||
+                'Providing our students with inspiring physical and digital learning environments.'
+              }
             />
           </ScrollReveal>
 
@@ -274,8 +304,8 @@ export default async function AboutPage() {
           </div>
 
           <div className="mt-14 text-center">
-            <Button href="/admission" variant="secondary" size="lg">
-              Apply For Admission 2026-2027
+            <Button href={about.facilities_cta_link || '/admission'} variant="secondary" size="lg">
+              {about.facilities_cta_text || 'Apply For Admission 2026-2027'}
             </Button>
           </div>
         </div>

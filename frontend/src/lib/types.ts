@@ -20,9 +20,11 @@ export interface CoreValue {
 }
 
 export interface Facility {
+  id?: string | number;
   name: string;
   desc: string;
   icon: string;
+  image_url?: string;
 }
 
 export interface EmergencyAlert {
@@ -58,6 +60,11 @@ export interface AboutInfo {
   emergency_alert?: EmergencyAlert;
   core_values: CoreValue[];
   facilities: Facility[];
+  facilities_badge?: string;
+  facilities_title?: string;
+  facilities_subtitle?: string;
+  facilities_cta_text?: string;
+  facilities_cta_link?: string;
 }
 
 export interface Notice {

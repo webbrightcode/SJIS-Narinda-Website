@@ -19,6 +19,11 @@ import {
   ExternalLink,
   X,
   Sparkles,
+  Building2,
+  GraduationCap,
+  Quote,
+  HelpCircle,
+  Globe,
 } from 'lucide-react';
 import { Notice, Club, AdmissionInquiry, GalleryItem, SliderSlide } from '@/lib/types';
 
@@ -85,10 +90,15 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     { id: 'overview', label: 'Dashboard Overview', icon: LayoutDashboard, category: 'Navigation' },
     { id: 'slides', label: 'Hero Sliders', icon: Sliders, category: 'Navigation' },
     { id: 'notices', label: 'Notice Board Circulars', icon: Bell, category: 'Navigation' },
+    { id: 'faculty', label: 'Faculty & Staff Body', icon: GraduationCap, category: 'Navigation' },
     { id: 'clubs', label: 'Clubs & Guilds', icon: Users, category: 'Navigation' },
+    { id: 'facilities', label: 'Campus Facilities & Labs', icon: Building2, category: 'Navigation' },
     { id: 'gallery', label: 'Media Gallery', icon: ImageIcon, category: 'Navigation' },
     { id: 'inquiries', label: 'Admissions Pipeline & Applications', icon: UserCheck, category: 'Navigation' },
     { id: 'admission_guide', label: 'Fees & Criteria Matrix', icon: DollarSign, category: 'Navigation' },
+    { id: 'faqs', label: 'Admission FAQs Manager', icon: HelpCircle, category: 'Navigation' },
+    { id: 'testimonials', label: 'Testimonials & Quotes', icon: Quote, category: 'Navigation' },
+    { id: 'site_settings', label: 'Website & Contact Info', icon: Globe, category: 'Navigation' },
     { id: 'settings', label: 'Institutional Settings & Diagnostics', icon: Settings, category: 'Navigation' },
   ].filter((item) => q === '' || item.label.toLowerCase().includes(q));
 

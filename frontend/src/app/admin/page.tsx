@@ -113,6 +113,7 @@ import { AdmissionSlipModal } from '@/components/admin/AdmissionSlipModal';
 import { DatabaseRestoreModal } from '@/components/admin/DatabaseRestoreModal';
 import { ImageHelper } from '@/components/admin/ImageHelper';
 import { SiteSettingsPanel, TestimonialsManager, FaqManager, FacultyManager } from '@/components/admin/SiteContentPanels';
+import { FacilitiesManager } from '@/components/admin/FacilitiesManager';
 
 export default function AdminDashboardPage() {
   // Authentication State
@@ -129,7 +130,19 @@ export default function AdminDashboardPage() {
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'slides' | 'notices' | 'clubs' | 'gallery' | 'inquiries' | 'admission_guide' | 'settings' | 'site_settings' | 'testimonials' | 'faqs' | 'faculty'
+    | 'overview'
+    | 'slides'
+    | 'notices'
+    | 'clubs'
+    | 'facilities'
+    | 'gallery'
+    | 'inquiries'
+    | 'admission_guide'
+    | 'settings'
+    | 'site_settings'
+    | 'testimonials'
+    | 'faqs'
+    | 'faculty'
   >('overview');
 
   // Search & Filter state for lists
@@ -1104,6 +1117,7 @@ export default function AdminDashboardPage() {
               { id: 'notices', label: 'Notice Board', icon: Bell, count: notices.length },
               { id: 'faculty', label: 'Faculty & Staff Body', icon: GraduationCap },
               { id: 'clubs', label: 'Clubs & Guilds', icon: Users, count: clubs.length },
+              { id: 'facilities', label: 'Campus Facilities', icon: Building2, count: aboutInfo?.facilities?.length || 4 },
               { id: 'gallery', label: 'Media Gallery', icon: ImageIcon, count: gallery.length },
               {
                 id: 'inquiries',
@@ -1289,6 +1303,12 @@ export default function AdminDashboardPage() {
           {activeTab === 'testimonials' && <TestimonialsManager token={token || undefined} />}
           {activeTab === 'faqs' && <FaqManager token={token || undefined} />}
           {activeTab === 'faculty' && <FacultyManager token={token || undefined} />}
+          {activeTab === 'facilities' && (
+            <FacilitiesManager
+              token={token || undefined}
+              onToast={(msg, type) => showToast(msg, type)}
+            />
+          )}
 
           {/* TAB 1: OVERVIEW */}
           {activeTab === 'overview' && (
