@@ -25,6 +25,19 @@ class AboutInfoSerializer(serializers.ModelSerializer):
         model = AboutInfo
         fields = '__all__'
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        title = data.get('principal_title') or ''
+        if not title or 'principal' in title.lower():
+            data['principal_title'] = 'Administrator'
+        if not data.get('principal_image_url'):
+            head = StaffMember.objects.filter(is_featured=True, role_type='admin').first()
+            if head and head.image_url:
+                data['principal_image_url'] = head.image_url
+            else:
+                data['principal_image_url'] = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop'
+        return data
+
 
 class NoticeSerializer(serializers.ModelSerializer):
     category_display = serializers.CharField(source='get_category_display', read_only=True)

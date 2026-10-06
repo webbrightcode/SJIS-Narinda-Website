@@ -24,7 +24,9 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({ about }) => {
     : defaultPillars;
 
   const headName = about?.principal_name || 'Brother Roktim Chiran, CSC';
-  const headTitle = about?.principal_title || 'Administrator';
+  const headTitle = about?.principal_title && !about.principal_title.toLowerCase().includes('principal')
+    ? about.principal_title
+    : 'Administrator';
   const roleBadge = about?.head_role_badge || 'Head of Institution';
   const welcomeTag = about?.welcome_tag || 'Welcome to St. Joseph Narinda';
   const welcomeTitle = about?.welcome_title || 'Educating Hearts & Minds for Generations.';

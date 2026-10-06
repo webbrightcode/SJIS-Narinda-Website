@@ -157,8 +157,8 @@ export default async function AboutPage() {
         </div>
       </section>
 
-      {/* Principal's Message Section */}
-      <section id="principal" className="py-24 bg-white">
+      {/* Administrator's Message Section */}
+      <section id="administrator" className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <ScrollReveal direction="up" distance={30} duration={700}>
             <div className="bg-[#00183F] rounded-3xl p-8 sm:p-12 lg:p-16 text-white shadow-2xl relative overflow-hidden">
@@ -166,20 +166,26 @@ export default async function AboutPage() {
                 <div className="lg:col-span-4 flex flex-col items-center text-center">
                   <div className="relative w-48 h-48 sm:w-56 sm:h-56 rounded-full overflow-hidden border-4 border-[#D4AF37] shadow-xl mb-4 bg-slate-800">
                     <Image
-                      src={about.principal_image_url}
-                      alt={about.principal_name}
+                      src={
+                        about.principal_image_url ||
+                        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop'
+                      }
+                      alt={about.principal_name || 'Brother Roktim Chiran, CSC'}
                       fill
+                      priority
                       className="object-cover object-top"
                     />
                   </div>
                   <h4 className="text-xl font-bold text-white">{about.principal_name}</h4>
                   <p className="text-xs sm:text-sm text-[#D4AF37] font-semibold mt-1">
-                    {about.principal_title || 'Administrator'}
+                    {about.principal_title && !about.principal_title.toLowerCase().includes('principal')
+                      ? about.principal_title
+                      : 'Administrator'}
                   </p>
                 </div>
 
                 <div className="lg:col-span-8 space-y-4">
-                  <Badge variant="gold">Message From {about.principal_title || 'Administrator'}</Badge>
+                  <Badge variant="gold">Message From the Administrator</Badge>
                   <h3 className="text-2xl sm:text-3xl font-extrabold leading-snug">
                     &quot;Awakening Minds, Shaping Future Stewards&quot;
                   </h3>
