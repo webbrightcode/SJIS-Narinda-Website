@@ -23,7 +23,7 @@ import { Club } from '@/lib/types';
 
 interface OtherClubsSidebarProps {
   currentClubId: number;
-  currentCategory: string;
+  currentCategory?: string;
   clubs: Club[];
 }
 
@@ -32,7 +32,6 @@ export function OtherClubsSidebar({
   currentCategory,
   clubs,
 }: OtherClubsSidebarProps) {
-  const [filter, setFilter] = useState<'all' | 'related' | string>('all');
   const [search, setSearch] = useState('');
 
   const getClubIcon = (iconName: string) => {
@@ -60,16 +59,8 @@ export function OtherClubsSidebar({
       const q = search.toLowerCase();
       const matchName = c.name.toLowerCase().includes(q);
       const matchDesc = c.description.toLowerCase().includes(q);
-      const matchCat = (c.category_display || c.category).toLowerCase().includes(q);
+      const matchCat = (c.category_display || c.category || '').toLowerCase().includes(q);
       if (!matchName && !matchDesc && !matchCat) return false;
-    }
-
-    // Category / related match
-    if (filter === 'related') {
-      return c.category === currentCategory;
-    }
-    if (filter !== 'all') {
-      return c.category === filter;
     }
     return true;
   });
@@ -107,31 +98,7 @@ export function OtherClubsSidebar({
           />
         </div>
 
-        {/* Quick Filter Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto py-3 scrollbar-none border-b border-slate-100">
-          <button
-            type="button"
-            onClick={() => setFilter('all')}
-            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-colors cursor-pointer ${
-              filter === 'all'
-                ? 'bg-[#00183F] text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            All ({clubs.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilter('related')}
-            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-colors cursor-pointer ${
-              filter === 'related'
-                ? 'bg-[#C8102E] text-white'
-                : 'bg-rose-50 text-rose-700 hover:bg-rose-100'
-            }`}
-          >
-            Similar Category
-          </button>
-        </div>
+
 
         {/* Club list items */}
         <div className="mt-4 space-y-2.5 max-h-[460px] overflow-y-auto pr-1">

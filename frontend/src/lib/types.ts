@@ -85,7 +85,7 @@ export interface Club {
   id: number;
   name: string;
   slug: string;
-  category: 'stem' | 'arts' | 'debate' | 'sports' | 'service';
+  category?: string;
   category_display?: string;
   motto: string;
   description: string;
@@ -140,7 +140,7 @@ export interface AdmissionGuide {
 export interface GalleryItem {
   id: number;
   title: string;
-  category: 'campus' | 'academics' | 'sports' | 'cultural' | 'events';
+  category?: string;
   category_display?: string;
   media_type: 'image' | 'video';
   image_url: string;

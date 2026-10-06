@@ -58,7 +58,7 @@ export async function generateMetadata({ params }: ClubDetailPageProps): Promise
     keywords: [
       club.name,
       'SJIS Narinda clubs',
-      club.category_display || club.category,
+      ...(club.category ? [club.category_display || club.category] : []),
       'St. Joseph student activities',
     ],
   });
@@ -126,9 +126,11 @@ export default async function ClubDetailPage({ params }: ClubDetailPageProps) {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-3 max-w-3xl">
               <div className="flex items-center gap-2.5 flex-wrap">
-                <span className="px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase bg-[#C8102E] text-white shadow-xs">
-                  {club.category_display || club.category}
-                </span>
+                {club.category ? (
+                  <span className="px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase bg-[#C8102E] text-white shadow-xs">
+                    {club.category_display || club.category}
+                  </span>
+                ) : null}
                 <span className="px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/10 text-white/90 backdrop-blur-md">
                   Active Student Society
                 </span>

@@ -115,11 +115,13 @@ export const ClubsShowcase: React.FC<ClubsShowcaseProps> = ({ clubs }) => {
                     </div>
 
                     {/* Category */}
-                    <div className="absolute top-4 right-4">
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase bg-[#C8102E] text-white">
-                        {club.category_display || club.category}
-                      </span>
-                    </div>
+                    {club.category ? (
+                      <div className="absolute top-4 right-4">
+                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase bg-[#C8102E] text-white">
+                          {club.category_display || club.category}
+                        </span>
+                      </div>
+                    ) : null}
                   </div>
 
                   {/* Content */}
@@ -163,7 +165,11 @@ export const ClubsShowcase: React.FC<ClubsShowcaseProps> = ({ clubs }) => {
           isOpen={!!selectedClub}
           onClose={() => setSelectedClub(null)}
           title={selectedClub.name}
-          subtitle={`Co-Curricular Guild • ${selectedClub.category_display || selectedClub.category}`}
+          subtitle={
+            selectedClub.category
+              ? `Co-Curricular Guild • ${selectedClub.category_display || selectedClub.category}`
+              : 'Official Student Co-Curricular Guild'
+          }
           icon={getClubIcon(selectedClub.icon_name)}
           maxWidth="xl"
           footer={

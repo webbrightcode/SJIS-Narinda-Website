@@ -26,7 +26,6 @@ import { Button } from '@/components/ui/Button';
 
 export default function ClubsPage() {
   const [clubs, setClubs] = useState<Club[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState('all');
 
   useEffect(() => {
     async function loadData() {
@@ -35,20 +34,6 @@ export default function ClubsPage() {
     }
     loadData();
   }, []);
-
-  const categories = [
-    { id: 'all', label: 'All Guilds' },
-    { id: 'stem', label: 'STEM & Robotics' },
-    { id: 'debate', label: 'Debate & Oratory' },
-    { id: 'arts', label: 'Cultural & Arts' },
-    { id: 'sports', label: 'Sports & Athletics' },
-    { id: 'service', label: 'Social & Stewardship' },
-  ];
-
-  const filteredClubs = clubs.filter((c) => {
-    if (selectedCategory === 'all') return true;
-    return c.category === selectedCategory;
-  });
 
   const getClubIcon = (iconName: string) => {
     switch (iconName.toLowerCase()) {
@@ -79,7 +64,7 @@ export default function ClubsPage() {
             Student Clubs & Societies
           </h1>
           <p className="mt-4 text-base sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
-            Over 24 student-run guilds empowering scientific innovation, oratory supremacy, cultural celebration, and selfless service.
+            Student-run guilds empowering scientific innovation, oratory supremacy, cultural celebration, and selfless service.
           </p>
         </div>
       </section>
@@ -87,26 +72,9 @@ export default function ClubsPage() {
       {/* Main Section */}
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Category Filter Pills */}
-          <div className="flex items-center justify-center gap-2 overflow-x-auto pb-4 mb-12 scrollbar-none">
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
-                  selectedCategory === cat.id
-                    ? 'bg-[#00183F] text-white shadow-md shadow-[#00183F]/20'
-                    : 'bg-white text-slate-600 hover:bg-slate-200 border border-slate-200'
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
-          </div>
-
           {/* Clubs Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredClubs.map((club) => {
+            {clubs.map((club) => {
               const detailUrl = `/clubs/${club.slug || club.id}`;
               const photosCount = (club.gallery_images?.length || 0) + (club.image_url ? 1 : 0);
 
@@ -132,11 +100,13 @@ export default function ClubsPage() {
                         {getClubIcon(club.icon_name)}
                       </div>
 
-                      <div className="absolute top-4 right-4 flex items-center gap-1.5">
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase bg-[#C8102E] text-white">
-                          {club.category_display || club.category}
-                        </span>
-                      </div>
+                      {club.category ? (
+                        <div className="absolute top-4 right-4 flex items-center gap-1.5">
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase bg-[#C8102E] text-white">
+                            {club.category_display || club.category}
+                          </span>
+                        </div>
+                      ) : null}
 
                       <div className="absolute bottom-4 left-4 right-4 text-white">
                         <h3 className="text-xl font-bold leading-tight group-hover:text-amber-300 transition-colors">

@@ -906,17 +906,15 @@ export default function AdminDashboardPage() {
   });
 
   const filteredClubs = clubs.filter((c) => {
-    const matchCat = clubCategoryFilter === 'all' || c.category === clubCategoryFilter;
-    const matchSearch =
+    return (
       clubSearch === '' ||
       c.name.toLowerCase().includes(clubSearch.toLowerCase()) ||
-      c.description.toLowerCase().includes(clubSearch.toLowerCase());
-    return matchCat && matchSearch;
+      c.description.toLowerCase().includes(clubSearch.toLowerCase()) ||
+      (c.category && c.category.toLowerCase().includes(clubSearch.toLowerCase()))
+    );
   });
 
-  const filteredGallery = gallery.filter((g) => {
-    return galleryCategoryFilter === 'all' || g.category === galleryCategoryFilter;
-  });
+  const filteredGallery = gallery;
 
   const filteredInquiries = inquiries.filter((inq) => {
     const matchStatus = inquiryStatusFilter === 'all' || inq.status === inquiryStatusFilter;
@@ -2056,21 +2054,6 @@ export default function AdminDashboardPage() {
                   />
                 </div>
 
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <Filter className="w-3.5 h-3.5 text-slate-400" />
-                  <select
-                    value={clubCategoryFilter}
-                    onChange={(e) => setClubCategoryFilter(e.target.value)}
-                    className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold bg-white"
-                  >
-                    <option value="all">All Guild Types</option>
-                    <option value="stem">STEM & Innovation</option>
-                    <option value="debate">Debate & Oratory</option>
-                    <option value="arts">Cultural & Fine Arts</option>
-                    <option value="sports">Sports & Athletics</option>
-                    <option value="service">Leadership & Welfare</option>
-                  </select>
-                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -2086,11 +2069,13 @@ export default function AdminDashboardPage() {
                         fill
                         className="object-cover"
                       />
-                      <div className="absolute top-3 left-3">
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-[#C8102E] text-white">
-                          {c.category_display || c.category}
-                        </span>
-                      </div>
+                      {c.category ? (
+                        <div className="absolute top-3 left-3">
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-[#C8102E] text-white">
+                            {c.category_display || c.category}
+                          </span>
+                        </div>
+                      ) : null}
                     </div>
 
                     <div className="p-5 space-y-2">
@@ -2161,23 +2146,6 @@ export default function AdminDashboardPage() {
                 </Button>
               </div>
 
-              {/* Category Filter */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-                {['all', 'campus', 'academics', 'sports', 'cultural', 'events'].map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setGalleryCategoryFilter(cat)}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold capitalize whitespace-nowrap transition-colors ${
-                      galleryCategoryFilter === cat
-                        ? 'bg-[#00183F] text-white'
-                        : 'bg-white text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    {cat === 'all' ? 'All Photos' : cat}
-                  </button>
-                ))}
-              </div>
-
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
                 {filteredGallery.map((g) => (
                   <div
@@ -2191,11 +2159,13 @@ export default function AdminDashboardPage() {
                         fill
                         className="object-cover"
                       />
-                      <div className="absolute top-2 left-2 flex gap-1">
-                        <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-black/70 text-white backdrop-blur-md">
-                          {g.category_display || g.category}
-                        </span>
-                      </div>
+                      {g.category ? (
+                        <div className="absolute top-2 left-2 flex gap-1">
+                          <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-black/70 text-white backdrop-blur-md">
+                            {g.category_display || g.category}
+                          </span>
+                        </div>
+                      ) : null}
                     </div>
 
                     <div className="p-3">
@@ -4348,19 +4318,15 @@ export default function AdminDashboardPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                  Category *
+                  Category / Tag <span className="text-[10px] text-slate-400 font-normal lowercase">(optional)</span>
                 </label>
-                <select
-                  value={editingClub.category || 'stem'}
-                  onChange={(e) => setEditingClub({ ...editingClub, category: e.target.value as any })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm bg-white"
-                >
-                  <option value="stem">STEM & Innovation</option>
-                  <option value="debate">Debate & Public Speaking</option>
-                  <option value="arts">Cultural & Fine Arts</option>
-                  <option value="sports">Sports & Athletics</option>
-                  <option value="service">Leadership & Social Welfare</option>
-                </select>
+                <input
+                  type="text"
+                  value={editingClub.category || ''}
+                  onChange={(e) => setEditingClub({ ...editingClub, category: e.target.value })}
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-[#00183F] outline-none"
+                  placeholder="e.g. STEM, Debate, Culture (or leave empty)"
+                />
               </div>
 
               <div>
@@ -4537,19 +4503,15 @@ export default function AdminDashboardPage() {
 
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                Category *
+                Category / Tag <span className="text-[10px] text-slate-400 font-normal lowercase">(optional)</span>
               </label>
-              <select
-                value={editingGallery.category || 'campus'}
-                onChange={(e) => setEditingGallery({ ...editingGallery, category: e.target.value as any })}
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm bg-white"
-              >
-                <option value="campus">Campus & Heritage</option>
-                <option value="academics">Academics & Labs</option>
-                <option value="sports">Sports & Athletics</option>
-                <option value="cultural">Arts & Culture</option>
-                <option value="events">Annual Celebrations</option>
-              </select>
+              <input
+                type="text"
+                value={editingGallery.category || ''}
+                onChange={(e) => setEditingGallery({ ...editingGallery, category: e.target.value })}
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-[#00183F] outline-none"
+                placeholder="e.g. Campus, Sports, Science Fair (or leave empty)"
+              />
             </div>
 
             <ImageHelper

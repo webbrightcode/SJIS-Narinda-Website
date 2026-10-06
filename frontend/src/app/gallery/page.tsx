@@ -11,7 +11,6 @@ import { Lightbox } from '@/components/ui/Lightbox';
 
 export default function GalleryPage() {
   const [items, setItems] = useState<GalleryItem[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState('all');
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   useEffect(() => {
@@ -22,30 +21,16 @@ export default function GalleryPage() {
     loadData();
   }, []);
 
-  const categories = [
-    { id: 'all', label: 'All Photos' },
-    { id: 'campus', label: 'Campus & Heritage' },
-    { id: 'academics', label: 'Academics & Labs' },
-    { id: 'sports', label: 'Sports & Athletics' },
-    { id: 'cultural', label: 'Arts & Culture' },
-    { id: 'events', label: 'Annual Celebrations' },
-  ];
-
-  const filteredItems = items.filter((item) => {
-    if (selectedCategory === 'all') return true;
-    return item.category === selectedCategory;
-  });
-
   const openLightbox = (index: number) => setLightboxIndex(index);
   const closeLightbox = () => setLightboxIndex(null);
   const nextItem = () => {
     if (lightboxIndex !== null) {
-      setLightboxIndex((prev) => ((prev ?? 0) + 1) % filteredItems.length);
+      setLightboxIndex((prev) => ((prev ?? 0) + 1) % items.length);
     }
   };
   const prevItem = () => {
     if (lightboxIndex !== null) {
-      setLightboxIndex((prev) => ((prev ?? 0) - 1 + filteredItems.length) % filteredItems.length);
+      setLightboxIndex((prev) => ((prev ?? 0) - 1 + items.length) % items.length);
     }
   };
 
@@ -67,26 +52,9 @@ export default function GalleryPage() {
       {/* Main Content */}
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Category Filter Tabs */}
-          <div className="flex items-center justify-center gap-2 overflow-x-auto pb-4 mb-12 scrollbar-none">
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
-                  selectedCategory === cat.id
-                    ? 'bg-[#00183F] text-white shadow-md shadow-[#00183F]/20'
-                    : 'bg-white text-slate-600 hover:bg-slate-200 border border-slate-200'
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
-          </div>
-
           {/* Gallery Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredItems.map((item, index) => (
+            {items.map((item, index) => (
               <div
                 key={item.id}
                 onClick={() => openLightbox(index)}
@@ -105,11 +73,13 @@ export default function GalleryPage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent opacity-75 group-hover:opacity-95 transition-opacity" />
 
                 {/* Top Category Badge */}
-                <div className="absolute top-4 left-4">
-                  <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-white/20 text-white backdrop-blur-md">
-                    {item.category_display || item.category}
-                  </span>
-                </div>
+                {item.category ? (
+                  <div className="absolute top-4 left-4">
+                    <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-white/20 text-white backdrop-blur-md">
+                      {item.category_display || item.category}
+                    </span>
+                  </div>
+                ) : null}
 
                 {/* Hover Center Icon */}
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -133,10 +103,10 @@ export default function GalleryPage() {
             ))}
           </div>
 
-          {filteredItems.length === 0 && (
+          {items.length === 0 && (
             <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-slate-300">
               <Camera className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-              <h3 className="text-lg font-bold text-slate-700">No media found in this category</h3>
+              <h3 className="text-lg font-bold text-slate-700">No media found in the gallery</h3>
             </div>
           )}
         </div>
@@ -145,7 +115,7 @@ export default function GalleryPage() {
       {/* Lightbox Viewer */}
       {lightboxIndex !== null && (
         <Lightbox
-          items={filteredItems}
+          items={items}
           currentIndex={lightboxIndex}
           isOpen={lightboxIndex !== null}
           onClose={closeLightbox}

@@ -109,17 +109,9 @@ class Notice(models.Model):
 
 
 class Club(models.Model):
-    CATEGORY_CHOICES = [
-        ('stem', 'STEM & Innovation'),
-        ('arts', 'Cultural & Fine Arts'),
-        ('debate', 'Debate & Public Speaking'),
-        ('sports', 'Sports & Athletics'),
-        ('service', 'Leadership & Social Welfare'),
-    ]
-
     name = models.CharField(max_length=200)
     slug = models.SlugField(max_length=250, unique=True, blank=True)
-    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='stem')
+    category = models.CharField(max_length=100, blank=True, default='', help_text="Optional category or theme tag")
     motto = models.CharField(max_length=255, blank=True)
     description = models.TextField()
     icon_name = models.CharField(max_length=50, default="Activity", help_text="Lucide icon name e.g. Cpu, Mic, Award, Compass")
@@ -189,16 +181,8 @@ class AdmissionInquiry(models.Model):
 
 
 class GalleryItem(models.Model):
-    CATEGORY_CHOICES = [
-        ('campus', 'Campus & Heritage'),
-        ('academics', 'Academic & STEM Labs'),
-        ('sports', 'Sports & Athletics'),
-        ('cultural', 'Cultural & Performing Arts'),
-        ('events', 'Annual Events & Celebrations'),
-    ]
-
     title = models.CharField(max_length=255)
-    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='campus')
+    category = models.CharField(max_length=100, blank=True, default='', help_text="Optional category tag")
     media_type = models.CharField(max_length=20, default='image', choices=[('image', 'Image'), ('video', 'Video')])
     image_url = models.TextField()
     video_url = models.TextField(blank=True, default="")
@@ -212,7 +196,7 @@ class GalleryItem(models.Model):
         ordering = ['order', '-created_at']
 
     def __str__(self):
-        return f"[{self.get_category_display()}] {self.title}"
+        return self.title
 
 
 DEFAULT_HIGHLIGHTS = [

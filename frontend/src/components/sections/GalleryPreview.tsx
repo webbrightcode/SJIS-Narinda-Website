@@ -85,11 +85,13 @@ export const GalleryPreview: React.FC<GalleryPreviewProps> = ({ items }) => {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent opacity-80 group-hover:opacity-95 transition-opacity" />
 
                 {/* Top tag */}
-                <div className="absolute top-4 left-4">
-                  <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-white/20 text-white backdrop-blur-md">
-                    {item.category_display || item.category}
-                  </span>
-                </div>
+                {item.category ? (
+                  <div className="absolute top-4 left-4">
+                    <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-white/20 text-white backdrop-blur-md">
+                      {item.category_display || item.category}
+                    </span>
+                  </div>
+                ) : null}
 
                 {/* Hover center icon */}
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">

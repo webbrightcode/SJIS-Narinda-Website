@@ -55,11 +55,14 @@ class NoticeSerializer(serializers.ModelSerializer):
 
 
 class ClubSerializer(serializers.ModelSerializer):
-    category_display = serializers.CharField(source='get_category_display', read_only=True)
+    category_display = serializers.SerializerMethodField()
 
     class Meta:
         model = Club
         fields = '__all__'
+
+    def get_category_display(self, obj):
+        return obj.category or ''
 
 
 class AdmissionGuideSerializer(serializers.ModelSerializer):
@@ -76,11 +79,14 @@ class AdmissionInquirySerializer(serializers.ModelSerializer):
 
 
 class GalleryItemSerializer(serializers.ModelSerializer):
-    category_display = serializers.CharField(source='get_category_display', read_only=True)
+    category_display = serializers.SerializerMethodField()
 
     class Meta:
         model = GalleryItem
         fields = '__all__'
+
+    def get_category_display(self, obj):
+        return obj.category or ''
 
 
 class SiteSettingsSerializer(serializers.ModelSerializer):
