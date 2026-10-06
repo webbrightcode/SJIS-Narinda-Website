@@ -196,12 +196,17 @@ export async function getNews(category?: string, search?: string, activeOnly = t
   if (category && category !== 'all') params.push(`category=${encodeURIComponent(category)}`);
   if (search) params.push(`search=${encodeURIComponent(search)}`);
   const query = params.length > 0 ? `?${params.join('&')}` : '';
-  return fetchWithFallback<News[]>(`/news/${query}`, FALLBACK_NEWS);
+  const items = await fetchWithFallback<News[]>(`/news/${query}`, FALLBACK_NEWS);
+  if (Array.isArray(items) && items.length === 0 && !search && (!category || category === 'all')) {
+    return FALLBACK_NEWS;
+  }
+  return items;
 }
 
 export async function getNewsBySlug(slug: string): Promise<News | null> {
+  const decoded = decodeURIComponent(slug);
   try {
-    const res = await fetch(apiUrl(`/news/${encodeURIComponent(slug)}/`), {
+    const res = await fetch(apiUrl(`/news/${encodeURIComponent(decoded)}/`), {
       headers: { 'Accept': 'application/json' },
       cache: 'no-store',
     });
@@ -212,7 +217,10 @@ export async function getNewsBySlug(slug: string): Promise<News | null> {
   } catch (e) {}
 
   const all = await getNews();
-  return all.find((n) => n.slug === slug || String(n.id) === slug) || null;
+  const found = all.find((n) => n.slug === decoded || String(n.id) === decoded || n.slug === slug || String(n.id) === slug);
+  if (found) return found;
+
+  return FALLBACK_NEWS.find((n) => n.slug === decoded || String(n.id) === decoded || n.slug === slug || String(n.id) === slug) || null;
 }
 
 export async function incrementNewsView(id: number): Promise<number | null> {
@@ -829,12 +837,17 @@ export async function getSyllabus(
   if (academicYear && academicYear !== 'all') params.push(`academic_year=${encodeURIComponent(academicYear)}`);
   if (search) params.push(`search=${encodeURIComponent(search)}`);
   const query = params.length > 0 ? `?${params.join('&')}` : '';
-  return fetchWithFallback<SyllabusItem[]>(`/syllabus/${query}`, FALLBACK_SYLLABUS);
+  const items = await fetchWithFallback<SyllabusItem[]>(`/syllabus/${query}`, FALLBACK_SYLLABUS);
+  if (Array.isArray(items) && items.length === 0 && !search && (!curriculumSection || curriculumSection === 'all') && (!grade || grade === 'all')) {
+    return FALLBACK_SYLLABUS;
+  }
+  return items;
 }
 
 export async function getSyllabusBySlug(slug: string): Promise<SyllabusItem | null> {
+  const decoded = decodeURIComponent(slug);
   try {
-    const res = await fetch(apiUrl(`/syllabus/${encodeURIComponent(slug)}/`), {
+    const res = await fetch(apiUrl(`/syllabus/${encodeURIComponent(decoded)}/`), {
       headers: { 'Accept': 'application/json' },
       cache: 'no-store',
     });
@@ -845,7 +858,10 @@ export async function getSyllabusBySlug(slug: string): Promise<SyllabusItem | nu
   } catch (e) {}
 
   const all = await getSyllabus();
-  return all.find((s) => s.slug === slug || String(s.id) === slug) || null;
+  const found = all.find((s) => s.slug === decoded || String(s.id) === decoded || s.slug === slug || String(s.id) === slug);
+  if (found) return found;
+
+  return FALLBACK_SYLLABUS.find((s) => s.slug === decoded || String(s.id) === decoded || s.slug === slug || String(s.id) === slug) || null;
 }
 
 export async function incrementSyllabusDownload(id: number): Promise<number | null> {

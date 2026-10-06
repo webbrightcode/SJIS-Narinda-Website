@@ -18,7 +18,9 @@ interface PageProps {
 export const revalidate = 60;
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { slug } = await params;
+  const resolved = await params;
+  const rawSlug = resolved?.slug || '';
+  const slug = decodeURIComponent(rawSlug);
   const story = await getNewsBySlug(slug);
   if (!story) return { title: 'Story Not Found', robots: { index: false, follow: false } };
 
@@ -35,7 +37,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function NewsDetailPage({ params }: PageProps) {
-  const { slug } = await params;
+  const resolved = await params;
+  const rawSlug = resolved?.slug || '';
+  const slug = decodeURIComponent(rawSlug);
   const [story, all] = await Promise.all([getNewsBySlug(slug), getNews('all', '', true)]);
   if (!story) notFound();
 
