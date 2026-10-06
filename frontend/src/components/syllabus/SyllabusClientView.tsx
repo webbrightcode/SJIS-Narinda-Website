@@ -150,22 +150,22 @@ export default function SyllabusClientView({ initialItems }: SyllabusClientViewP
   return (
     <div className="space-y-8">
       {/* Cambridge Overview Header Strip */}
-      <div className="bg-gradient-to-r from-navy-950 via-slate-900 to-navy-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden border border-slate-800">
+      <div className="bg-[#00183F] bg-gradient-to-r from-[#00183F] via-[#070F1E] to-[#0A192F] rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden border border-white/10">
         <div className="absolute top-0 right-0 w-96 h-96 bg-[#D4AF37]/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="max-w-2xl">
             <div className="flex items-center gap-2 mb-3">
-              <span className="px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30 text-xs font-bold tracking-wider uppercase flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
+              <span className="px-3 py-1 rounded-full bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/35 text-xs font-bold tracking-wider uppercase flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#D4AF37]" />
                 Grade-Wise Consolidated Syllabi
               </span>
-              <span className="text-xs text-slate-400 hidden sm:inline">&bull; Academic Session 2026&ndash;2027</span>
+              <span className="text-xs text-slate-300 font-medium hidden sm:inline">&bull; Academic Session 2026&ndash;2027</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight drop-shadow-sm">
               Class-Wise Academic Syllabus Booklets
             </h2>
-            <p className="mt-2 text-sm sm:text-base text-slate-300 leading-relaxed">
-              Each downloadable PDF booklet contains the <strong>complete syllabus for all subjects</strong> of that specific grade — including prescribed textbooks, term milestones, assessment rubrics, and Cambridge learning objectives in a single packet.
+            <p className="mt-2 text-sm sm:text-base text-slate-200 leading-relaxed font-normal">
+              Each downloadable PDF booklet contains the <strong className="text-white font-semibold">complete syllabus for all subjects</strong> of that specific grade — including prescribed textbooks, term milestones, assessment rubrics, and Cambridge learning objectives in a single packet.
             </p>
           </div>
 
@@ -204,7 +204,7 @@ export default function SyllabusClientView({ initialItems }: SyllabusClientViewP
               }}
               className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap transition-all flex items-center gap-2 shrink-0 ${
                 isActive
-                  ? 'bg-[#00183F] text-white shadow-md shadow-navy-950/20'
+                  ? 'bg-[#00183F] text-white shadow-md shadow-black/20'
                   : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200'
               }`}
             >
@@ -321,7 +321,7 @@ export default function SyllabusClientView({ initialItems }: SyllabusClientViewP
               setSelectedYear('all');
               setSearchQuery('');
             }}
-            className="text-navy-700 hover:text-navy-900 font-semibold underline"
+            className="text-[#00183F] hover:text-[#C8102E] font-semibold underline"
           >
             Reset all filters
           </button>
@@ -343,7 +343,7 @@ export default function SyllabusClientView({ initialItems }: SyllabusClientViewP
               setSelectedYear('all');
               setSearchQuery('');
             }}
-            className="mt-4 px-4 py-2 bg-[#00183F] text-white rounded-xl text-xs font-semibold hover:bg-navy-900 transition-colors"
+            className="mt-4 px-4 py-2 bg-[#00183F] text-white rounded-xl text-xs font-semibold hover:bg-[#070F1E] transition-colors"
           >
             Clear Filters
           </button>
@@ -360,7 +360,7 @@ export default function SyllabusClientView({ initialItems }: SyllabusClientViewP
             return (
               <div
                 key={item.id}
-                className="group bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm hover:shadow-xl hover:border-navy-200 transition-all duration-300 flex flex-col justify-between relative overflow-hidden"
+                className="group bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm hover:shadow-xl hover:border-slate-300 transition-all duration-300 flex flex-col justify-between relative overflow-hidden"
               >
                 {/* Gold Top Accent Line */}
                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#00183F] via-[#D4AF37] to-[#C8102E]" />
@@ -435,7 +435,7 @@ export default function SyllabusClientView({ initialItems }: SyllabusClientViewP
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => setPreviewItem(item)}
-                      className="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-navy-950 hover:text-white text-slate-700 font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                      className="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-[#00183F] hover:text-white text-slate-700 font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                     >
                       <Eye className="w-3.5 h-3.5" />
                       <span>Preview</span>
@@ -480,7 +480,7 @@ export default function SyllabusClientView({ initialItems }: SyllabusClientViewP
                       onClick={() => setPreviewItem(item)}
                     >
                       <td className="py-3 px-4 font-black text-[#00183F] whitespace-nowrap">
-                        <span className="px-2.5 py-1 rounded-lg bg-navy-50 text-navy-950 border border-navy-200 text-xs">
+                        <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-[#00183F] font-bold border border-slate-200 text-xs">
                           {item.grade}
                         </span>
                       </td>
@@ -543,7 +543,7 @@ export default function SyllabusClientView({ initialItems }: SyllabusClientViewP
       {/* Cambridge Academic Framework Guide for Parents */}
       <div className="mt-12 bg-slate-100 rounded-3xl p-6 sm:p-8 border border-slate-200">
         <div className="flex items-center gap-2 mb-3">
-          <BookOpen className="w-5 h-5 text-navy-700" />
+          <BookOpen className="w-5 h-5 text-[#00183F]" />
           <h3 className="text-lg font-bold text-slate-900">
             About St. Joseph International School Grade Syllabi
           </h3>
