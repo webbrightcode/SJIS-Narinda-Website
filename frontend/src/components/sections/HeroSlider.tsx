@@ -99,6 +99,7 @@ export const HeroSlider: React.FC<HeroSliderProps> = ({ slides }) => {
               alt={slide.title}
               fill
               priority={index === 0}
+              loading={index === 0 ? 'eager' : 'lazy'}
               unoptimized
               placeholder="blur"
               blurDataURL={BLUR_DATA_URL}

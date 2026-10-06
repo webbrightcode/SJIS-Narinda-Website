@@ -102,6 +102,10 @@ async function fetchWithFallback<T>(url: string, fallback: T, options?: RequestI
     const timeoutId = setTimeout(() => controller.abort(), 4000);
 
     const targetUrl = apiUrl(url);
+    const isNoCache =
+      options?.cache === 'no-store' ||
+      Boolean((options?.headers as Record<string, string> | undefined)?.['Authorization']);
+
     const res = await fetch(targetUrl, {
       ...options,
       signal: controller.signal,
@@ -110,8 +114,9 @@ async function fetchWithFallback<T>(url: string, fallback: T, options?: RequestI
         'Content-Type': 'application/json',
         ...options?.headers,
       },
-      next: { revalidate: 0 }, // no cache for dynamic real-time data
-      cache: 'no-store',
+      ...(isNoCache
+        ? { cache: 'no-store', next: { revalidate: 0 } }
+        : { next: { revalidate: 60 } }),
     });
 
     clearTimeout(timeoutId);

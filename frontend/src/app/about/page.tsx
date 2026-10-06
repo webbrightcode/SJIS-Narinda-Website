@@ -37,8 +37,7 @@ export const metadata: Metadata = buildMetadata({
   keywords: ['SJIS Narinda history', 'Holy Cross Narinda', 'school administrator Narinda'],
 });
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 60;
 
 export default async function AboutPage() {
   const about = await getAboutInfo();
@@ -149,6 +148,7 @@ export default async function AboutPage() {
                   }
                   alt={about.history_title || 'St. Joseph Narinda Quadrangle'}
                   fill
+                  priority
                   unoptimized
                   fallbackSrc="https://images.unsplash.com/photo-1546422904-90eab23c3d7e?q=80&w=1200&auto=format&fit=crop"
                   className="object-cover"

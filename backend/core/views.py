@@ -395,7 +395,7 @@ class LandingPageBundleView(APIView):
         if not gallery.exists():
             gallery = GalleryItem.objects.all().order_by('order')[:8]
 
-        return Response({
+        response = Response({
             "slides": SliderSlideSerializer(slides, many=True).data,
             "about": about_data,
             "notices": NoticeSerializer(notices, many=True).data,
@@ -406,6 +406,8 @@ class LandingPageBundleView(APIView):
                 Testimonial.objects.filter(is_active=True).order_by('order'), many=True
             ).data,
         })
+        response['Cache-Control'] = 'public, s-maxage=60, stale-while-revalidate=120'
+        return response
 
 
 class SystemDiagnosticsView(APIView):
