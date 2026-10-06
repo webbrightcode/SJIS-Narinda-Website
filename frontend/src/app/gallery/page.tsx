@@ -96,6 +96,7 @@ export default function GalleryPage() {
                   src={item.image_url}
                   alt={item.title}
                   fill
+                  fallbackSrc="https://images.unsplash.com/photo-1546422904-90eab23c3d7e?q=80&w=1200&auto=format&fit=crop"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />

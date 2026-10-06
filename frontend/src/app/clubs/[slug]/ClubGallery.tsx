@@ -73,6 +73,7 @@ export function ClubGallery({ clubName, images }: ClubGalleryProps) {
               src={img}
               alt={`${clubName} photo ${idx + 1}`}
               fill
+              fallbackSrc="https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?q=80&w=1200&auto=format&fit=crop"
               sizes="(max-width: 640px) 50vw, 33vw"
               className="object-cover group-hover:scale-108 transition-transform duration-500"
             />

@@ -103,6 +103,7 @@ export const ClubsShowcase: React.FC<ClubsShowcaseProps> = ({ clubs }) => {
                       src={club.image_url}
                       alt={club.name}
                       fill
+                      fallbackSrc="https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?q=80&w=1200&auto=format&fit=crop"
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       className="object-cover group-hover:scale-105 transition-transform duration-500"
                     />

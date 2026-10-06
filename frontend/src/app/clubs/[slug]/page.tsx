@@ -199,6 +199,7 @@ export default async function ClubDetailPage({ params }: ClubDetailPageProps) {
                   alt={club.name}
                   fill
                   priority
+                  fallbackSrc="https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?q=80&w=1200&auto=format&fit=crop"
                   sizes="(max-width: 1024px) 100vw, 66vw"
                   className="object-cover"
                 />

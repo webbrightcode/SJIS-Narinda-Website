@@ -99,6 +99,7 @@ export const HeroSlider: React.FC<HeroSliderProps> = ({ slides }) => {
               alt={slide.title}
               fill
               priority={index === 0}
+              unoptimized
               placeholder="blur"
               blurDataURL={BLUR_DATA_URL}
               onError={() => setImageErrors((prev) => ({ ...prev, [slide.id || index]: true }))}
