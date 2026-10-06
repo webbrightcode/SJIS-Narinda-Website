@@ -234,6 +234,7 @@ export default function AdminDashboardPage() {
   // Administrator Direct Photo Upload State & Handler
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [showPhotoUrlInput, setShowPhotoUrlInput] = useState(false);
+  const [showStatLabels, setShowStatLabels] = useState(false);
 
   const handlePrincipalImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -3261,38 +3262,86 @@ export default function AdminDashboardPage() {
 
                 {/* Counter Statistics */}
                 <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                    Institutional Counter Metrics
-                  </h4>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                        Institutional Counter Metrics
+                      </h4>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Live dynamic figures showcased on the homepage hero banner strip.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowStatLabels(!showStatLabels)}
+                      className="text-[11px] font-bold text-[#00183F] hover:text-[#C8102E] flex items-center gap-1 self-start sm:self-auto cursor-pointer"
+                    >
+                      <Sparkles className="w-3 h-3 text-[#D4AF37]" />
+                      <span>{showStatLabels ? 'Hide Metric Captions' : 'Customize Metric Captions'}</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                     <div>
                       <label className="block text-[11px] font-semibold text-slate-500 mb-1">Students</label>
                       <input
                         type="text"
-                        value={aboutInfo.stats?.students || '3,200+'}
+                        value={aboutInfo.stats?.students || '500+'}
                         onChange={(e) =>
                           setAboutInfo({
                             ...aboutInfo,
                             stats: { ...aboutInfo.stats, students: e.target.value },
                           })
                         }
+                        placeholder="500+"
                         className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-[#00183F]"
                       />
+                      {showStatLabels && (
+                        <input
+                          type="text"
+                          value={aboutInfo.stats?.students_label || ''}
+                          onChange={(e) =>
+                            setAboutInfo({
+                              ...aboutInfo,
+                              stats: { ...aboutInfo.stats, students_label: e.target.value },
+                            })
+                          }
+                          placeholder="Enrolled Students"
+                          title="Custom caption"
+                          className="w-full mt-1.5 px-2 py-1 rounded-md border border-slate-200 text-[10px] text-slate-600 bg-white"
+                        />
+                      )}
                     </div>
 
                     <div>
                       <label className="block text-[11px] font-semibold text-slate-500 mb-1">Faculty</label>
                       <input
                         type="text"
-                        value={aboutInfo.stats?.faculty || '140+'}
+                        value={aboutInfo.stats?.faculty || '60+'}
                         onChange={(e) =>
                           setAboutInfo({
                             ...aboutInfo,
                             stats: { ...aboutInfo.stats, faculty: e.target.value },
                           })
                         }
+                        placeholder="60+"
                         className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-[#00183F]"
                       />
+                      {showStatLabels && (
+                        <input
+                          type="text"
+                          value={aboutInfo.stats?.faculty_label || ''}
+                          onChange={(e) =>
+                            setAboutInfo({
+                              ...aboutInfo,
+                              stats: { ...aboutInfo.stats, faculty_label: e.target.value },
+                            })
+                          }
+                          placeholder="Certified Faculty"
+                          title="Custom caption"
+                          className="w-full mt-1.5 px-2 py-1 rounded-md border border-slate-200 text-[10px] text-slate-600 bg-white"
+                        />
+                      )}
                     </div>
 
                     <div>
@@ -3306,23 +3355,94 @@ export default function AdminDashboardPage() {
                             stats: { ...aboutInfo.stats, pass_rate: e.target.value },
                           })
                         }
+                        placeholder="100%"
                         className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-[#00183F]"
                       />
+                      {showStatLabels && (
+                        <input
+                          type="text"
+                          value={aboutInfo.stats?.pass_rate_label || ''}
+                          onChange={(e) =>
+                            setAboutInfo({
+                              ...aboutInfo,
+                              stats: { ...aboutInfo.stats, pass_rate_label: e.target.value },
+                            })
+                          }
+                          placeholder="Cambridge Pass Rate"
+                          title="Custom caption"
+                          className="w-full mt-1.5 px-2 py-1 rounded-md border border-slate-200 text-[10px] text-slate-600 bg-white"
+                        />
+                      )}
                     </div>
 
                     <div>
                       <label className="block text-[11px] font-semibold text-slate-500 mb-1">Clubs</label>
                       <input
                         type="text"
-                        value={aboutInfo.stats?.clubs || '24+'}
+                        value={aboutInfo.stats?.clubs || '15+'}
                         onChange={(e) =>
                           setAboutInfo({
                             ...aboutInfo,
                             stats: { ...aboutInfo.stats, clubs: e.target.value },
                           })
                         }
+                        placeholder="15+"
                         className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-[#00183F]"
                       />
+                      {showStatLabels && (
+                        <input
+                          type="text"
+                          value={aboutInfo.stats?.clubs_label || ''}
+                          onChange={(e) =>
+                            setAboutInfo({
+                              ...aboutInfo,
+                              stats: { ...aboutInfo.stats, clubs_label: e.target.value },
+                            })
+                          }
+                          placeholder="Co-Curricular Clubs"
+                          title="Custom caption"
+                          className="w-full mt-1.5 px-2 py-1 rounded-md border border-slate-200 text-[10px] text-slate-600 bg-white"
+                        />
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-500 mb-1">National Awards</label>
+                      <input
+                        type="text"
+                        value={aboutInfo.stats?.national_awards || aboutInfo.stats?.awards || '85+'}
+                        onChange={(e) =>
+                          setAboutInfo({
+                            ...aboutInfo,
+                            stats: {
+                              ...aboutInfo.stats,
+                              national_awards: e.target.value,
+                              awards: e.target.value,
+                            },
+                          })
+                        }
+                        placeholder="85+"
+                        className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-[#00183F]"
+                      />
+                      {showStatLabels && (
+                        <input
+                          type="text"
+                          value={aboutInfo.stats?.national_awards_label || aboutInfo.stats?.awards_label || ''}
+                          onChange={(e) =>
+                            setAboutInfo({
+                              ...aboutInfo,
+                              stats: {
+                                ...aboutInfo.stats,
+                                national_awards_label: e.target.value,
+                                awards_label: e.target.value,
+                              },
+                            })
+                          }
+                          placeholder="National Awards"
+                          title="Custom caption"
+                          className="w-full mt-1.5 px-2 py-1 rounded-md border border-slate-200 text-[10px] text-slate-600 bg-white"
+                        />
+                      )}
                     </div>
                   </div>
                 </div>

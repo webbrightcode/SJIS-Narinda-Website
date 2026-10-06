@@ -12,32 +12,32 @@ interface StatsBarProps {
 export const StatsBar: React.FC<StatsBarProps> = ({ stats }) => {
   const statItems = [
     {
-      label: 'Enrolled Students',
-      value: stats?.students || '3,200+',
+      label: stats?.students_label || 'Enrolled Students',
+      value: stats?.students || '500+',
       icon: Users,
       color: 'text-amber-400',
     },
     {
-      label: 'Certified Faculty',
-      value: stats?.faculty || '140+',
+      label: stats?.faculty_label || 'Certified Faculty',
+      value: stats?.faculty || '60+',
       icon: GraduationCap,
       color: 'text-rose-400',
     },
     {
-      label: 'Cambridge Pass Rate',
+      label: stats?.pass_rate_label || 'Cambridge Pass Rate',
       value: stats?.pass_rate || '100%',
       icon: Award,
       color: 'text-emerald-400',
     },
     {
-      label: 'Co-Curricular Clubs',
-      value: stats?.clubs || '24+',
+      label: stats?.clubs_label || 'Co-Curricular Clubs',
+      value: stats?.clubs || '15+',
       icon: BookOpen,
       color: 'text-sky-400',
     },
     {
-      label: 'National Awards',
-      value: stats?.national_awards || '85+',
+      label: stats?.national_awards_label || stats?.awards_label || 'National Awards',
+      value: stats?.national_awards || stats?.awards || '85+',
       icon: Trophy,
       color: 'text-amber-300',
     },
