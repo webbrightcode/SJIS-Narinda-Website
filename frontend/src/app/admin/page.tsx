@@ -4322,11 +4322,17 @@ export default function AdminDashboardPage() {
                 </label>
                 <input
                   type="text"
+                  list="club-existing-categories"
                   value={editingClub.category || ''}
                   onChange={(e) => setEditingClub({ ...editingClub, category: e.target.value })}
                   className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-[#00183F] outline-none"
-                  placeholder="e.g. STEM, Debate, Culture (or leave empty)"
+                  placeholder="Type new or pick existing..."
                 />
+                <datalist id="club-existing-categories">
+                  {Array.from(new Set(clubs.map((c) => (c.category || '').trim()).filter(Boolean))).map((cat) => (
+                    <option key={cat} value={cat} />
+                  ))}
+                </datalist>
               </div>
 
               <div>
@@ -4507,11 +4513,17 @@ export default function AdminDashboardPage() {
               </label>
               <input
                 type="text"
+                list="gallery-existing-categories"
                 value={editingGallery.category || ''}
                 onChange={(e) => setEditingGallery({ ...editingGallery, category: e.target.value })}
                 className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-[#00183F] outline-none"
-                placeholder="e.g. Campus, Sports, Science Fair (or leave empty)"
+                placeholder="Type new category or pick existing..."
               />
+              <datalist id="gallery-existing-categories">
+                {Array.from(new Set(gallery.map((g) => (g.category || '').trim()).filter(Boolean))).map((cat) => (
+                  <option key={cat} value={cat} />
+                ))}
+              </datalist>
             </div>
 
             <ImageHelper

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { FadeImage as Image } from '@/components/ui/FadeImage';
 import {
@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/Button';
 
 export default function ClubsPage() {
   const [clubs, setClubs] = useState<Club[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
   useEffect(() => {
     async function loadData() {
@@ -34,6 +35,26 @@ export default function ClubsPage() {
     }
     loadData();
   }, []);
+
+  // Dynamically extract whatever custom categories currently exist in the database
+  const dynamicCategories = useMemo(() => {
+    return Array.from(
+      new Set(
+        clubs
+          .map((c) => (c.category_display || c.category || '').trim())
+          .filter(Boolean)
+      )
+    );
+  }, [clubs]);
+
+  const filteredClubs = useMemo(() => {
+    if (selectedCategory === 'all') return clubs;
+    return clubs.filter(
+      (c) =>
+        (c.category_display || c.category || '').trim().toLowerCase() ===
+        selectedCategory.toLowerCase()
+    );
+  }, [clubs, selectedCategory]);
 
   const getClubIcon = (iconName: string) => {
     switch (iconName.toLowerCase()) {
@@ -72,9 +93,38 @@ export default function ClubsPage() {
       {/* Main Section */}
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Dynamic Category Filter Pills (rendered only when categories exist) */}
+          {dynamicCategories.length > 0 && (
+            <div className="flex items-center justify-center gap-2 overflow-x-auto pb-4 mb-12 scrollbar-none">
+              <button
+                onClick={() => setSelectedCategory('all')}
+                className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
+                  selectedCategory === 'all'
+                    ? 'bg-[#00183F] text-white shadow-md shadow-[#00183F]/20'
+                    : 'bg-white text-slate-600 hover:bg-slate-200 border border-slate-200'
+                }`}
+              >
+                All Guilds ({clubs.length})
+              </button>
+              {dynamicCategories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
+                    selectedCategory.toLowerCase() === cat.toLowerCase()
+                      ? 'bg-[#00183F] text-white shadow-md shadow-[#00183F]/20'
+                      : 'bg-white text-slate-600 hover:bg-slate-200 border border-slate-200'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Clubs Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {clubs.map((club) => {
+            {filteredClubs.map((club) => {
               const detailUrl = `/clubs/${club.slug || club.id}`;
               const photosCount = (club.gallery_images?.length || 0) + (club.image_url ? 1 : 0);
 

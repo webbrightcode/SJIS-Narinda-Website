@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { FadeImage as Image } from '@/components/ui/FadeImage';
 import { Eye, Camera, Filter, Sparkles, Calendar } from 'lucide-react';
 import { GalleryItem } from '@/lib/types';
@@ -11,6 +11,7 @@ import { Lightbox } from '@/components/ui/Lightbox';
 
 export default function GalleryPage() {
   const [items, setItems] = useState<GalleryItem[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   useEffect(() => {
@@ -21,16 +22,36 @@ export default function GalleryPage() {
     loadData();
   }, []);
 
+  // Dynamically extract whatever custom categories currently exist in the gallery
+  const dynamicCategories = useMemo(() => {
+    return Array.from(
+      new Set(
+        items
+          .map((i) => (i.category_display || i.category || '').trim())
+          .filter(Boolean)
+      )
+    );
+  }, [items]);
+
+  const filteredItems = useMemo(() => {
+    if (selectedCategory === 'all') return items;
+    return items.filter(
+      (i) =>
+        (i.category_display || i.category || '').trim().toLowerCase() ===
+        selectedCategory.toLowerCase()
+    );
+  }, [items, selectedCategory]);
+
   const openLightbox = (index: number) => setLightboxIndex(index);
   const closeLightbox = () => setLightboxIndex(null);
   const nextItem = () => {
     if (lightboxIndex !== null) {
-      setLightboxIndex((prev) => ((prev ?? 0) + 1) % items.length);
+      setLightboxIndex((prev) => ((prev ?? 0) + 1) % filteredItems.length);
     }
   };
   const prevItem = () => {
     if (lightboxIndex !== null) {
-      setLightboxIndex((prev) => ((prev ?? 0) - 1 + items.length) % items.length);
+      setLightboxIndex((prev) => ((prev ?? 0) - 1 + filteredItems.length) % filteredItems.length);
     }
   };
 
@@ -52,9 +73,38 @@ export default function GalleryPage() {
       {/* Main Content */}
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Dynamic Category Filter Tabs (rendered only when categories exist) */}
+          {dynamicCategories.length > 0 && (
+            <div className="flex items-center justify-center gap-2 overflow-x-auto pb-4 mb-12 scrollbar-none">
+              <button
+                onClick={() => setSelectedCategory('all')}
+                className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
+                  selectedCategory === 'all'
+                    ? 'bg-[#00183F] text-white shadow-md shadow-[#00183F]/20'
+                    : 'bg-white text-slate-600 hover:bg-slate-200 border border-slate-200'
+                }`}
+              >
+                All Photos ({items.length})
+              </button>
+              {dynamicCategories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
+                    selectedCategory.toLowerCase() === cat.toLowerCase()
+                      ? 'bg-[#00183F] text-white shadow-md shadow-[#00183F]/20'
+                      : 'bg-white text-slate-600 hover:bg-slate-200 border border-slate-200'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Gallery Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {items.map((item, index) => (
+            {filteredItems.map((item, index) => (
               <div
                 key={item.id}
                 onClick={() => openLightbox(index)}
@@ -115,7 +165,7 @@ export default function GalleryPage() {
       {/* Lightbox Viewer */}
       {lightboxIndex !== null && (
         <Lightbox
-          items={items}
+          items={filteredItems}
           currentIndex={lightboxIndex}
           isOpen={lightboxIndex !== null}
           onClose={closeLightbox}
