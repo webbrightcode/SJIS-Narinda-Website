@@ -16,7 +16,8 @@ export const metadata: Metadata = {
   alternates: { canonical: '/' },
 };
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function HomePage() {
   const bundle = await getLandingBundle();

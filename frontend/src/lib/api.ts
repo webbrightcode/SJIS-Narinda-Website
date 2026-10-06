@@ -144,7 +144,7 @@ async function fetchWithFallback<T>(url: string, fallback: T, options?: RequestI
 // ---------------- PUBLIC API ENDPOINTS ---------------- //
 
 export async function getLandingBundle(): Promise<LandingBundle> {
-  return fetchWithFallback<LandingBundle>('/landing-bundle/', FALLBACK_BUNDLE);
+  return fetchWithFallback<LandingBundle>('/landing-bundle/', FALLBACK_BUNDLE, { cache: 'no-store' });
 }
 
 export async function getSlides(activeOnly = true): Promise<SliderSlide[]> {

@@ -82,9 +82,9 @@ export const FALLBACK_ABOUT: AboutInfo = {
   principal_message: "Welcome to St. Joseph International School, Narinda. Our sacred mission has been to awaken intellectual curiosity and sculpt human character. We believe that true education does not merely prepare a child for examinations, but prepares them for life. Here at SJIS Narinda, our students are encouraged to question fearlessly, serve selflessly, and strive relentlessly for excellence. We warmly invite you to become part of our inspiring Josephite fraternity.",
   principal_image_url: "/administrator-roktim.webp",
   stats: {
-    students: "3,200+",
-    faculty: "140+",
-    clubs: "24+",
+    students: "500+",
+    faculty: "60+",
+    clubs: "15+",
     pass_rate: "100%",
     campus_acres: "4.5 Acres",
     national_awards: "85+"

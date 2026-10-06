@@ -128,9 +128,9 @@ class Command(BaseCommand):
             ),
             principal_image_url="/administrator-roktim.webp",
             stats={
-                "students": "3,200+",
-                "faculty": "140+",
-                "clubs": "24+",
+                "students": "500+",
+                "faculty": "60+",
+                "clubs": "15+",
                 "pass_rate": "100%",
                 "campus_acres": "4.5 Acres",
                 "national_awards": "85+"
