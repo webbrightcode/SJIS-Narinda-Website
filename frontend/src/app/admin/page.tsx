@@ -470,6 +470,7 @@ export default function AdminDashboardPage() {
       message: `Are you sure you want to delete notice "${title}"?`,
       onConfirm: async () => {
         setNotices((prev) => prev.filter((n) => n.id !== id));
+        setSelectedNoticeIds((prev) => prev.filter((selectedId) => selectedId !== id));
         setDeleteDialog((prev) => ({ ...prev, isOpen: false }));
         const ok = await deleteNotice(id, token || undefined);
         if (ok) {
@@ -583,6 +584,7 @@ export default function AdminDashboardPage() {
       message: `Permanently delete application record for student "${student}"?`,
       onConfirm: async () => {
         setInquiries((prev) => prev.filter((inq) => inq.id !== id));
+        setSelectedInquiryIds((prev) => prev.filter((selectedId) => selectedId !== id));
         if (selectedInquiry?.id === id) setSelectedInquiry(null);
         setDeleteDialog((prev) => ({ ...prev, isOpen: false }));
         const ok = await deleteInquiry(id, token || undefined);
@@ -628,19 +630,37 @@ export default function AdminDashboardPage() {
 
   const handleBulkDeleteInquiries = () => {
     if (selectedInquiryIds.length === 0) return;
+    const idsToDelete = [...selectedInquiryIds];
     setDeleteDialog({
       isOpen: true,
       title: 'Bulk Delete Candidate Records',
-      message: `Permanently delete ${selectedInquiryIds.length} candidate applications? This action cannot be undone.`,
+      message: `Permanently delete ${idsToDelete.length} candidate applications? This action cannot be undone.`,
       onConfirm: async () => {
-        setLoading(true);
-        await Promise.all(selectedInquiryIds.map((id) => deleteInquiry(id, token || undefined)));
-        setInquiries(inquiries.filter((inq) => !selectedInquiryIds.includes(inq.id)));
-        const count = selectedInquiryIds.length;
-        setSelectedInquiryIds([]);
-        setLoading(false);
-        showToast(`Deleted ${count} candidate records.`);
         setDeleteDialog((prev) => ({ ...prev, isOpen: false }));
+        setSelectedInquiryIds([]);
+        setInquiries((prev) => prev.filter((inq) => !idsToDelete.includes(inq.id)));
+        setLoading(true);
+        try {
+          const results = await Promise.all(
+            idsToDelete.map((id) => deleteInquiry(id, token || undefined))
+          );
+          const successCount = results.filter(Boolean).length;
+          if (successCount === idsToDelete.length) {
+            showToast(`Deleted ${idsToDelete.length} candidate application records.`);
+          } else if (successCount > 0) {
+            showToast(`Deleted ${successCount} of ${idsToDelete.length} records.`);
+            refreshAllData();
+          } else {
+            showToast('Could not delete inquiries on server.', 'error');
+            refreshAllData();
+          }
+        } catch (err) {
+          console.error('Bulk inquiry delete error:', err);
+          showToast('Failed to delete candidate records.', 'error');
+          refreshAllData();
+        } finally {
+          setLoading(false);
+        }
       },
     });
   };
@@ -649,37 +669,60 @@ export default function AdminDashboardPage() {
   const handleBulkNoticeAction = async (action: 'pin' | 'unpin' | 'delete') => {
     if (selectedNoticeIds.length === 0) return;
     if (action === 'delete') {
+      const idsToDelete = [...selectedNoticeIds];
       setDeleteDialog({
         isOpen: true,
         title: 'Bulk Delete Circular Notices',
-        message: `Permanently delete ${selectedNoticeIds.length} circular notices?`,
+        message: `Permanently delete ${idsToDelete.length} circular notices? This action cannot be undone.`,
         onConfirm: async () => {
-          setLoading(true);
-          await Promise.all(selectedNoticeIds.map((id) => deleteNotice(id, token || undefined)));
-          setNotices(notices.filter((n) => !selectedNoticeIds.includes(n.id)));
-          const count = selectedNoticeIds.length;
-          setSelectedNoticeIds([]);
-          setLoading(false);
-          showToast(`Deleted ${count} circular notices.`);
           setDeleteDialog((prev) => ({ ...prev, isOpen: false }));
+          setSelectedNoticeIds([]);
+          setNotices((prev) => prev.filter((n) => !idsToDelete.includes(n.id)));
+          setLoading(true);
+          try {
+            const results = await Promise.all(
+              idsToDelete.map((id) => deleteNotice(id, token || undefined))
+            );
+            const successCount = results.filter(Boolean).length;
+            if (successCount === idsToDelete.length) {
+              showToast(`Permanently deleted ${idsToDelete.length} circular notice(s).`);
+            } else if (successCount > 0) {
+              showToast(`Deleted ${successCount} of ${idsToDelete.length} circular notices.`);
+              refreshAllData();
+            } else {
+              showToast('Could not delete notices on server.', 'error');
+              refreshAllData();
+            }
+          } catch (err) {
+            console.error('Bulk notice delete error:', err);
+            showToast('Failed to delete circular notices.', 'error');
+            refreshAllData();
+          } finally {
+            setLoading(false);
+          }
         },
       });
       return;
     }
     const isPinned = action === 'pin';
-    setLoading(true);
-    await Promise.all(
-      selectedNoticeIds.map((id) => updateNotice(id, { is_pinned: isPinned }, token || undefined))
-    );
-    setNotices(
-      notices.map((n) =>
-        selectedNoticeIds.includes(n.id) ? { ...n, is_pinned: isPinned } : n
-      )
-    );
-    const count = selectedNoticeIds.length;
+    const idsToUpdate = [...selectedNoticeIds];
     setSelectedNoticeIds([]);
-    setLoading(false);
-    showToast(`Notices ${isPinned ? 'pinned' : 'unpinned'} for ${count} circulars.`);
+    setNotices((prev) =>
+      prev.map((n) => (idsToUpdate.includes(n.id) ? { ...n, is_pinned: isPinned } : n))
+    );
+    setLoading(true);
+    try {
+      await Promise.all(
+        idsToUpdate.map((id) => updateNotice(id, { is_pinned: isPinned }, token || undefined))
+      );
+      showToast(`Notices ${isPinned ? 'pinned' : 'unpinned'} for ${idsToUpdate.length} circulars.`);
+    } catch (err) {
+      console.error('Bulk notice pin/unpin error:', err);
+      showToast('Could not update notice pin status on server.', 'error');
+      refreshAllData();
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Command Palette Action Handler
@@ -3920,7 +3963,16 @@ export default function AdminDashboardPage() {
                 type="button"
                 variant="secondary"
                 size="sm"
-                onClick={deleteDialog.onConfirm}
+                onClick={async () => {
+                  if (deleteDialog.onConfirm) {
+                    try {
+                      await deleteDialog.onConfirm();
+                    } catch (err) {
+                      console.error('Delete confirmation failed:', err);
+                      setDeleteDialog((prev) => ({ ...prev, isOpen: false }));
+                    }
+                  }
+                }}
               >
                 Confirm Delete
               </Button>
