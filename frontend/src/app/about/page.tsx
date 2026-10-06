@@ -200,6 +200,8 @@ export default async function AboutPage() {
                       alt={about.principal_name || 'Brother Roktim Chiran, CSC'}
                       fill
                       priority
+                      unoptimized
+                      fallbackSrc="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop"
                       className="object-cover object-top"
                     />
                   </div>

@@ -56,6 +56,8 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({ about }) => {
                   }
                   alt={headName}
                   fill
+                  unoptimized
+                  fallbackSrc="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop"
                   className="object-cover object-top"
                   sizes="(max-width: 1024px) 100vw, 40vw"
                 />

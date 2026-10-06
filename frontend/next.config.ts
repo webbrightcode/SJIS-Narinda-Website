@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
     return [{ source: '/media/:path*', destination: `${backend}/media/:path*` }];
   },
   images: {
+    unoptimized: true,
     formats: ['image/webp'],
     remotePatterns: [
       {
