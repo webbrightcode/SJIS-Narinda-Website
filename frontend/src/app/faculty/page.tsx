@@ -638,24 +638,19 @@ export default function FacultyPage() {
           }
           maxWidth="2xl"
           footer={
-            <div className="w-full flex items-center justify-between gap-3">
-              <div className="text-xs text-slate-500">
-                Holy Cross Institution • Narinda Campus
-              </div>
-              <div className="flex items-center gap-2">
-                {selectedMember.email && (
-                  <a
-                    href={`mailto:${selectedMember.email}`}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#00183F] hover:bg-[#092350] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
-                  >
-                    <Mail className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Send Official Email</span>
-                  </a>
-                )}
-                <Button variant="outline" size="sm" onClick={() => setSelectedMember(null)}>
-                  Close
-                </Button>
-              </div>
+            <div className="w-full flex items-center justify-end gap-2">
+              {selectedMember.email && (
+                <a
+                  href={`mailto:${selectedMember.email}`}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#00183F] hover:bg-[#092350] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                >
+                  <Mail className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Send Official Email</span>
+                </a>
+              )}
+              <Button variant="outline" size="sm" onClick={() => setSelectedMember(null)}>
+                Close
+              </Button>
             </div>
           }
         >
@@ -718,16 +713,6 @@ export default function FacultyPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span className="text-slate-700 font-medium">Cambridge Assessment International Registered</span>
-              </div>
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center gap-2.5">
-                <Award className="w-4 h-4 text-amber-600 shrink-0" />
-                <span className="text-slate-700 font-medium">Congregation of Holy Cross Mentorship</span>
-              </div>
-            </div>
           </div>
         </Modal>
       )}
