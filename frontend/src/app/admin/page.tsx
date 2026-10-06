@@ -235,6 +235,8 @@ export default function AdminDashboardPage() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [showPhotoUrlInput, setShowPhotoUrlInput] = useState(false);
   const [showStatLabels, setShowStatLabels] = useState(false);
+  const [admissionSubTab, setAdmissionSubTab] = useState<'all' | 'dates' | 'steps' | 'eligibility' | 'documents' | 'fees' | 'session'>('all');
+  const [savingAdmission, setSavingAdmission] = useState(false);
 
   const handlePrincipalImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -863,13 +865,20 @@ export default function AdminDashboardPage() {
   };
 
   // Save Admission Guide & Tuition Matrix
-  const handleSaveAdmissionGuide = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveAdmissionGuide = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!admissionGuide) return;
-    const updated = await updateAdmissionGuide(admissionGuide, token || undefined);
-    if (updated) {
-      setAdmissionGuide(updated);
-      showToast('Admission Guide & Tuition Matrix updated!');
+    setSavingAdmission(true);
+    try {
+      const updated = await updateAdmissionGuide(admissionGuide, token || undefined);
+      if (updated) {
+        setAdmissionGuide(updated);
+        showToast('Admission portal settings & fees matrix saved successfully!');
+      } else {
+        showToast('Could not save admission settings. Please try again.', 'error');
+      }
+    } finally {
+      setSavingAdmission(false);
     }
   };
 
@@ -1127,7 +1136,7 @@ export default function AdminDashboardPage() {
                 badge: inquiries.filter((i) => i.status === 'pending').length,
                 count: inquiries.length,
               },
-              { id: 'admission_guide', label: 'Fees & Criteria Matrix', icon: DollarSign },
+              { id: 'admission_guide', label: 'Admission Portal & Guide', icon: GraduationCap },
               { id: 'faqs', label: 'Admission FAQs', icon: HelpCircle },
               { id: 'testimonials', label: 'Testimonials', icon: Quote },
               { id: 'site_settings', label: 'Website & Contact Info', icon: Globe },
@@ -2437,173 +2446,765 @@ export default function AdminDashboardPage() {
             </div>
           )}
 
-          {/* TAB 7: ADMISSION GUIDE & FEES MATRIX */}
+          {/* TAB 7: ADMISSION GUIDE & PORTAL CUSTOMIZER */}
           {activeTab === 'admission_guide' && admissionGuide && (
-            <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm max-w-4xl mx-auto space-y-6">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm max-w-5xl mx-auto space-y-8">
+              {/* Top Header & Session Status */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-slate-100 gap-4">
                 <div>
-                  <h3 className="text-xl font-black text-[#00183F]">
-                    Admission Guide & Fee Schedule Matrix
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="px-2.5 py-0.5 rounded-md bg-[#00183F] text-[#D4AF37] text-[10px] font-black uppercase tracking-wider">
+                      Admissions Control Suite
+                    </span>
+                    <span className="text-xs font-bold text-slate-400">
+                      Session {admissionGuide.academic_year || '2026-2027'}
+                    </span>
+                  </div>
+                  <h3 className="text-2xl font-black text-[#00183F] tracking-tight">
+                    Admission Portal & Guide Customizer
                   </h3>
-                  <p className="text-xs text-slate-500">
-                    Configure official admission session year, open/close status, and tuition tiers.
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Live dynamic control over the public <span className="font-semibold text-slate-700">/admission</span> page: timeline dates, step-by-step roadmap, eligibility criteria, required documents, and tuition matrix.
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <label className="text-xs font-bold text-slate-700">Admissions Status:</label>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setAdmissionGuide({ ...admissionGuide, is_open: !admissionGuide.is_open })
-                    }
-                    className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
-                      admissionGuide.is_open
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-slate-300 text-slate-700'
-                    }`}
+                <div className="flex flex-wrap items-center gap-3">
+                  <a
+                    href="/admission"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
                   >
-                    {admissionGuide.is_open ? 'Currently Open' : 'Closed'}
-                  </button>
+                    <span>View Live Page</span>
+                    <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
+                  </a>
+
+                  <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
+                    <label className="text-xs font-bold text-slate-700">Status:</label>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setAdmissionGuide({ ...admissionGuide, is_open: !admissionGuide.is_open })
+                      }
+                      className={`px-3 py-1 rounded-full text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5 ${
+                        admissionGuide.is_open
+                          ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                          : 'bg-slate-300 text-slate-700 hover:bg-slate-400'
+                      }`}
+                    >
+                      <span className={`w-2 h-2 rounded-full ${admissionGuide.is_open ? 'bg-white animate-pulse' : 'bg-slate-500'}`} />
+                      {admissionGuide.is_open ? 'Currently Open' : 'Closed'}
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <form onSubmit={handleSaveAdmissionGuide} className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                      Academic Session Year
-                    </label>
-                    <input
-                      type="text"
-                      value={admissionGuide.academic_year}
-                      onChange={(e) =>
-                        setAdmissionGuide({ ...admissionGuide, academic_year: e.target.value })
-                      }
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-[#00183F] outline-none"
-                    />
-                  </div>
+              {/* Sub-Nav Section Filter Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-slate-100 text-xs">
+                {[
+                  { id: 'all', label: 'All Sections' },
+                  { id: 'dates', label: `📅 Key Dates (${(admissionGuide.important_dates || []).length})` },
+                  { id: 'steps', label: `🗺️ Procedure Steps (${(admissionGuide.application_steps || []).length})` },
+                  { id: 'eligibility', label: `🎓 Age & Eligibility (${(admissionGuide.eligibility || []).length})` },
+                  { id: 'documents', label: `📋 Documents (${(admissionGuide.required_documents || []).length})` },
+                  { id: 'fees', label: `💰 Tuition & Fees (${(admissionGuide.fee_structure || []).length})` },
+                  { id: 'session', label: '⚙️ Session & Overview' },
+                ].map((st) => (
+                  <button
+                    key={st.id}
+                    type="button"
+                    onClick={() => setAdmissionSubTab(st.id as any)}
+                    className={`px-3.5 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer ${
+                      admissionSubTab === st.id
+                        ? 'bg-[#00183F] text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                    }`}
+                  >
+                    {st.label}
+                  </button>
+                ))}
+              </div>
 
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                      Portal Announcement Headline
-                    </label>
-                    <input
-                      type="text"
-                      value={admissionGuide.title}
-                      onChange={(e) =>
-                        setAdmissionGuide({ ...admissionGuide, title: e.target.value })
-                      }
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-[#00183F] outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                    Admission Overview Message
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={admissionGuide.overview}
-                    onChange={(e) =>
-                      setAdmissionGuide({ ...admissionGuide, overview: e.target.value })
-                    }
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-[#00183F] outline-none"
-                  />
-                </div>
-
-                {/* Tuition Fee Breakdown List */}
-                <div className="space-y-3 pt-2">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                    Tuition & Fee Structure (Editable Tiers)
-                  </h4>
-                  <label className="flex items-start gap-3 p-4 rounded-2xl bg-amber-50 border border-amber-200 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={admissionGuide.show_fees !== false}
-                      onChange={(e) =>
-                        setAdmissionGuide({ ...admissionGuide, show_fees: e.target.checked })
-                      }
-                      className="mt-0.5 w-4 h-4 accent-[#00183F]"
-                    />
-                    <span className="text-xs text-slate-700">
-                      <strong className="block text-[#00183F]">Show fee amounts on the public website</strong>
-                      When unchecked, amounts are hidden from visitors (not even sent to their browser) and the
-                      admission page asks them to contact the office. Only admins see them here. Remember to click Save.
-                    </span>
-                  </label>
-                  <div className="space-y-3">
-                    {admissionGuide.fee_structure?.map((fee, idx) => (
-                      <div
-                        key={idx}
-                        className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs"
-                      >
-                        <div>
-                          <label className="text-[10px] font-bold text-slate-400 block mb-1">Section</label>
-                          <input
-                            type="text"
-                            value={fee.section}
-                            onChange={(e) => {
-                              const newFee = [...admissionGuide.fee_structure];
-                              newFee[idx].section = e.target.value;
-                              setAdmissionGuide({ ...admissionGuide, fee_structure: newFee });
-                            }}
-                            className="w-full px-2.5 py-1 rounded-lg border border-slate-200 font-bold text-[#00183F]"
-                          />
+              <form onSubmit={handleSaveAdmissionGuide} className="space-y-8">
+                {/* 1. KEY ADMISSION DATES TIMELINE */}
+                {(admissionSubTab === 'all' || admissionSubTab === 'dates') && (
+                  <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/60 pb-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-[#C8102E]" />
+                          <h4 className="text-sm font-black text-[#00183F] uppercase tracking-wider">
+                            Key Admission Dates (Timeline)
+                          </h4>
+                          <span className="px-2 py-0.5 rounded-full bg-rose-100 text-[#C8102E] text-[10px] font-bold">
+                            {(admissionGuide.important_dates || []).length} Event Dates
+                          </span>
                         </div>
-                        <div>
-                          <label className="text-[10px] font-bold text-slate-400 block mb-1">Admission Fee</label>
-                          <input
-                            type="text"
-                            value={fee.admission_fee}
-                            onChange={(e) => {
-                              const newFee = [...admissionGuide.fee_structure];
-                              newFee[idx].admission_fee = e.target.value;
-                              setAdmissionGuide({ ...admissionGuide, fee_structure: newFee });
-                            }}
-                            className="w-full px-2.5 py-1 rounded-lg border border-slate-200 text-[#C8102E] font-semibold"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-bold text-slate-400 block mb-1">Monthly Tuition</label>
-                          <input
-                            type="text"
-                            value={fee.monthly_tuition}
-                            onChange={(e) => {
-                              const newFee = [...admissionGuide.fee_structure];
-                              newFee[idx].monthly_tuition = e.target.value;
-                              setAdmissionGuide({ ...admissionGuide, fee_structure: newFee });
-                            }}
-                            className="w-full px-2.5 py-1 rounded-lg border border-slate-200 font-medium"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-bold text-slate-400 block mb-1">Session Charge</label>
-                          <input
-                            type="text"
-                            value={fee.annual_session_charge}
-                            onChange={(e) => {
-                              const newFee = [...admissionGuide.fee_structure];
-                              newFee[idx].annual_session_charge = e.target.value;
-                              setAdmissionGuide({ ...admissionGuide, fee_structure: newFee });
-                            }}
-                            className="w-full px-2.5 py-1 rounded-lg border border-slate-200"
-                          />
-                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Shown in the prominent 5-box timeline at the top of the /admission page.
+                        </p>
                       </div>
-                    ))}
-                  </div>
-                </div>
 
-                <div className="pt-2 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const current = admissionGuide.important_dates || [];
+                          setAdmissionGuide({
+                            ...admissionGuide,
+                            important_dates: [
+                              ...current,
+                              { event: 'New Admission Event', date: 'Date or Period' },
+                            ],
+                          });
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00183F] hover:bg-[#002868] text-white text-xs font-bold transition-all shadow-xs cursor-pointer self-start sm:self-auto"
+                      >
+                        <Plus className="w-3.5 h-3.5 text-[#D4AF37]" />
+                        <span>Add Date Event</span>
+                      </button>
+                    </div>
+
+                    {(!admissionGuide.important_dates || admissionGuide.important_dates.length === 0) ? (
+                      <div className="p-6 text-center bg-white rounded-xl border border-dashed border-slate-300 text-slate-400 text-xs">
+                        No key dates added. Click &quot;Add Date Event&quot; above to create one.
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                        {admissionGuide.important_dates.map((item, idx) => (
+                          <div
+                            key={idx}
+                            className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-2 relative group"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                Event {idx + 1}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = (admissionGuide.important_dates || []).filter((_, i) => i !== idx);
+                                  setAdmissionGuide({ ...admissionGuide, important_dates: updated });
+                                }}
+                                className="w-6 h-6 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors cursor-pointer"
+                                title="Delete date"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-500 block mb-0.5">
+                                Event Name
+                              </label>
+                              <input
+                                type="text"
+                                value={item.event}
+                                onChange={(e) => {
+                                  const updated = [...(admissionGuide.important_dates || [])];
+                                  updated[idx] = { ...updated[idx], event: e.target.value };
+                                  setAdmissionGuide({ ...admissionGuide, important_dates: updated });
+                                }}
+                                placeholder="e.g. Online Application Begins"
+                                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-[#00183F]"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-500 block mb-0.5">
+                                Date / Timeframe
+                              </label>
+                              <input
+                                type="text"
+                                value={item.date}
+                                onChange={(e) => {
+                                  const updated = [...(admissionGuide.important_dates || [])];
+                                  updated[idx] = { ...updated[idx], date: e.target.value };
+                                  setAdmissionGuide({ ...admissionGuide, important_dates: updated });
+                                }}
+                                placeholder="e.g. October 1, 2026"
+                                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-[#C8102E]"
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 2. ADMISSION PROCEDURE STEPS (ROADMAP) */}
+                {(admissionSubTab === 'all' || admissionSubTab === 'steps') && (
+                  <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/60 pb-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Layers className="w-4 h-4 text-[#D4AF37]" />
+                          <h4 className="text-sm font-black text-[#00183F] uppercase tracking-wider">
+                            Admission Procedure (Step-by-Step Roadmap)
+                          </h4>
+                          <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold">
+                            {(admissionGuide.application_steps || []).length} Steps
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          The 5 sequential cards displayed under &quot;Simple Step-by-Step Admission Procedure&quot;.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const current = admissionGuide.application_steps || [];
+                          const nextNum = current.length + 1;
+                          setAdmissionGuide({
+                            ...admissionGuide,
+                            application_steps: [
+                              ...current,
+                              {
+                                step: nextNum,
+                                title: `Step ${nextNum} Title`,
+                                description: 'Detailed instruction describing this admission step.',
+                              },
+                            ],
+                          });
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00183F] hover:bg-[#002868] text-white text-xs font-bold transition-all shadow-xs cursor-pointer self-start sm:self-auto"
+                      >
+                        <Plus className="w-3.5 h-3.5 text-[#D4AF37]" />
+                        <span>Add Procedure Step</span>
+                      </button>
+                    </div>
+
+                    {(!admissionGuide.application_steps || admissionGuide.application_steps.length === 0) ? (
+                      <div className="p-6 text-center bg-white rounded-xl border border-dashed border-slate-300 text-slate-400 text-xs">
+                        No procedure steps defined. Click &quot;Add Procedure Step&quot; above.
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {admissionGuide.application_steps.map((step, idx) => (
+                          <div
+                            key={idx}
+                            className="p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-3"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="w-7 h-7 rounded-lg bg-[#00183F] text-[#D4AF37] font-black text-xs flex items-center justify-center">
+                                  {step.step < 10 ? `0${step.step}` : step.step}
+                                </span>
+                                <span className="text-xs font-bold text-slate-700">
+                                  Roadmap Step #{step.step}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <label className="text-[10px] text-slate-400 font-bold">Step #:</label>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={step.step}
+                                  onChange={(e) => {
+                                    const updated = [...(admissionGuide.application_steps || [])];
+                                    updated[idx] = { ...updated[idx], step: parseInt(e.target.value) || idx + 1 };
+                                    setAdmissionGuide({ ...admissionGuide, application_steps: updated });
+                                  }}
+                                  className="w-14 px-2 py-1 rounded-md border border-slate-200 text-xs text-center font-bold text-[#00183F]"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const updated = (admissionGuide.application_steps || [])
+                                      .filter((_, i) => i !== idx)
+                                      .map((s, i) => ({ ...s, step: i + 1 }));
+                                    setAdmissionGuide({ ...admissionGuide, application_steps: updated });
+                                  }}
+                                  className="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors cursor-pointer"
+                                  title="Delete step"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                              <div className="md:col-span-4">
+                                <label className="text-[10px] font-bold text-slate-500 block mb-1">
+                                  Step Title
+                                </label>
+                                <input
+                                  type="text"
+                                  value={step.title}
+                                  onChange={(e) => {
+                                    const updated = [...(admissionGuide.application_steps || [])];
+                                    updated[idx] = { ...updated[idx], title: e.target.value };
+                                    setAdmissionGuide({ ...admissionGuide, application_steps: updated });
+                                  }}
+                                  placeholder="e.g. Online Application Submission"
+                                  className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-[#00183F]"
+                                />
+                              </div>
+
+                              <div className="md:col-span-8">
+                                <label className="text-[10px] font-bold text-slate-500 block mb-1">
+                                  Detailed Step Description
+                                </label>
+                                <textarea
+                                  rows={2}
+                                  value={step.description}
+                                  onChange={(e) => {
+                                    const updated = [...(admissionGuide.application_steps || [])];
+                                    updated[idx] = { ...updated[idx], description: e.target.value };
+                                    setAdmissionGuide({ ...admissionGuide, application_steps: updated });
+                                  }}
+                                  placeholder="Describe the instructions for this step..."
+                                  className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-700 leading-relaxed"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 3. ACADEMIC ELIGIBILITY & AGE CRITERIA */}
+                {(admissionSubTab === 'all' || admissionSubTab === 'eligibility') && (
+                  <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/60 pb-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <GraduationCap className="w-4 h-4 text-[#00183F]" />
+                          <h4 className="text-sm font-black text-[#00183F] uppercase tracking-wider">
+                            Academic Requirements & Age Criteria
+                          </h4>
+                          <span className="px-2 py-0.5 rounded-full bg-blue-100 text-[#00183F] text-[10px] font-bold">
+                            {(admissionGuide.eligibility || []).length} Levels
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Cards shown under &quot;Eligibility & Age Criteria&quot; for early childhood, primary, middle, and Cambridge sections.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const current = admissionGuide.eligibility || [];
+                          setAdmissionGuide({
+                            ...admissionGuide,
+                            eligibility: [
+                              ...current,
+                              {
+                                level: 'New Section (e.g. Primary)',
+                                age_bracket: 'e.g. 6 to 10 Years',
+                                criteria: 'Description of entrance evaluation & prerequisites.',
+                              },
+                            ],
+                          });
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00183F] hover:bg-[#002868] text-white text-xs font-bold transition-all shadow-xs cursor-pointer self-start sm:self-auto"
+                      >
+                        <Plus className="w-3.5 h-3.5 text-[#D4AF37]" />
+                        <span>Add Criteria Tier</span>
+                      </button>
+                    </div>
+
+                    {(!admissionGuide.eligibility || admissionGuide.eligibility.length === 0) ? (
+                      <div className="p-6 text-center bg-white rounded-xl border border-dashed border-slate-300 text-slate-400 text-xs">
+                        No criteria tiers defined. Click &quot;Add Criteria Tier&quot; above.
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {admissionGuide.eligibility.map((item, idx) => (
+                          <div
+                            key={idx}
+                            className="p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-3"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-bold text-[#C8102E] uppercase tracking-wider">
+                                Tier {idx + 1}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = (admissionGuide.eligibility || []).filter((_, i) => i !== idx);
+                                  setAdmissionGuide({ ...admissionGuide, eligibility: updated });
+                                }}
+                                className="w-6 h-6 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors cursor-pointer"
+                                title="Delete tier"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                              <div>
+                                <label className="text-[10px] font-bold text-slate-500 block mb-0.5">
+                                  Academic Level
+                                </label>
+                                <input
+                                  type="text"
+                                  value={item.level}
+                                  onChange={(e) => {
+                                    const updated = [...(admissionGuide.eligibility || [])];
+                                    updated[idx] = { ...updated[idx], level: e.target.value };
+                                    setAdmissionGuide({ ...admissionGuide, eligibility: updated });
+                                  }}
+                                  placeholder="e.g. Primary School (Grades 1 to 5)"
+                                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-[#00183F]"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="text-[10px] font-bold text-slate-500 block mb-0.5">
+                                  Age Bracket
+                                </label>
+                                <input
+                                  type="text"
+                                  value={item.age_bracket}
+                                  onChange={(e) => {
+                                    const updated = [...(admissionGuide.eligibility || [])];
+                                    updated[idx] = { ...updated[idx], age_bracket: e.target.value };
+                                    setAdmissionGuide({ ...admissionGuide, eligibility: updated });
+                                  }}
+                                  placeholder="e.g. 6 to 10 Years"
+                                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-amber-900 bg-amber-50/60"
+                                />
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-500 block mb-0.5">
+                                Evaluation & Readiness Criteria
+                              </label>
+                              <textarea
+                                rows={2}
+                                value={item.criteria}
+                                onChange={(e) => {
+                                  const updated = [...(admissionGuide.eligibility || [])];
+                                  updated[idx] = { ...updated[idx], criteria: e.target.value };
+                                  setAdmissionGuide({ ...admissionGuide, eligibility: updated });
+                                }}
+                                placeholder="Describe test subjects, evaluation format, or prerequisites..."
+                                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-700"
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 4. REQUIRED DOCUMENTS CHECKLIST */}
+                {(admissionSubTab === 'all' || admissionSubTab === 'documents') && (
+                  <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/60 pb-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-emerald-600" />
+                          <h4 className="text-sm font-black text-[#00183F] uppercase tracking-wider">
+                            Required Documentation Checklist
+                          </h4>
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                            {(admissionGuide.required_documents || []).length} Document Items
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Checklist items displayed in the yellow &quot;Required Documentation Checklist&quot; box.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const current = admissionGuide.required_documents || [];
+                          setAdmissionGuide({
+                            ...admissionGuide,
+                            required_documents: [
+                              ...current,
+                              'Attested copy of required certificate or academic record',
+                            ],
+                          });
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00183F] hover:bg-[#002868] text-white text-xs font-bold transition-all shadow-xs cursor-pointer self-start sm:self-auto"
+                      >
+                        <Plus className="w-3.5 h-3.5 text-[#D4AF37]" />
+                        <span>Add Document Item</span>
+                      </button>
+                    </div>
+
+                    {(!admissionGuide.required_documents || admissionGuide.required_documents.length === 0) ? (
+                      <div className="p-6 text-center bg-white rounded-xl border border-dashed border-slate-300 text-slate-400 text-xs">
+                        No document requirements added. Click &quot;Add Document Item&quot; above.
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {admissionGuide.required_documents.map((doc, idx) => (
+                          <div
+                            key={idx}
+                            className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs flex items-center gap-2.5"
+                          >
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <input
+                              type="text"
+                              value={doc}
+                              onChange={(e) => {
+                                const updated = [...(admissionGuide.required_documents || [])];
+                                updated[idx] = e.target.value;
+                                setAdmissionGuide({ ...admissionGuide, required_documents: updated });
+                              }}
+                              placeholder="e.g. Attested copy of Digital Birth Certificate"
+                              className="flex-1 px-2.5 py-1 rounded-lg border border-slate-200 text-xs text-slate-800 font-medium"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = (admissionGuide.required_documents || []).filter((_, i) => i !== idx);
+                                setAdmissionGuide({ ...admissionGuide, required_documents: updated });
+                              }}
+                              className="w-6 h-6 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                              title="Delete requirement"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 5. TUITION & FEE STRUCTURE MATRIX */}
+                {(admissionSubTab === 'all' || admissionSubTab === 'fees') && (
+                  <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/60 pb-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="w-4 h-4 text-[#D4AF37]" />
+                          <h4 className="text-sm font-black text-[#00183F] uppercase tracking-wider">
+                            Tuition & Fee Structure (Tiers)
+                          </h4>
+                          <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-800 text-[10px] font-bold">
+                            {(admissionGuide.fee_structure || []).length} Tiers
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Breakdown of one-time admission fee, monthly tuition, and session charges.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const current = admissionGuide.fee_structure || [];
+                          setAdmissionGuide({
+                            ...admissionGuide,
+                            fee_structure: [
+                              ...current,
+                              {
+                                section: 'New Academic Level',
+                                admission_fee: 'BDT 0',
+                                monthly_tuition: 'BDT 0',
+                                annual_session_charge: 'BDT 0',
+                              },
+                            ],
+                          });
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00183F] hover:bg-[#002868] text-white text-xs font-bold transition-all shadow-xs cursor-pointer self-start sm:self-auto"
+                      >
+                        <Plus className="w-3.5 h-3.5 text-[#D4AF37]" />
+                        <span>Add Fee Tier</span>
+                      </button>
+                    </div>
+
+                    <label className="flex items-start gap-3 p-4 rounded-2xl bg-amber-50 border border-amber-200 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={admissionGuide.show_fees !== false}
+                        onChange={(e) =>
+                          setAdmissionGuide({ ...admissionGuide, show_fees: e.target.checked })
+                        }
+                        className="mt-0.5 w-4 h-4 accent-[#00183F]"
+                      />
+                      <span className="text-xs text-slate-700">
+                        <strong className="block text-[#00183F]">Show fee amounts publicly on the website</strong>
+                        When unchecked, amounts are hidden from visitors and the website prompts them to submit an inquiry for fee details. Only logged-in administrators can view the matrix.
+                      </span>
+                    </label>
+
+                    {(!admissionGuide.fee_structure || admissionGuide.fee_structure.length === 0) ? (
+                      <div className="p-6 text-center bg-white rounded-xl border border-dashed border-slate-300 text-slate-400 text-xs">
+                        No fee tiers configured. Click &quot;Add Fee Tier&quot; above to add one.
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {admissionGuide.fee_structure.map((fee, idx) => (
+                          <div
+                            key={idx}
+                            className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs grid grid-cols-1 sm:grid-cols-12 gap-3 text-xs items-center"
+                          >
+                            <div className="sm:col-span-3">
+                              <label className="text-[10px] font-bold text-slate-400 block mb-1">Academic Level</label>
+                              <input
+                                type="text"
+                                value={fee.section}
+                                onChange={(e) => {
+                                  const newFee = [...admissionGuide.fee_structure];
+                                  newFee[idx].section = e.target.value;
+                                  setAdmissionGuide({ ...admissionGuide, fee_structure: newFee });
+                                }}
+                                placeholder="e.g. Primary (Grades 1-5)"
+                                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 font-bold text-[#00183F]"
+                              />
+                            </div>
+
+                            <div className="sm:col-span-3">
+                              <label className="text-[10px] font-bold text-slate-400 block mb-1">One-Time Admission Fee</label>
+                              <input
+                                type="text"
+                                value={fee.admission_fee}
+                                onChange={(e) => {
+                                  const newFee = [...admissionGuide.fee_structure];
+                                  newFee[idx].admission_fee = e.target.value;
+                                  setAdmissionGuide({ ...admissionGuide, fee_structure: newFee });
+                                }}
+                                placeholder="e.g. BDT 65,000"
+                                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[#C8102E] font-semibold"
+                              />
+                            </div>
+
+                            <div className="sm:col-span-3">
+                              <label className="text-[10px] font-bold text-slate-400 block mb-1">Monthly Tuition</label>
+                              <input
+                                type="text"
+                                value={fee.monthly_tuition}
+                                onChange={(e) => {
+                                  const newFee = [...admissionGuide.fee_structure];
+                                  newFee[idx].monthly_tuition = e.target.value;
+                                  setAdmissionGuide({ ...admissionGuide, fee_structure: newFee });
+                                }}
+                                placeholder="e.g. BDT 9,500"
+                                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 font-medium"
+                              />
+                            </div>
+
+                            <div className="sm:col-span-2">
+                              <label className="text-[10px] font-bold text-slate-400 block mb-1">Session Charge</label>
+                              <input
+                                type="text"
+                                value={fee.annual_session_charge}
+                                onChange={(e) => {
+                                  const newFee = [...admissionGuide.fee_structure];
+                                  newFee[idx].annual_session_charge = e.target.value;
+                                  setAdmissionGuide({ ...admissionGuide, fee_structure: newFee });
+                                }}
+                                placeholder="e.g. BDT 18,000"
+                                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200"
+                              />
+                            </div>
+
+                            <div className="sm:col-span-1 flex justify-end pt-3 sm:pt-0">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newFee = admissionGuide.fee_structure.filter((_, i) => i !== idx);
+                                  setAdmissionGuide({ ...admissionGuide, fee_structure: newFee });
+                                }}
+                                className="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors cursor-pointer"
+                                title="Delete tier"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 6. ACADEMIC SESSION & PORTAL HEADLINE */}
+                {(admissionSubTab === 'all' || admissionSubTab === 'session') && (
+                  <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-4">
+                    <div className="border-b border-slate-200/60 pb-3">
+                      <h4 className="text-sm font-black text-[#00183F] uppercase tracking-wider">
+                        Academic Session & Portal Announcement
+                      </h4>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Controls hero banner texts, academic session badge, and institutional introduction message.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                          Academic Session Year
+                        </label>
+                        <input
+                          type="text"
+                          value={admissionGuide.academic_year}
+                          onChange={(e) =>
+                            setAdmissionGuide({ ...admissionGuide, academic_year: e.target.value })
+                          }
+                          placeholder="e.g. 2026-2027"
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-[#00183F] outline-none font-bold text-[#00183F] bg-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                          Portal Announcement Headline
+                        </label>
+                        <input
+                          type="text"
+                          value={admissionGuide.title}
+                          onChange={(e) =>
+                            setAdmissionGuide({ ...admissionGuide, title: e.target.value })
+                          }
+                          placeholder="e.g. Admissions for Academic Session 2026-2027"
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-[#00183F] outline-none font-bold text-[#00183F] bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                        Admission Overview Message
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={admissionGuide.overview}
+                        onChange={(e) =>
+                          setAdmissionGuide({ ...admissionGuide, overview: e.target.value })
+                        }
+                        placeholder="Comprehensive introduction shown under the portal headline..."
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-[#00183F] outline-none leading-relaxed bg-white"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Bottom Action Bar */}
+                <div className="pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-slate-100">
+                  <div className="text-xs text-slate-500">
+                    All modifications update immediately on <span className="font-semibold text-slate-800">https://narinda.sjis.edu.bd/admission</span>.
+                  </div>
+
                   <Button
                     type="submit"
                     variant="primary"
                     size="md"
-                    icon={<Save className="w-4 h-4 text-[#D4AF37]" />}
+                    disabled={savingAdmission}
+                    icon={
+                      savingAdmission ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                      ) : (
+                        <Save className="w-4 h-4 text-[#D4AF37]" />
+                      )
+                    }
                   >
-                    Save Admission Matrix
+                    {savingAdmission ? 'Saving Changes…' : 'Save Admission Portal Settings'}
                   </Button>
                 </div>
               </form>

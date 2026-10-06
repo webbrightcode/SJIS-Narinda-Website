@@ -77,12 +77,26 @@ export default function AdmissionPage() {
       {/* Header Banner */}
       <section className="relative py-24 bg-[#00183F] text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <Badge variant="gold">Academic Session {guide?.academic_year || '2026-2027'}</Badge>
+          <div className="flex flex-wrap items-center justify-center gap-2.5 mb-3">
+            <Badge variant="gold">Academic Session {guide?.academic_year || '2026-2027'}</Badge>
+            {guide?.is_open ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-xs font-bold tracking-wide">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                Admissions Currently Open
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-400/30 text-xs font-bold tracking-wide">
+                <span className="w-2 h-2 rounded-full bg-rose-400" />
+                Admissions Session Closed
+              </span>
+            )}
+          </div>
           <h1 className="mt-4 text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white">
-            Admissions Portal
+            {guide?.title || 'Admissions Portal'}
           </h1>
-          <p className="mt-4 text-base sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
-            Begin your child&apos;s transformative journey at St. Joseph International School, Narinda. Review criteria, fee details, and apply online.
+          <p className="mt-4 text-base sm:text-lg text-slate-300 max-w-3xl mx-auto leading-relaxed">
+            {guide?.overview ||
+              "Begin your child's transformative journey at St. Joseph International School, Narinda. Review criteria, fee details, and apply online."}
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <a
