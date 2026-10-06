@@ -35,6 +35,7 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+ENV INTERNAL_API_URL=http://backend:8000/api
 
 # Don't run production container as root
 RUN addgroup --system --gid 1001 nodejs && \

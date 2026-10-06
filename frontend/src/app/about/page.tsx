@@ -37,7 +37,8 @@ export const metadata: Metadata = buildMetadata({
   keywords: ['SJIS Narinda history', 'Holy Cross Narinda', 'school administrator Narinda'],
 });
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function AboutPage() {
   const about = await getAboutInfo();
@@ -216,13 +217,13 @@ export default async function AboutPage() {
                     <Image
                       src={
                         about.principal_image_url ||
-                        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop'
+                        '/administrator-roktim.webp'
                       }
                       alt={about.principal_name || 'Brother Roktim Chiran, CSC'}
                       fill
                       priority
                       unoptimized
-                      fallbackSrc="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop"
+                      fallbackSrc="/administrator-roktim.webp"
                       className="object-cover object-top"
                     />
                   </div>

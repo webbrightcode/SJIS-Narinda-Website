@@ -3540,7 +3540,7 @@ export default function AdminDashboardPage() {
                               alt={aboutInfo.principal_name || 'Administrator'}
                               className="w-full h-full object-cover object-top"
                               onError={(e) => {
-                                (e.target as any).src = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200';
+                                (e.target as any).src = '/administrator-roktim.webp';
                               }}
                             />
                           ) : (

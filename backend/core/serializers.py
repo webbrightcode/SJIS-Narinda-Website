@@ -30,12 +30,13 @@ class AboutInfoSerializer(serializers.ModelSerializer):
         title = data.get('principal_title') or ''
         if not title or 'principal' in title.lower() or 'head of school' in title.lower():
             data['principal_title'] = 'Administrator'
-        if not data.get('principal_image_url'):
+        image_url = data.get('principal_image_url') or ''
+        if not image_url or 'unsplash.com' in image_url:
             head = StaffMember.objects.filter(is_featured=True, role_type='admin').first()
-            if head and head.image_url:
+            if head and head.image_url and 'unsplash.com' not in head.image_url:
                 data['principal_image_url'] = head.image_url
             else:
-                data['principal_image_url'] = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop'
+                data['principal_image_url'] = '/administrator-roktim.webp'
         if not data.get('history_image_url'):
             data['history_image_url'] = 'https://images.unsplash.com/photo-1546422904-90eab23c3d7e?q=80&w=1200&auto=format&fit=crop'
         return data

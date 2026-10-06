@@ -153,7 +153,7 @@ export async function getSlides(activeOnly = true): Promise<SliderSlide[]> {
 }
 
 export async function getAboutInfo(): Promise<AboutInfo> {
-  return fetchWithFallback<AboutInfo>('/about/', FALLBACK_ABOUT);
+  return fetchWithFallback<AboutInfo>('/about/', FALLBACK_ABOUT, { cache: 'no-store' });
 }
 
 export async function getNotices(category?: string, search?: string, activeOnly = true): Promise<Notice[]> {

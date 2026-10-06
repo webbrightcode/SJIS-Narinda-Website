@@ -126,7 +126,7 @@ class Command(BaseCommand):
                 "encouraged to question fearlessly, serve selflessly, and strive relentlessly for excellence. We warmly invite "
                 "you to become part of our inspiring Josephite fraternity."
             ),
-            principal_image_url="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=600&auto=format&fit=crop",
+            principal_image_url="/administrator-roktim.webp",
             stats={
                 "students": "3,200+",
                 "faculty": "140+",

@@ -1071,7 +1071,7 @@ export const FacultyManager: React.FC<{ token?: string }> = ({ token }) => {
             >
               <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
                 <img
-                  src={m.image_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop'}
+                  src={m.image_url || (m.role_type === 'admin' ? '/administrator-roktim.webp' : '/sjis-crest-logo.png')}
                   alt={m.name}
                   className="w-full h-full object-cover object-top"
                 />

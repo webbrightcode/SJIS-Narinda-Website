@@ -80,7 +80,7 @@ export const FALLBACK_ABOUT: AboutInfo = {
   secondary_button_text: "Admission Information",
   secondary_button_url: "/admission",
   principal_message: "Welcome to St. Joseph International School, Narinda. Our sacred mission has been to awaken intellectual curiosity and sculpt human character. We believe that true education does not merely prepare a child for examinations, but prepares them for life. Here at SJIS Narinda, our students are encouraged to question fearlessly, serve selflessly, and strive relentlessly for excellence. We warmly invite you to become part of our inspiring Josephite fraternity.",
-  principal_image_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=600&auto=format&fit=crop",
+  principal_image_url: "/administrator-roktim.webp",
   stats: {
     students: "3,200+",
     faculty: "140+",
@@ -650,7 +650,7 @@ export const FALLBACK_FACULTY: StaffMember[] = [
     designation: "Administrator & Head of Institution",
     department: "Executive Directorate & Holy Cross Council",
     qualification: "M.Ed. (Boston College, USA), B.A. (Notre Dame University)",
-    image_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop",
+    image_url: "/administrator-roktim.webp",
     email: "administrator@sjis-narinda.edu.bd",
     bio: "Serving as Administrator, Brother Roktim leads the institutional mission of holistic human formation, moral rectitude, and academic rigor in the Holy Cross tradition.",
     order: 1,

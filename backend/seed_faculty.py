@@ -14,7 +14,7 @@ MEMBERS = [
         "designation": "Administrator & Head of Institution",
         "department": "Executive Directorate & Holy Cross Council",
         "qualification": "M.Ed. (Boston College, USA), B.A. (Notre Dame University)",
-        "image_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop",
+        "image_url": "/administrator-roktim.webp",
         "email": "administrator@sjis-narinda.edu.bd",
         "bio": "Serving as Administrator, Brother Roktim leads the institutional mission of holistic human formation, moral rectitude, and academic rigor in the Holy Cross tradition.",
         "order": 1,

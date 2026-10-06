@@ -33,6 +33,16 @@ export default function FacultyPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMember, setSelectedMember] = useState<StaffMember | null>(null);
 
+  const getMemberPhoto = (m: StaffMember) => {
+    if (m.image_url && !m.image_url.includes('unsplash.com')) {
+      return m.image_url;
+    }
+    if (m.role_type === 'admin' || (m.name && m.name.toLowerCase().includes('roktim'))) {
+      return '/administrator-roktim.webp';
+    }
+    return m.image_url || '/sjis-crest-logo.png';
+  };
+
   useEffect(() => {
     async function loadData() {
       setLoading(true);
@@ -219,13 +229,16 @@ export default function FacultyPage() {
                       {/* Big Portrait Photo */}
                       <div className="relative aspect-[4/4.5] w-full rounded-2xl overflow-hidden shadow-md mb-4 bg-slate-100 border border-slate-100">
                         <img
-                          src={member.image_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop'}
+                          src={getMemberPhoto(member)}
                           alt={member.name}
                           loading="lazy"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
-                            if (target.src !== 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop') {
-                              target.src = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop';
+                            const fallback = member.role_type === 'admin' || member.name.toLowerCase().includes('roktim')
+                              ? '/administrator-roktim.webp'
+                              : '/sjis-crest-logo.png';
+                            if (target.src !== fallback) {
+                              target.src = fallback;
                             }
                           }}
                           className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
@@ -341,7 +354,7 @@ export default function FacultyPage() {
                       {/* Photo */}
                       <div className="relative aspect-[4/4.5] w-full rounded-2xl overflow-hidden shadow-md mb-4 bg-slate-100">
                         <img
-                          src={member.image_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop'}
+                          src={getMemberPhoto(member)}
                           alt={member.name}
                           className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
                         />
@@ -449,7 +462,7 @@ export default function FacultyPage() {
                       {/* Photo */}
                       <div className="relative aspect-[4/4] w-full rounded-2xl overflow-hidden shadow-md mb-4 bg-slate-100 border border-slate-200">
                         <img
-                          src={member.image_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop'}
+                          src={getMemberPhoto(member)}
                           alt={member.name}
                           className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
                         />
@@ -658,13 +671,16 @@ export default function FacultyPage() {
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 bg-slate-50 p-6 rounded-3xl border border-slate-200/80">
               <div className="w-32 h-36 sm:w-36 sm:h-44 rounded-2xl overflow-hidden shadow-lg shrink-0 border-2 border-amber-300 bg-white">
                 <img
-                  src={selectedMember.image_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop'}
+                  src={getMemberPhoto(selectedMember)}
                   alt={selectedMember.name}
                   loading="lazy"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
-                    if (target.src !== 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop') {
-                      target.src = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop';
+                    const fallback = selectedMember.role_type === 'admin' || selectedMember.name.toLowerCase().includes('roktim')
+                      ? '/administrator-roktim.webp'
+                      : '/sjis-crest-logo.png';
+                    if (target.src !== fallback) {
+                      target.src = fallback;
                     }
                   }}
                   className="w-full h-full object-cover object-top"
