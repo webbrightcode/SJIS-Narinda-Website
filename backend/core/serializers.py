@@ -28,7 +28,7 @@ class AboutInfoSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         title = data.get('principal_title') or ''
-        if not title or 'principal' in title.lower():
+        if not title or 'principal' in title.lower() or 'head of school' in title.lower():
             data['principal_title'] = 'Administrator'
         if not data.get('principal_image_url'):
             head = StaffMember.objects.filter(is_featured=True, role_type='admin').first()

@@ -5,7 +5,6 @@ import { Quote, ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { AboutInfo } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
 import { ScrollReveal } from '@/components/ui/ScrollReveal';
-import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 
 interface WelcomeSectionProps {
   about?: AboutInfo | null;
@@ -24,14 +23,15 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({ about }) => {
     : defaultPillars;
 
   const headName = about?.principal_name || 'Brother Roktim Chiran, CSC';
-  const headTitle = about?.principal_title && !about.principal_title.toLowerCase().includes('principal')
-    ? about.principal_title
-    : 'Administrator';
+  const headTitle =
+    about?.principal_title &&
+    !about.principal_title.toLowerCase().includes('principal') &&
+    !about.principal_title.toLowerCase().includes('head of school')
+      ? about.principal_title
+      : 'Administrator';
   const roleBadge = about?.head_role_badge || 'Head of Institution';
   const welcomeTag = about?.welcome_tag || 'Welcome to St. Joseph Narinda';
   const welcomeTitle = about?.welcome_title || 'Educating Hearts & Minds for Generations.';
-  const heritageYears = about?.heritage_years || '70+';
-  const heritageLabel = about?.heritage_label || 'Years of Heritage';
   const primaryBtnText = about?.primary_button_text || 'Read Full School History';
   const primaryBtnUrl = about?.primary_button_url || '/about';
   const secondaryBtnText = about?.secondary_button_text || 'Admission Information';
@@ -73,16 +73,6 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({ about }) => {
                     {headTitle}
                   </p>
                 </div>
-              </div>
-
-              {/* Floating Experience Badge */}
-              <div className="absolute -bottom-6 -right-4 sm:-right-6 bg-[#00183F] text-white p-5 rounded-2xl shadow-xl border-2 border-[#D4AF37] hidden sm:block">
-                <span className="block text-3xl font-black text-[#D4AF37]">
-                  <AnimatedCounter value={heritageYears} duration={1800} />
-                </span>
-                <span className="text-xs uppercase tracking-wider font-semibold text-slate-300">
-                  {heritageLabel}
-                </span>
               </div>
             </ScrollReveal>
           </div>
