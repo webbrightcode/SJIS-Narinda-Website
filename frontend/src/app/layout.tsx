@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans, Cinzel, Playfair_Display } from 'next/font/google';
 import './globals.css';
 import { AppShell } from '@/components/layout/AppShell';
-import { SITE_URL, SCHOOL, BASE_KEYWORDS, schoolJsonLd, websiteJsonLd } from '@/lib/seo';
+import { SITE_URL, SCHOOL, BASE_KEYWORDS, schoolJsonLd, websiteJsonLd, siteNavigationJsonLd } from '@/lib/seo';
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -94,7 +94,7 @@ export default function RootLayout({
       <body className="min-h-screen flex flex-col bg-[#00183F] text-slate-900 antialiased selection:bg-[#D4AF37] selection:text-[#00183F] w-full max-w-full">
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify([schoolJsonLd(), websiteJsonLd()]) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify([schoolJsonLd(), websiteJsonLd(), siteNavigationJsonLd()]) }}
         />
         <AppShell>{children}</AppShell>
       </body>

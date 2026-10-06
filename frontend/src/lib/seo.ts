@@ -101,6 +101,13 @@ export function buildMetadata({
 
 /** Schema.org JSON-LD for the school (EducationalOrganization + School). */
 export function schoolJsonLd(extra?: { sameAs?: string[]; address?: string }) {
+  const sameAsList = Array.from(
+    new Set([
+      'https://www.facebook.com/sjis.narinda',
+      ...(extra?.sameAs || []),
+    ])
+  );
+
   return {
     '@context': 'https://schema.org',
     '@type': ['EducationalOrganization', 'School'],
@@ -122,13 +129,18 @@ export function schoolJsonLd(extra?: { sameAs?: string[]; address?: string }) {
       postalCode: SCHOOL.postalCode,
       addressCountry: SCHOOL.country,
     },
+    geo: {
+      '@type': 'GeoCoordinates',
+      latitude: 23.7145,
+      longitude: 90.4184,
+    },
     areaServed: ['Narinda', 'Old Dhaka', 'Dhaka'],
     parentOrganization: {
       '@type': 'Organization',
       name: 'Brothers of Holy Cross (Congregation of Holy Cross, CSC), Bangladesh',
     },
     knowsAbout: ['Cambridge Assessment International Education', 'Holy Cross education', 'STEM education'],
-    ...(extra?.sameAs && extra.sameAs.length > 0 && { sameAs: extra.sameAs }),
+    sameAs: sameAsList,
   };
 }
 
@@ -142,6 +154,93 @@ export function websiteJsonLd() {
     alternateName: SCHOOL.shortName,
     inLanguage: 'en',
     publisher: { '@id': `${SITE_URL}/#school` },
+  };
+}
+
+/** Informs search engines of key navigational pages to prioritize as sitelinks. */
+export function siteNavigationJsonLd() {
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'SiteNavigationElement',
+        name: 'Admissions & Fees',
+        description: 'Admission requirements, eligibility, fee structure, and online inquiry form.',
+        url: absoluteUrl('/admission'),
+      },
+      {
+        '@type': 'SiteNavigationElement',
+        name: 'About Our Heritage',
+        description: 'History, leadership, and Holy Cross educational philosophy in Old Dhaka.',
+        url: absoluteUrl('/about'),
+      },
+      {
+        '@type': 'SiteNavigationElement',
+        name: 'Faculty & Administration',
+        description: 'Meet our dedicated teachers, academic coordinators, and administrative leaders.',
+        url: absoluteUrl('/faculty'),
+      },
+      {
+        '@type': 'SiteNavigationElement',
+        name: 'Notice Board',
+        description: 'Official school circulars, exam schedules, and holiday announcements.',
+        url: absoluteUrl('/notices'),
+      },
+      {
+        '@type': 'SiteNavigationElement',
+        name: 'Student Clubs & Activities',
+        description: 'Debate, science, arts, robotics, and athletic clubs at Narinda campus.',
+        url: absoluteUrl('/clubs'),
+      },
+      {
+        '@type': 'SiteNavigationElement',
+        name: 'Photo Gallery',
+        description: 'Photographs of campus life, academic milestones, and student activities.',
+        url: absoluteUrl('/gallery'),
+      },
+    ],
+  };
+}
+
+/** Standard FAQ Schema for Google Rich Snippets on Admission. */
+export function admissionFaqJsonLd() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: 'What curriculum does St. Joseph International School, Narinda offer?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'SJIS Narinda offers the prestigious Cambridge Assessment International Education curriculum from Playgroup to O-Levels and A-Levels, supported by the timeless Holy Cross values of discipline and academic excellence.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Where is the SJIS Narinda campus located in Dhaka?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'The campus is located at 32 Shah Shaheb Lane, Narinda, Dhaka-1100 in Old Dhaka, easily accessible to students from Old Dhaka, Wari, Gandaria, Sutrapur, and surrounding areas.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'How can parents submit an admission inquiry?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Parents can fill out the online admission inquiry form at https://narinda.sjis.edu.bd/admission or visit the admissions office at the campus from Sunday to Thursday during working hours.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Which classes are open for admission at SJIS Narinda?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Admissions are open for Playgroup, Nursery, Kindergarten, Primary Grades (1-5), Junior Section (Grades 6-8), and Cambridge Secondary (IGCSE / O Levels and A Levels).',
+        },
+      },
+    ],
   };
 }
 

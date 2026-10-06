@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { buildMetadata } from '@/lib/seo';
+import { buildMetadata, admissionFaqJsonLd, breadcrumbJsonLd } from '@/lib/seo';
 
 export const metadata: Metadata = buildMetadata({
   title: 'Admission 2026-2027 - Narinda Campus',
@@ -10,5 +10,20 @@ export const metadata: Metadata = buildMetadata({
 });
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  const breadcrumb = breadcrumbJsonLd([
+    { name: 'Home', path: '/' },
+    { name: 'Admissions & Fees', path: '/admission' },
+  ]);
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify([admissionFaqJsonLd(), breadcrumb]),
+        }}
+      />
+      {children}
+    </>
+  );
 }

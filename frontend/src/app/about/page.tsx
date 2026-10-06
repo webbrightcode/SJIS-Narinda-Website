@@ -27,7 +27,7 @@ import { SectionHeading } from '@/components/ui/SectionHeading';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { ScrollReveal } from '@/components/ui/ScrollReveal';
-import { buildMetadata } from '@/lib/seo';
+import { buildMetadata, breadcrumbJsonLd } from '@/lib/seo';
 
 export const metadata: Metadata = buildMetadata({
   title: 'About Us - History, Mission & Leadership',
@@ -92,8 +92,17 @@ export default async function AboutPage() {
     }
   };
 
+  const breadcrumb = breadcrumbJsonLd([
+    { name: 'Home', path: '/' },
+    { name: 'About Our Heritage', path: '/about' },
+  ]);
+
   return (
     <div className="bg-slate-50 min-h-screen">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }}
+      />
       {/* Page Header Banner */}
       <section className="relative py-24 bg-[#00183F] text-white overflow-hidden">
         <div className="absolute inset-0 bg-dots-pattern opacity-10" />
