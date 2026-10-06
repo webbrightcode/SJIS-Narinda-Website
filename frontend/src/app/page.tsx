@@ -4,6 +4,7 @@ import { HeroSlider } from '@/components/sections/HeroSlider';
 import { StatsBar } from '@/components/sections/StatsBar';
 import { WelcomeSection } from '@/components/sections/WelcomeSection';
 import { NoticeBoardWidget } from '@/components/sections/NoticeBoardWidget';
+import { NewsShowcase } from '@/components/sections/NewsShowcase';
 import { ClubsShowcase } from '@/components/sections/ClubsShowcase';
 import { GalleryPreview } from '@/components/sections/GalleryPreview';
 import { AdmissionCTA } from '@/components/sections/AdmissionCTA';
@@ -35,6 +36,9 @@ export default async function HomePage() {
 
       {/* 4. Notice Board & Official Circulars */}
       <NoticeBoardWidget notices={bundle.notices} />
+
+      {/* 4b. School News & Events (photo stories) */}
+      <NewsShowcase news={bundle.news || []} />
 
       {/* 5. Clubs & Co-curricular Societies */}
       <ClubsShowcase clubs={bundle.clubs} />

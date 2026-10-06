@@ -3,6 +3,7 @@ from .models import (
     SliderSlide,
     AboutInfo,
     Notice,
+    News,
     Club,
     AdmissionGuide,
     AdmissionInquiry,
@@ -54,6 +55,22 @@ class NoticeSerializer(serializers.ModelSerializer):
         url = data.get('attachment_url')
         if url and ('w3.org' in url or 'dummy.pdf' in url):
             data['attachment_url'] = '/circulars/sjis-official-circular.pdf'
+        return data
+
+
+class NewsSerializer(serializers.ModelSerializer):
+    category_display = serializers.CharField(source='get_category_display', read_only=True)
+
+    class Meta:
+        model = News
+        fields = '__all__'
+        extra_kwargs = {'slug': {'required': False}}
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if not data.get('summary'):
+            plain = ' '.join((instance.content or '').split())
+            data['summary'] = plain if len(plain) <= 180 else plain[:180].rstrip() + '…'
         return data
 
 

@@ -3,6 +3,7 @@ from .models import (
     SliderSlide,
     AboutInfo,
     Notice,
+    News,
     Club,
     AdmissionGuide,
     AdmissionInquiry,
@@ -48,6 +49,15 @@ class NoticeAdmin(admin.ModelAdmin):
     list_editable = ('is_pinned', 'is_active')
     list_filter = ('category', 'is_pinned', 'is_active', 'publish_date')
     search_fields = ('title', 'content')
+    prepopulated_fields = {'slug': ('title',)}
+
+
+@admin.register(News)
+class NewsAdmin(admin.ModelAdmin):
+    list_display = ('title', 'category', 'publish_date', 'is_featured', 'is_active', 'views_count')
+    list_editable = ('is_featured', 'is_active')
+    list_filter = ('category', 'is_featured', 'is_active', 'publish_date')
+    search_fields = ('title', 'summary', 'content')
     prepopulated_fields = {'slug': ('title',)}
 
 

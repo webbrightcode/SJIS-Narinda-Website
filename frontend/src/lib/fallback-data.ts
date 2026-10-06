@@ -1,4 +1,4 @@
-import { SliderSlide, AboutInfo, Notice, Club, AdmissionGuide, GalleryItem, LandingBundle, StaffMember } from './types';
+import { SliderSlide, AboutInfo, Notice, News, Club, AdmissionGuide, GalleryItem, LandingBundle, StaffMember } from './types';
 
 export const FALLBACK_SLIDES: SliderSlide[] = [
   {
@@ -633,10 +633,66 @@ export const FALLBACK_GALLERY: GalleryItem[] = [
   }
 ];
 
+export const FALLBACK_NEWS: News[] = [
+  {
+    id: 1,
+    title: "Scintilla 2026: Young Innovators Take Centre Stage at the Annual Science Carnival",
+    slug: "scintilla-2026-young-innovators-take-centre-stage",
+    category: "events",
+    category_display: "Events & Celebrations",
+    summary: "Robotics, olympiads and project displays filled the campus as students from across Dhaka competed at our annual science festival.",
+    content: "St. Joseph Science & Robotics Club welcomed participants from schools across Dhaka for the Annual Science & Technology Festival, 'Scintilla 2026'.\n\nThroughout the day students presented working prototypes, competed in the Science Olympiad and battled it out in the Robo-Soccer arena. Judges praised the creativity and teamwork on display.\n\nThe festival closed with an awards ceremony led by the Administrator, Brother Roktim Chiran, CSC.",
+    image_url: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=1600&auto=format&fit=crop",
+    gallery_images: [
+      "https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1580582932707-520aed937b7b?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=1200&auto=format&fit=crop",
+    ],
+    publish_date: "2026-09-29",
+    is_featured: true,
+    is_active: true,
+    views_count: 2150,
+  },
+  {
+    id: 2,
+    title: "Annual Sports Day: A Celebration of Spirit, Strength and Sportsmanship",
+    slug: "annual-sports-day-a-celebration-of-spirit-strength-and-sportsmanship",
+    category: "sports",
+    category_display: "Sports",
+    summary: "Over 600 students competed in track events, relay races and the much-loved house march-past.",
+    content: "The Josephite community gathered at the campus ground for the Annual Sports Day, where over 600 students competed in track events, relay races and the much-loved house march-past.\n\nThe day opened with the lighting of the torch and the pledge of fair play, and ended with a spirited prize-giving ceremony.",
+    image_url: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=1600&auto=format&fit=crop",
+    gallery_images: [
+      "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=1200&auto=format&fit=crop",
+    ],
+    publish_date: "2026-09-20",
+    is_featured: false,
+    is_active: true,
+    views_count: 870,
+  },
+  {
+    id: 3,
+    title: "Cultural Festival 2026 Lights Up the Campus with Music, Dance and Art",
+    slug: "cultural-festival-2026-lights-up-the-campus",
+    category: "cultural",
+    category_display: "Arts & Culture",
+    summary: "Choirs, traditional dance, drama and an exhibition of original artwork filled the auditorium.",
+    content: "Students from every section took the stage at this year's Cultural Festival, presenting choir performances, traditional dance, drama and an exhibition of original artwork.\n\nParents and guests filled the auditorium for an evening that celebrated creativity and the diverse talents of our students.",
+    image_url: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=1600&auto=format&fit=crop",
+    gallery_images: [],
+    publish_date: "2026-09-12",
+    is_featured: false,
+    is_active: true,
+    views_count: 640,
+  },
+];
+
 export const FALLBACK_BUNDLE: LandingBundle = {
   slides: FALLBACK_SLIDES,
   about: FALLBACK_ABOUT,
   notices: FALLBACK_NOTICES,
+  news: FALLBACK_NEWS,
   clubs: FALLBACK_CLUBS,
   gallery: FALLBACK_GALLERY.slice(0, 6)
 };

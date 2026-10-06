@@ -4,6 +4,7 @@ from .views import (
     SliderSlideViewSet,
     AboutInfoView,
     NoticeViewSet,
+    NewsViewSet,
     ClubViewSet,
     AdmissionGuideView,
     AdmissionInquiryViewSet,
@@ -25,6 +26,7 @@ from .views import (
 router = DefaultRouter()
 router.register(r'slides', SliderSlideViewSet, basename='slide')
 router.register(r'notices', NoticeViewSet, basename='notice')
+router.register(r'news', NewsViewSet, basename='news')
 router.register(r'clubs', ClubViewSet, basename='club')
 router.register(r'gallery', GalleryItemViewSet, basename='gallery')
 router.register(r'testimonials', TestimonialViewSet, basename='testimonial')

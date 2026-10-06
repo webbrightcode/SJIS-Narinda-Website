@@ -95,6 +95,22 @@ export interface Notice {
   views_count: number;
 }
 
+export interface News {
+  id: number;
+  title: string;
+  slug: string;
+  category: 'events' | 'academic' | 'sports' | 'cultural' | 'campus' | 'general';
+  category_display?: string;
+  summary: string;
+  content: string;
+  image_url?: string;
+  gallery_images?: string[];
+  publish_date: string;
+  is_featured: boolean;
+  is_active: boolean;
+  views_count: number;
+}
+
 export interface Club {
   id: number;
   name: string;
@@ -259,6 +275,7 @@ export interface LandingBundle {
   slides: SliderSlide[];
   about: AboutInfo | null;
   notices: Notice[];
+  news?: News[];
   clubs: Club[];
   gallery: GalleryItem[];
 }

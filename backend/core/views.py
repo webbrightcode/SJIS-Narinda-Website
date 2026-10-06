@@ -12,6 +12,7 @@ from .models import (
     SliderSlide,
     AboutInfo,
     Notice,
+    News,
     Club,
     AdmissionGuide,
     AdmissionInquiry,
@@ -25,6 +26,7 @@ from .serializers import (
     SliderSlideSerializer,
     AboutInfoSerializer,
     NoticeSerializer,
+    NewsSerializer,
     ClubSerializer,
     AdmissionGuideSerializer,
     AdmissionInquirySerializer,
@@ -186,6 +188,42 @@ class NoticeViewSet(viewsets.ModelViewSet):
         Notice.objects.filter(pk=notice.pk).update(views_count=models.F('views_count') + 1)
         notice.refresh_from_db()
         return Response({'views_count': notice.views_count})
+
+
+class NewsViewSet(viewsets.ModelViewSet):
+    serializer_class = NewsSerializer
+    lookup_field = 'id'
+
+    def get_queryset(self):
+        queryset = News.objects.all()
+        active_only = self.request.query_params.get('active')
+        if active_only and active_only.lower() in ['true', '1']:
+            queryset = queryset.filter(is_active=True)
+
+        category = self.request.query_params.get('category')
+        search = self.request.query_params.get('search')
+        if category and category != 'all':
+            queryset = queryset.filter(category=category)
+        if search:
+            queryset = queryset.filter(title__icontains=search) | queryset.filter(content__icontains=search)
+
+        return queryset.order_by('-is_featured', '-publish_date', '-created_at')
+
+    def get_object(self):
+        lookup = self.kwargs.get('id')
+        queryset = self.filter_queryset(self.get_queryset())
+        if lookup and not str(lookup).isdigit():
+            obj = get_object_or_404(queryset, slug=lookup)
+            self.check_object_permissions(self.request, obj)
+            return obj
+        return super().get_object()
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.AllowAny])
+    def increment_view(self, request, id=None):
+        story = self.get_object()
+        News.objects.filter(pk=story.pk).update(views_count=models.F('views_count') + 1)
+        story.refresh_from_db()
+        return Response({'views_count': story.views_count})
 
 
 class ClubViewSet(viewsets.ModelViewSet):
@@ -390,6 +428,7 @@ class LandingPageBundleView(APIView):
                 about_data['heritage_label'] = 'Years of Heritage'
 
         notices = Notice.objects.filter(is_active=True).order_by('-is_pinned', '-publish_date')[:6]
+        news = News.objects.filter(is_active=True).order_by('-is_featured', '-publish_date')[:3]
         clubs = Club.objects.filter(is_active=True).order_by('order')[:6]
         gallery = GalleryItem.objects.filter(is_featured=True).order_by('order')[:8]
         if not gallery.exists():
@@ -399,6 +438,7 @@ class LandingPageBundleView(APIView):
             "slides": SliderSlideSerializer(slides, many=True).data,
             "about": about_data,
             "notices": NoticeSerializer(notices, many=True).data,
+            "news": NewsSerializer(news, many=True).data,
             "clubs": ClubSerializer(clubs, many=True).data,
             "gallery": GalleryItemSerializer(gallery, many=True).data,
             "settings": SiteSettingsSerializer(get_site_settings()).data,

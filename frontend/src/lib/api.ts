@@ -3,6 +3,7 @@ import {
   SliderSlide,
   AboutInfo,
   Notice,
+  News,
   Club,
   AdmissionGuide,
   GalleryItem,
@@ -19,6 +20,7 @@ import {
   FALLBACK_SLIDES,
   FALLBACK_ABOUT,
   FALLBACK_NOTICES,
+  FALLBACK_NEWS,
   FALLBACK_CLUBS,
   FALLBACK_ADMISSION,
   FALLBACK_GALLERY,
@@ -182,6 +184,83 @@ export async function getNoticeBySlug(slug: string): Promise<Notice | null> {
   const found = notices.find((n) => n.slug === slug || String(n.id) === slug);
   if (found) return found;
   return FALLBACK_NOTICES.find((n) => n.slug === slug || String(n.id) === slug) || null;
+}
+
+// ---------------- NEWS (separate from Notices) ---------------- //
+
+export async function getNews(category?: string, search?: string, activeOnly = true): Promise<News[]> {
+  const params: string[] = [];
+  if (activeOnly) params.push('active=true');
+  if (category && category !== 'all') params.push(`category=${encodeURIComponent(category)}`);
+  if (search) params.push(`search=${encodeURIComponent(search)}`);
+  const query = params.length > 0 ? `?${params.join('&')}` : '';
+  return fetchWithFallback<News[]>(`/news/${query}`, FALLBACK_NEWS);
+}
+
+export async function getNewsBySlug(slug: string): Promise<News | null> {
+  try {
+    const res = await fetch(apiUrl(`/news/${encodeURIComponent(slug)}/`), {
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store',
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.id) return data as News;
+    }
+  } catch (e) {}
+
+  const all = await getNews();
+  return all.find((n) => n.slug === slug || String(n.id) === slug) || null;
+}
+
+export async function incrementNewsView(id: number): Promise<number | null> {
+  try {
+    const res = await fetch(apiUrl(`/news/${id}/increment_view/`), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return typeof data.views_count === 'number' ? data.views_count : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function createNews(data: Partial<News>, token?: string): Promise<News | null> {
+  try {
+    const res = await fetch(apiUrl('/news/'), {
+      method: 'POST',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify(data),
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return null;
+}
+
+export async function updateNews(id: number, data: Partial<News>, token?: string): Promise<News | null> {
+  try {
+    const res = await fetch(apiUrl(`/news/${id}/`), {
+      method: 'PUT',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify(data),
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return null;
+}
+
+export async function deleteNews(id: number, token?: string): Promise<boolean> {
+  try {
+    const res = await fetch(apiUrl(`/news/${id}/`), {
+      method: 'DELETE',
+      headers: getAuthHeaders(token),
+    });
+    return res.ok || res.status === 204;
+  } catch (e) {
+    return false;
+  }
 }
 
 export async function incrementNoticeView(id: number): Promise<number | null> {

@@ -108,9 +108,17 @@ export default function NoticesPage() {
                 />
               </div>
 
-              {/* Notice Counter */}
-              <div className="text-xs font-semibold text-slate-500 whitespace-nowrap">
-                Showing {filteredNotices.length} of {notices.length} Circulars
+              {/* Notice Counter & Link to News */}
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/news"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-[#00183F] border border-amber-200 text-xs font-bold transition-colors"
+                >
+                  Looking for photo stories? Visit News &amp; Events &rarr;
+                </Link>
+                <div className="text-xs font-semibold text-slate-500 whitespace-nowrap">
+                  Showing {filteredNotices.length} of {notices.length} Circulars
+                </div>
               </div>
             </div>
 

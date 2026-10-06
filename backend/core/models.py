@@ -134,6 +134,49 @@ class Notice(models.Model):
         return f"[{self.get_category_display()}] {self.title}"
 
 
+class News(models.Model):
+    """School news & event stories (photo-driven). Separate from official Notices."""
+    CATEGORY_CHOICES = [
+        ('events', 'Events & Celebrations'),
+        ('academic', 'Academic Achievements'),
+        ('sports', 'Sports'),
+        ('cultural', 'Arts & Culture'),
+        ('campus', 'Campus Life'),
+        ('general', 'General News'),
+    ]
+
+    title = models.CharField(max_length=300)
+    slug = models.SlugField(max_length=350, unique=True, blank=True)
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='events')
+    summary = models.CharField(max_length=400, blank=True, default="", help_text="Short teaser shown on cards (auto-generated from the story if empty)")
+    content = models.TextField(help_text="Full story. Blank lines create new paragraphs.")
+    image_url = models.TextField(blank=True, default="", help_text="Cover photo")
+    gallery_images = models.JSONField(default=list, blank=True, help_text="List of additional photo URLs")
+    publish_date = models.DateField()
+    is_featured = models.BooleanField(default=False, help_text="Highlight as the lead story")
+    is_active = models.BooleanField(default=True)
+    views_count = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-is_featured', '-publish_date', '-created_at']
+        verbose_name_plural = "News"
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base_slug = slugify(self.title) or 'news'
+            slug = base_slug
+            counter = 1
+            while News.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title
+
+
 class Club(models.Model):
     name = models.CharField(max_length=200)
     slug = models.SlugField(max_length=250, unique=True, blank=True)
