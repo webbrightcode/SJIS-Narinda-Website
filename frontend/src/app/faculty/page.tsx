@@ -14,7 +14,6 @@ import {
   Users,
   Briefcase,
   ChevronRight,
-  Filter,
   Sparkles,
   ExternalLink,
   CheckCircle2,
@@ -32,7 +31,6 @@ export default function FacultyPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'all' | 'admin' | 'teacher' | 'office' | 'staff'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDepartment, setSelectedDepartment] = useState('all');
   const [selectedMember, setSelectedMember] = useState<StaffMember | null>(null);
 
   useEffect(() => {
@@ -45,20 +43,10 @@ export default function FacultyPage() {
     loadData();
   }, []);
 
-  // Compute unique departments for filter pills
-  const departments = useMemo(() => {
-    const deps = new Set<string>();
-    members.forEach((m) => {
-      if (m.department && m.department.trim()) deps.add(m.department.trim());
-    });
-    return ['all', ...Array.from(deps)];
-  }, [members]);
-
-  // Filter members by tab, department, and search query
+  // Filter members by role tab and search query
   const filteredMembers = useMemo(() => {
     return members.filter((m) => {
       if (activeTab !== 'all' && m.role_type !== activeTab) return false;
-      if (selectedDepartment !== 'all' && m.department !== selectedDepartment) return false;
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         const matchesName = m.name.toLowerCase().includes(query);
@@ -69,7 +57,7 @@ export default function FacultyPage() {
       }
       return true;
     });
-  }, [members, activeTab, selectedDepartment, searchQuery]);
+  }, [members, activeTab, searchQuery]);
 
   const adminMembers = useMemo(
     () => filteredMembers.filter((m) => m.role_type === 'admin'),
@@ -139,7 +127,7 @@ export default function FacultyPage() {
       {/* Main Filter & Content Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-20 space-y-12">
         {/* Controls Bar: Role Tabs & Search Input */}
-        <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-xl border border-slate-200/90 space-y-5">
+        <div className="bg-white rounded-3xl p-4 sm:p-5 shadow-xl border border-slate-200/90">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             {/* Primary Role Tabs */}
             <div className="flex items-center gap-1.5 p-1.5 bg-slate-100/90 rounded-2xl overflow-x-auto scrollbar-none">
@@ -175,10 +163,7 @@ export default function FacultyPage() {
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => {
-                      setActiveTab(tab.id as any);
-                      setSelectedDepartment('all');
-                    }}
+                    onClick={() => setActiveTab(tab.id as any)}
                     className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
                       isActive
                         ? 'bg-[#00183F] text-white shadow-md shadow-[#00183F]/20'
@@ -219,28 +204,6 @@ export default function FacultyPage() {
               )}
             </div>
           </div>
-
-          {/* Department Filter Pills (if more than 1 department exists) */}
-          {departments.length > 2 && (
-            <div className="pt-2 border-t border-slate-100 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 shrink-0 mr-1">
-                <Filter className="w-3.5 h-3.5" /> Department:
-              </span>
-              {departments.map((dept) => (
-                <button
-                  key={dept}
-                  onClick={() => setSelectedDepartment(dept)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
-                    selectedDepartment === dept
-                      ? 'bg-amber-100 text-amber-900 border border-amber-300 font-bold'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
-                  }`}
-                >
-                  {dept === 'all' ? 'All Departments' : dept}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* SECTION 1: ADMINISTRATION BODY */}
@@ -639,12 +602,11 @@ export default function FacultyPage() {
             <Users className="w-12 h-12 text-slate-300 mx-auto mb-3" />
             <h3 className="text-lg font-bold text-slate-700">No faculty or staff found</h3>
             <p className="text-sm text-slate-500 mt-1">
-              Try adjusting your search query or department filter.
+              Try adjusting your search query or role filter.
             </p>
             <button
               onClick={() => {
                 setSearchQuery('');
-                setSelectedDepartment('all');
                 setActiveTab('all');
               }}
               className="mt-4 px-4 py-2 rounded-xl bg-[#00183F] text-white text-xs font-bold hover:bg-[#082250] transition-colors cursor-pointer"
