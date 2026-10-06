@@ -203,10 +203,21 @@ export async function getClubs(category?: string, activeOnly = true): Promise<Cl
 }
 
 export async function getClubBySlug(slug: string): Promise<Club | null> {
+  try {
+    const res = await fetch(apiUrl(`/clubs/${encodeURIComponent(slug)}/`), {
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store',
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.id) return data as Club;
+    }
+  } catch (e) {}
+
   const clubs = await getClubs();
-  const found = clubs.find((c) => c.slug === slug);
+  const found = clubs.find((c) => c.slug === slug || String(c.id) === slug);
   if (found) return found;
-  return FALLBACK_CLUBS.find((c) => c.slug === slug) || null;
+  return FALLBACK_CLUBS.find((c) => c.slug === slug || String(c.id) === slug) || null;
 }
 
 export async function getAdmissionGuide(token?: string): Promise<AdmissionGuide> {

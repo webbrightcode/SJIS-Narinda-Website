@@ -88,6 +88,7 @@ export interface Club {
   schedule: string;
   key_activities: string[];
   achievements: string[];
+  gallery_images?: string[];
   order: number;
   is_active: boolean;
 }

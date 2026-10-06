@@ -2002,6 +2002,7 @@ export default function AdminDashboardPage() {
                       schedule: 'Every Thursday, 3:30 PM',
                       key_activities: ['Weekly workshops', 'Field visits'],
                       achievements: ['National Merit Award'],
+                      gallery_images: [],
                       order: clubs.length + 1,
                       is_active: true,
                     });
@@ -3683,6 +3684,72 @@ export default function AdminDashboardPage() {
               label="Club Cover Photo"
               required
             />
+
+            {/* Additional Club Gallery Photos */}
+            <div className="pt-3 border-t border-slate-100 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                    Additional Guild Gallery Photos
+                  </label>
+                  <p className="text-[11px] text-slate-400">
+                    Add extra activity, tournament, and workshop images to showcase on the club detail page.
+                  </p>
+                </div>
+                <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                  {(editingClub.gallery_images || []).length} extra photos
+                </span>
+              </div>
+
+              {/* Existing Gallery Images Thumbnails */}
+              {(editingClub.gallery_images || []).length > 0 && (
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
+                  {(editingClub.gallery_images || []).map((imgUrl, idx) => (
+                    <div
+                      key={idx}
+                      className="group relative aspect-4/3 rounded-xl overflow-hidden bg-slate-100 border border-slate-200"
+                    >
+                      <Image
+                        src={imgUrl}
+                        alt={`Club photo ${idx + 1}`}
+                        fill
+                        className="object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = (editingClub.gallery_images || []).filter((_, i) => i !== idx);
+                          setEditingClub({ ...editingClub, gallery_images: updated });
+                        }}
+                        className="absolute top-1 right-1 w-6 h-6 rounded-lg bg-rose-600/90 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-700 cursor-pointer shadow-sm"
+                        title="Remove image"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Add image helper */}
+              <div className="space-y-2">
+                <ImageHelper
+                  value=""
+                  onChange={(url) => {
+                    if (url && url.trim()) {
+                      const current = editingClub.gallery_images || [];
+                      setEditingClub({
+                        ...editingClub,
+                        gallery_images: [...current, url.trim()],
+                      });
+                      showToast('Photo added to club gallery!');
+                    }
+                  }}
+                  label="Add Another Photo (Upload File or Select Preset)"
+                  required={false}
+                />
+              </div>
+            </div>
 
             <div className="pt-4 flex justify-end gap-3 border-t border-slate-100">
               <Button

@@ -203,6 +203,15 @@ class ClubViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(category=category)
         return queryset.order_by('order', 'name')
 
+    def get_object(self):
+        lookup = self.kwargs.get('id')
+        queryset = self.filter_queryset(self.get_queryset())
+        if lookup and not str(lookup).isdigit():
+            obj = get_object_or_404(queryset, slug=lookup)
+            self.check_object_permissions(self.request, obj)
+            return obj
+        return super().get_object()
+
 
 class AdmissionGuideView(APIView):
     @staticmethod

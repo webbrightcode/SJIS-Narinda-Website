@@ -115,6 +115,7 @@ class Club(models.Model):
     description = models.TextField()
     icon_name = models.CharField(max_length=50, default="Activity", help_text="Lucide icon name e.g. Cpu, Mic, Award, Compass")
     image_url = models.TextField(blank=True, default="")
+    gallery_images = models.JSONField(default=list, blank=True, help_text="List of additional image URLs for the club gallery")
     moderator_name = models.CharField(max_length=200, blank=True)
     schedule = models.CharField(max_length=200, blank=True, default="Every Thursday, 2:30 PM - 4:00 PM")
     key_activities = models.JSONField(default=list, blank=True, help_text="List of activity strings")

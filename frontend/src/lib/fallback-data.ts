@@ -237,6 +237,12 @@ export const FALLBACK_CLUBS: Club[] = [
       "Global finalist - First Lego League Asia-Pacific",
       "Best Innovation Award - BUET Tech Fest"
     ],
+    gallery_images: [
+      "https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1563770660941-20978e870e26?q=80&w=1200&auto=format&fit=crop"
+    ],
     order: 1,
     is_active: true
   },
@@ -263,6 +269,12 @@ export const FALLBACK_CLUBS: Club[] = [
       "Best Delegation - Dhaka University Model UN",
       "Winner - BTV National School Debating Series"
     ],
+    gallery_images: [
+      "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1515187029135-18ee286d815b?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1511578314322-379afb476865?q=80&w=1200&auto=format&fit=crop"
+    ],
     order: 2,
     is_active: true
   },
@@ -287,6 +299,12 @@ export const FALLBACK_CLUBS: Club[] = [
     achievements: [
       "1st Place - Shilpakala National Youth Drama Fest",
       "Gold Trophy - National Inter-School Choral Championship"
+    ],
+    gallery_images: [
+      "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1469488865564-c2de10f69f96?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=1200&auto=format&fit=crop"
     ],
     order: 3,
     is_active: true
@@ -313,6 +331,12 @@ export const FALLBACK_CLUBS: Club[] = [
       "Gold Medalists - National Olympiad in Informatics (NOI)",
       "1st Place - HackDhaka Youth Hackathon 2025"
     ],
+    gallery_images: [
+      "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=1200&auto=format&fit=crop"
+    ],
     order: 4,
     is_active: true
   },
@@ -338,6 +362,12 @@ export const FALLBACK_CLUBS: Club[] = [
       "Dhaka Divisional School Football Champions (3 consecutive years)",
       "Runners-up - National Inter-School Cricket Cup"
     ],
+    gallery_images: [
+      "https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1526676037777-05a232554f77?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1546519638-68e109498ffc?q=80&w=1200&auto=format&fit=crop"
+    ],
     order: 5,
     is_active: true
   },
@@ -362,6 +392,12 @@ export const FALLBACK_CLUBS: Club[] = [
     achievements: [
       "Eco-School Green Flag Award 2025",
       "Community Impact Certificate from Holy Cross Congregation"
+    ],
+    gallery_images: [
+      "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1559027615-cd4628902d4a?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1593113598332-cd288d649433?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?q=80&w=1200&auto=format&fit=crop"
     ],
     order: 6,
     is_active: true
