@@ -6,7 +6,7 @@ WORKDIR /app
 # 2. Dependencies
 FROM base AS deps
 COPY package.json package-lock.json ./
-RUN npm install
+RUN npm ci --prefer-offline --no-audit
 
 # 3. Builder
 FROM base AS builder
@@ -21,6 +21,9 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV INTERNAL_API_URL=$INTERNAL_API_URL
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+# Cap memory and worker threads so Next.js build does not freeze server CPU/RAM
+ENV NODE_OPTIONS="--max-old-space-size=1536"
+ENV NEXT_BUILD_WORKERS=1
 
 RUN npm run build
 
