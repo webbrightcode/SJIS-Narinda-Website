@@ -132,7 +132,21 @@ export const FALLBACK_ABOUT: AboutInfo = {
       desc: "All-weather turf for football and cricket, basketball courts, badminton arena, and indoor table tennis halls.",
       icon: "Trophy"
     }
-  ]
+  ],
+  about_badge: "Institutional Heritage",
+  about_title: "About St. Joseph Narinda",
+  history_badge: "Tradition of Distinction",
+  history_title: "Our Illustrious Holy Cross Heritage",
+  history_image_url: "https://images.unsplash.com/photo-1546422904-90eab23c3d7e?q=80&w=1200&auto=format&fit=crop",
+  history_sub_title: "The Congregation of Holy Cross",
+  history_sub_desc: "Founded by Blessed Father Basil Moreau, the Congregation of Holy Cross views education as the art of helping young people achieve their full potential. At St. Joseph Narinda, this vision is alive every day.",
+  mission_title: "Our Sacred Mission",
+  vision_title: "Our Vision for Tomorrow",
+  message_badge: "Message From the Administrator",
+  message_headline: '"Awakening Minds, Shaping Future Stewards"',
+  values_badge: "Guiding Principles",
+  values_title: "Our Four Pillars of Character",
+  values_subtitle: "The cornerstone virtues instilled into every Josephite from early childhood to graduation.",
 };
 
 export const FALLBACK_NOTICES: Notice[] = [

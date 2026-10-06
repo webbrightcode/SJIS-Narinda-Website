@@ -65,6 +65,20 @@ export interface AboutInfo {
   facilities_subtitle?: string;
   facilities_cta_text?: string;
   facilities_cta_link?: string;
+  about_badge?: string;
+  about_title?: string;
+  history_badge?: string;
+  history_title?: string;
+  history_image_url?: string;
+  history_sub_title?: string;
+  history_sub_desc?: string;
+  mission_title?: string;
+  vision_title?: string;
+  message_badge?: string;
+  message_headline?: string;
+  values_badge?: string;
+  values_title?: string;
+  values_subtitle?: string;
 }
 
 export interface Notice {

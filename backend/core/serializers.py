@@ -36,6 +36,8 @@ class AboutInfoSerializer(serializers.ModelSerializer):
                 data['principal_image_url'] = head.image_url
             else:
                 data['principal_image_url'] = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop'
+        if not data.get('history_image_url'):
+            data['history_image_url'] = 'https://images.unsplash.com/photo-1546422904-90eab23c3d7e?q=80&w=1200&auto=format&fit=crop'
         return data
 
 

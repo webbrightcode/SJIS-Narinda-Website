@@ -60,6 +60,32 @@ class AboutInfo(models.Model):
     )
     facilities_cta_text = models.CharField(max_length=150, blank=True, default="Apply For Admission 2026-2027")
     facilities_cta_link = models.CharField(max_length=255, blank=True, default="/admission")
+
+    # Dedicated About Page Dynamic Fields
+    about_badge = models.CharField(max_length=150, blank=True, default="Institutional Heritage")
+    about_title = models.CharField(max_length=255, blank=True, default="About St. Joseph Narinda")
+    history_badge = models.CharField(max_length=150, blank=True, default="Tradition of Distinction")
+    history_title = models.CharField(max_length=255, blank=True, default="Our Illustrious Holy Cross Heritage")
+    history_image_url = models.TextField(
+        blank=True,
+        default="https://images.unsplash.com/photo-1546422904-90eab23c3d7e?q=80&w=1200&auto=format&fit=crop"
+    )
+    history_sub_title = models.CharField(max_length=255, blank=True, default="The Congregation of Holy Cross")
+    history_sub_desc = models.TextField(
+        blank=True,
+        default="Founded by Blessed Father Basil Moreau, the Congregation of Holy Cross views education as the art of helping young people achieve their full potential. At St. Joseph Narinda, this vision is alive every day."
+    )
+    mission_title = models.CharField(max_length=255, blank=True, default="Our Sacred Mission")
+    vision_title = models.CharField(max_length=255, blank=True, default="Our Vision for Tomorrow")
+    message_badge = models.CharField(max_length=150, blank=True, default="Message From the Administrator")
+    message_headline = models.CharField(max_length=255, blank=True, default='"Awakening Minds, Shaping Future Stewards"')
+    values_badge = models.CharField(max_length=150, blank=True, default="Guiding Principles")
+    values_title = models.CharField(max_length=255, blank=True, default="Our Four Pillars of Character")
+    values_subtitle = models.CharField(
+        max_length=500,
+        blank=True,
+        default="The cornerstone virtues instilled into every Josephite from early childhood to graduation."
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

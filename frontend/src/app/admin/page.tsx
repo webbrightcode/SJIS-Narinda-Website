@@ -58,6 +58,7 @@ import {
   Globe,
   Quote,
   Building2,
+  BookOpen,
   Loader2,
   Upload,
 } from 'lucide-react';
@@ -114,6 +115,7 @@ import { DatabaseRestoreModal } from '@/components/admin/DatabaseRestoreModal';
 import { ImageHelper } from '@/components/admin/ImageHelper';
 import { SiteSettingsPanel, TestimonialsManager, FaqManager, FacultyManager } from '@/components/admin/SiteContentPanels';
 import { FacilitiesManager } from '@/components/admin/FacilitiesManager';
+import { AboutPageManager } from '@/components/admin/AboutPageManager';
 
 export default function AdminDashboardPage() {
   // Authentication State
@@ -131,6 +133,7 @@ export default function AdminDashboardPage() {
   // Active Tab
   const [activeTab, setActiveTab] = useState<
     | 'overview'
+    | 'about_page'
     | 'slides'
     | 'notices'
     | 'clubs'
@@ -1121,6 +1124,7 @@ export default function AdminDashboardPage() {
 
             {[
               { id: 'overview', label: 'Dashboard Overview', icon: LayoutDashboard },
+              { id: 'about_page', label: 'About Us Page & Heritage', icon: BookOpen },
               { id: 'slides', label: 'Hero Sliders', icon: Sliders, count: slides.length },
               { id: 'notices', label: 'Notice Board', icon: Bell, count: notices.length },
               { id: 'faculty', label: 'Faculty & Staff Body', icon: GraduationCap },
@@ -1315,6 +1319,13 @@ export default function AdminDashboardPage() {
             <FacilitiesManager
               token={token || undefined}
               onToast={(msg, type) => showToast(msg, type)}
+            />
+          )}
+          {activeTab === 'about_page' && (
+            <AboutPageManager
+              token={token || undefined}
+              onToast={(msg, type) => showToast(msg, type)}
+              onSwitchTab={(tab) => setActiveTab(tab as any)}
             />
           )}
 
@@ -3347,6 +3358,30 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
                 )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-gradient-to-r from-blue-50 via-indigo-50 to-amber-50 rounded-2xl border border-blue-200/80 shadow-xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#00183F] text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <BookOpen className="w-5 h-5 text-[#D4AF37]" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#00183F]">
+                      Dedicated /about Page Content Editor
+                    </h4>
+                    <p className="text-[11px] text-slate-600">
+                      Customize all headlines, historical narratives, Holy Cross heritage photo, mission & vision, and 4 pillars of character.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('about_page')}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#00183F] text-white text-xs font-bold hover:bg-[#002866] transition-colors shadow-2xs shrink-0 cursor-pointer"
+                >
+                  <span>Open About Us Customizer</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-[#D4AF37]" />
+                </button>
               </div>
 
               <div>

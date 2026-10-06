@@ -99,9 +99,9 @@ export default async function AboutPage() {
       <section className="relative py-24 bg-[#00183F] text-white overflow-hidden">
         <div className="absolute inset-0 bg-dots-pattern opacity-10" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          <Badge variant="gold">Institutional Heritage</Badge>
+          <Badge variant="gold">{about.about_badge || 'Institutional Heritage'}</Badge>
           <h1 className="mt-4 text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white">
-            About St. Joseph Narinda
+            {about.about_title || about.title || 'About St. Joseph Narinda'}
           </h1>
           <p className="mt-4 text-lg sm:text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed">
             {about.tagline || 'Fostering Academic Excellence & Moral Integrity'}
@@ -116,33 +116,41 @@ export default async function AboutPage() {
             <ScrollReveal direction="right" distance={30} duration={650} className="lg:col-span-6 space-y-6">
               <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#C8102E]">
                 <History className="w-4 h-4" />
-                Tradition of Distinction
+                {about.history_badge || 'Tradition of Distinction'}
               </div>
 
               <h2 className="text-3xl sm:text-4xl font-extrabold text-[#00183F] tracking-tight">
-                Our Illustrious Holy Cross Heritage
+                {about.history_title || 'Our Illustrious Holy Cross Heritage'}
               </h2>
 
-              <p className="text-slate-600 text-base sm:text-lg leading-relaxed">
+              <p className="text-slate-600 text-base sm:text-lg leading-relaxed whitespace-pre-line">
                 {about.history}
               </p>
 
-              <div className="p-6 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-3">
-                <h4 className="text-sm font-bold text-[#00183F] uppercase tracking-wider">
-                  The Congregation of Holy Cross
-                </h4>
-                <p className="text-sm text-slate-600 leading-relaxed">
-                  Founded by Blessed Father Basil Moreau, the Congregation of Holy Cross views education as the art of helping young people achieve their full potential. At St. Joseph Narinda, this vision is alive every day.
-                </p>
-              </div>
+              {(about.history_sub_title || about.history_sub_desc) && (
+                <div className="p-6 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-3">
+                  <h4 className="text-sm font-bold text-[#00183F] uppercase tracking-wider">
+                    {about.history_sub_title || 'The Congregation of Holy Cross'}
+                  </h4>
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    {about.history_sub_desc ||
+                      'Founded by Blessed Father Basil Moreau, the Congregation of Holy Cross views education as the art of helping young people achieve their full potential. At St. Joseph Narinda, this vision is alive every day.'}
+                  </p>
+                </div>
+              )}
             </ScrollReveal>
 
             <ScrollReveal direction="left" distance={30} delay={150} duration={650} className="lg:col-span-6">
-              <div className="relative h-96 sm:h-[480px] rounded-3xl overflow-hidden shadow-2xl border-4 border-slate-100">
+              <div className="relative h-96 sm:h-[480px] rounded-3xl overflow-hidden shadow-2xl border-4 border-slate-100 bg-slate-900">
                 <Image
-                  src="https://images.unsplash.com/photo-1546422904-90eab23c3d7e?q=80&w=1200&auto=format&fit=crop"
-                  alt="St. Joseph Narinda Quadrangle"
+                  src={
+                    about.history_image_url ||
+                    'https://images.unsplash.com/photo-1546422904-90eab23c3d7e?q=80&w=1200&auto=format&fit=crop'
+                  }
+                  alt={about.history_title || 'St. Joseph Narinda Quadrangle'}
                   fill
+                  unoptimized
+                  fallbackSrc="https://images.unsplash.com/photo-1546422904-90eab23c3d7e?q=80&w=1200&auto=format&fit=crop"
                   className="object-cover"
                 />
               </div>
@@ -161,8 +169,10 @@ export default async function AboutPage() {
                 <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-[#C8102E]">
                   <Target className="w-6 h-6" />
                 </div>
-                <h3 className="text-2xl font-black text-[#00183F]">Our Sacred Mission</h3>
-                <p className="text-slate-600 leading-relaxed text-base">
+                <h3 className="text-2xl font-black text-[#00183F]">
+                  {about.mission_title || 'Our Sacred Mission'}
+                </h3>
+                <p className="text-slate-600 leading-relaxed text-base whitespace-pre-line">
                   {about.mission}
                 </p>
               </div>
@@ -174,8 +184,10 @@ export default async function AboutPage() {
                 <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-[#D4AF37]">
                   <Sparkles className="w-6 h-6" />
                 </div>
-                <h3 className="text-2xl font-black text-[#00183F]">Our Vision for Tomorrow</h3>
-                <p className="text-slate-600 leading-relaxed text-base">
+                <h3 className="text-2xl font-black text-[#00183F]">
+                  {about.vision_title || 'Our Vision for Tomorrow'}
+                </h3>
+                <p className="text-slate-600 leading-relaxed text-base whitespace-pre-line">
                   {about.vision}
                 </p>
               </div>
@@ -214,9 +226,13 @@ export default async function AboutPage() {
                 </div>
 
                 <div className="lg:col-span-8 space-y-4">
-                  <Badge variant="gold">Message From the Administrator</Badge>
+                  <Badge variant="gold">{about.message_badge || 'Message From the Administrator'}</Badge>
                   <h3 className="text-2xl sm:text-3xl font-extrabold leading-snug">
-                    &quot;Awakening Minds, Shaping Future Stewards&quot;
+                    {about.message_headline
+                      ? about.message_headline.startsWith('"')
+                        ? about.message_headline
+                        : `"${about.message_headline}"`
+                      : '"Awakening Minds, Shaping Future Stewards"'}
                   </h3>
                   <p className="text-slate-300 text-base sm:text-lg leading-relaxed whitespace-pre-line">
                     {about.principal_message}
@@ -233,9 +249,12 @@ export default async function AboutPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <ScrollReveal direction="up" distance={20} duration={600}>
             <SectionHeading
-              badge="Guiding Principles"
-              title="Our Four Pillars of Character"
-              subtitle="The cornerstone virtues instilled into every Josephite from early childhood to graduation."
+              badge={about.values_badge || 'Guiding Principles'}
+              title={about.values_title || 'Our Four Pillars of Character'}
+              subtitle={
+                about.values_subtitle ||
+                'The cornerstone virtues instilled into every Josephite from early childhood to graduation.'
+              }
             />
           </ScrollReveal>
 
