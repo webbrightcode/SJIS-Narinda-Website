@@ -1324,6 +1324,122 @@ const emptySyllabusItem: Partial<SyllabusItem> = {
   is_active: true,
 };
 
+interface GradePreset {
+  grade: string;
+  section: SyllabusItem['curriculum_section'];
+  title: string;
+  subjects: string;
+  desc: string;
+}
+
+const GRADE_PRESETS: GradePreset[] = [
+  {
+    grade: 'Playgroup',
+    section: 'cambridge_primary',
+    title: 'Playgroup Early Years Foundation Syllabus Booklet',
+    subjects: 'Early English Phonics, Numeracy Basics, Rhymes & Storytelling, Environmental Awareness, Fine Motor Skills & Art',
+    desc: 'Foundational early learning syllabus booklet covering play-based gross/fine motor activities, basic sounds, and socialization.',
+  },
+  {
+    grade: 'Nursery',
+    section: 'cambridge_primary',
+    title: 'Nursery Early Years Foundation Syllabus Booklet',
+    subjects: 'English Language & Letterland, Pre-Math & Numbers, General Knowledge, Bengali Oral, Creative Arts & Physical Education',
+    desc: 'Consolidated nursery syllabus covering holistic cognitive development, phonemic awareness, and creative play.',
+  },
+  {
+    grade: 'Kindergarten',
+    section: 'cambridge_primary',
+    title: 'Kindergarten (KG) Academic Syllabus Booklet',
+    subjects: 'English Reading & Writing, Mathematics, Science Discovery, Bengali, Social Studies, Islamic / Moral Studies, Arts & Crafts',
+    desc: 'Complete kindergarten curriculum guide preparing young learners for Cambridge Primary Stage 1.',
+  },
+  {
+    grade: 'Grade 1',
+    section: 'cambridge_primary',
+    title: 'Grade 1 Cambridge Primary Academic Syllabus Booklet',
+    subjects: 'Cambridge Primary English, Mathematics, Science, Bengali Language, ICT / Digital Literacy, Moral Education / Islamic Studies, Visual Arts',
+    desc: 'Consolidated Cambridge Primary Stage 1 curriculum covering all core subjects, textbooks, and assessment guidelines.',
+  },
+  {
+    grade: 'Grade 2',
+    section: 'cambridge_primary',
+    title: 'Grade 2 Cambridge Primary Academic Syllabus Booklet',
+    subjects: 'Cambridge Primary English, Mathematics, Science, Bengali Language, Global Perspectives, Computing, Arts & Music, Religion / Moral Studies',
+    desc: 'Cambridge Primary Stage 2 syllabus outlining learning milestones, textbook progressions, and term evaluation criteria.',
+  },
+  {
+    grade: 'Grade 3',
+    section: 'cambridge_primary',
+    title: 'Grade 3 Cambridge Primary Academic Syllabus Booklet',
+    subjects: 'Cambridge Primary English, Mathematics, Science, Bengali Language, Bangladesh Studies, Computing & Coding, Islamic Studies / Moral Science, Art & Craft',
+    desc: 'Official Cambridge Primary Stage 3 syllabus booklet for all subjects with comprehensive term-wise distributions.',
+  },
+  {
+    grade: 'Grade 4',
+    section: 'cambridge_primary',
+    title: 'Grade 4 Cambridge Primary Academic Syllabus Booklet',
+    subjects: 'Cambridge Primary English, Mathematics, Science, Bengali, Social Studies, Information & Communication Technology, Religion / Values Education, Physical Education',
+    desc: 'Consolidated Cambridge Primary Stage 4 curriculum guide detailing coursework, practical projects, and term examinations.',
+  },
+  {
+    grade: 'Grade 5',
+    section: 'cambridge_primary',
+    title: 'Grade 5 Cambridge Primary Checkpoint Syllabus Booklet',
+    subjects: 'Cambridge Primary English (Checkpoint), Mathematics (Checkpoint), Science (Checkpoint), Bengali, Bangladesh Studies, ICT, Moral & Religious Studies',
+    desc: 'Comprehensive Stage 5 syllabus booklet including Cambridge Primary Checkpoint readiness guidelines and full subject syllabi.',
+  },
+  {
+    grade: 'Grade 6',
+    section: 'cambridge_lower_sec',
+    title: 'Grade 6 Cambridge Lower Secondary Syllabus Booklet',
+    subjects: 'English as a First/Second Language, Mathematics, Combined Science, Bengali Language, Computing / Digital Skills, Bangladesh & Global Studies, Moral Science / Islamic Studies',
+    desc: 'Cambridge Lower Secondary Stage 7 consolidated curriculum booklet covering foundational secondary modules.',
+  },
+  {
+    grade: 'Grade 7',
+    section: 'cambridge_lower_sec',
+    title: 'Grade 7 Cambridge Lower Secondary Syllabus Booklet',
+    subjects: 'English, Mathematics, Physics, Chemistry, Biology, Bengali, ICT & Programming, Bangladesh & Global Studies, Religion / Ethics',
+    desc: 'Cambridge Lower Secondary Stage 8 syllabus detailing separate sciences, algebra & geometry progression, and term milestones.',
+  },
+  {
+    grade: 'Grade 8',
+    section: 'cambridge_lower_sec',
+    title: 'Grade 8 Cambridge Lower Secondary Checkpoint Syllabus Booklet',
+    subjects: 'English (Checkpoint), Mathematics (Checkpoint), Science (Physics, Chemistry, Biology), Bengali, Computer Science, Global Perspectives, Religion / Moral Studies',
+    desc: 'Official Stage 9 curriculum booklet preparing students for Cambridge Lower Secondary Checkpoint assessments and IGCSE transitions.',
+  },
+  {
+    grade: 'Grade 9 (IGCSE)',
+    section: 'cambridge_igcse',
+    title: 'Grade 9 Cambridge IGCSE Academic Syllabus Booklet',
+    subjects: 'Cambridge IGCSE English Language, Mathematics, Physics, Chemistry, Biology, Bengali, Computer Science, Accounting / Economics / Business Studies',
+    desc: 'Complete 2-year Cambridge IGCSE syllabus booklet containing syllabus codes, course specifications, and assessment patterns.',
+  },
+  {
+    grade: 'Grade 10 (IGCSE)',
+    section: 'cambridge_igcse',
+    title: 'Grade 10 Cambridge IGCSE Examination Syllabus Booklet',
+    subjects: 'Cambridge IGCSE English Language, Additional/Extended Mathematics, Physics, Chemistry, Biology, Computer Science, Economics / Business Studies, Bengali',
+    desc: 'Full Cambridge IGCSE exam preparation syllabus booklet covering final coursework, past paper standards, and mock examination schedules.',
+  },
+  {
+    grade: 'Grade 11 (AS Level)',
+    section: 'gce_alevel',
+    title: 'Grade 11 Cambridge International AS Level Syllabus Booklet',
+    subjects: 'Cambridge International AS English General Paper, Pure Mathematics, Mechanics, Physics, Chemistry, Biology, Computer Science, Economics / Business',
+    desc: 'Cambridge International AS Level curriculum guide detailing modular exam structure, laboratory practicals, and university entry preparation.',
+  },
+  {
+    grade: 'Grade 12 (A Level)',
+    section: 'gce_alevel',
+    title: 'Grade 12 Cambridge International A Level Syllabus Booklet',
+    subjects: 'Cambridge International A Level Mathematics (Pure & Mechanics/Statistics), Physics, Chemistry, Biology, Computer Science, Economics / Business Studies',
+    desc: 'Advanced Level comprehensive syllabus booklet covering full A2 qualification criteria, practical papers, and high-order analytical components.',
+  },
+];
+
 export const SyllabusManager: React.FC<{ token?: string }> = ({ token }) => {
   const [items, setItems] = useState<SyllabusItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1338,11 +1454,11 @@ export const SyllabusManager: React.FC<{ token?: string }> = ({ token }) => {
 
   const load = useCallback(() => {
     setLoading(true);
-    getSyllabus('all', 'all', '', 'all', false).then((data) => {
+    getSyllabus('all', 'all', '', 'all', false, token).then((data) => {
       setItems(data);
       setLoading(false);
     });
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     load();
@@ -1429,6 +1545,11 @@ export const SyllabusManager: React.FC<{ token?: string }> = ({ token }) => {
     return true;
   });
 
+  const totalDownloads = items.reduce((acc, curr) => acc + (curr.download_count || 0), 0);
+  const primaryCount = items.filter((i) => i.curriculum_section === 'cambridge_primary').length;
+  const lowerSecCount = items.filter((i) => i.curriculum_section === 'cambridge_lower_sec').length;
+  const upperCount = items.filter((i) => i.curriculum_section === 'cambridge_igcse' || i.curriculum_section === 'gce_alevel').length;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -1439,14 +1560,14 @@ export const SyllabusManager: React.FC<{ token?: string }> = ({ token }) => {
             Academic Syllabi &amp; Curriculum Documents
           </h2>
           <p className="text-xs text-slate-500 mt-1">
-            Manage Cambridge International syllabuses, subject curriculum guides, and downloadable PDF documents for all grades.
+            Grade-wise consolidated curriculum documents (all subjects in single PDF) for Cambridge Primary, Lower Secondary, IGCSE &amp; A Levels.
           </p>
         </div>
         <button
           onClick={() => setEditing({ ...emptySyllabusItem })}
-          className="px-4 py-2.5 rounded-xl bg-[#00183F] hover:bg-navy-900 text-white text-xs font-bold flex items-center gap-2 shadow-md cursor-pointer transition-all shrink-0"
+          className="px-4 py-2.5 rounded-xl bg-[#00183F] hover:bg-[#070F1E] text-white text-xs font-bold flex items-center gap-2 shadow-md cursor-pointer transition-all shrink-0"
         >
-          <Plus className="w-4 h-4 text-amber-300" />
+          <Plus className="w-4 h-4 text-[#D4AF37]" />
           <span>Upload / Add Syllabus</span>
         </button>
       </div>
@@ -1462,13 +1583,40 @@ export const SyllabusManager: React.FC<{ token?: string }> = ({ token }) => {
         </div>
       )}
 
+      {/* Metrics Bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+          <div className="text-[11px] font-semibold text-slate-500">Total Booklets</div>
+          <div className="text-2xl font-black text-[#00183F] mt-1">{items.length}</div>
+        </div>
+        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+          <div className="text-[11px] font-semibold text-slate-500">Cambridge Primary</div>
+          <div className="text-2xl font-black text-amber-600 mt-1">{primaryCount}</div>
+        </div>
+        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+          <div className="text-[11px] font-semibold text-slate-500">Lower Secondary</div>
+          <div className="text-2xl font-black text-blue-600 mt-1">{lowerSecCount}</div>
+        </div>
+        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+          <div className="text-[11px] font-semibold text-slate-500">IGCSE &amp; A Levels</div>
+          <div className="text-2xl font-black text-purple-600 mt-1">{upperCount}</div>
+        </div>
+        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm col-span-2 sm:col-span-1">
+          <div className="text-[11px] font-semibold text-slate-500">Total Downloads</div>
+          <div className="text-2xl font-black text-emerald-600 mt-1 flex items-center gap-1.5">
+            <Download className="w-4 h-4 text-emerald-500" />
+            {totalDownloads}
+          </div>
+        </div>
+      </div>
+
       {/* Filters Toolbar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200/80 shadow-sm">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search syllabus by title, subject or grade..."
+            placeholder="Search syllabus by title, grade, or covered subject..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#00183F] outline-none"
@@ -1482,11 +1630,11 @@ export const SyllabusManager: React.FC<{ token?: string }> = ({ token }) => {
             className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white outline-none cursor-pointer"
           >
             <option value="all">All Stages</option>
-            <option value="cambridge_primary">Cambridge Primary</option>
-            <option value="cambridge_lower_sec">Lower Secondary</option>
-            <option value="cambridge_igcse">Cambridge IGCSE</option>
-            <option value="gce_alevel">International A Level</option>
-            <option value="general">General / Other</option>
+            <option value="cambridge_primary">Cambridge Primary (PG–Gr 5)</option>
+            <option value="cambridge_lower_sec">Lower Secondary (Gr 6–8)</option>
+            <option value="cambridge_igcse">Cambridge IGCSE (Gr 9–10)</option>
+            <option value="gce_alevel">International A Level (Gr 11–12)</option>
+            <option value="general">General / Guidelines</option>
           </select>
         </div>
       </div>
@@ -1524,20 +1672,20 @@ export const SyllabusManager: React.FC<{ token?: string }> = ({ token }) => {
                 {filteredItems.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
                     <td className="py-3 px-4">
-                      <span className="px-2.5 py-1 rounded-lg bg-navy-50 text-navy-950 font-bold border border-navy-200 text-xs">
+                      <span className="px-2.5 py-1 rounded-lg bg-[#00183F]/10 text-[#00183F] font-bold border border-[#00183F]/20 text-xs">
                         {item.grade}
                       </span>
                     </td>
                     <td className="py-3 px-4">
                       <div className="font-bold text-slate-800">{item.title}</div>
-                      <div className="text-[11px] text-emerald-700 font-semibold">All Subjects in Single PDF</div>
+                      <div className="text-[11px] text-emerald-700 font-semibold">Grade-Wise Booklet (All Subjects)</div>
                     </td>
                     <td className="py-3 px-4">
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
                         {item.curriculum_section.replace('cambridge_', '').replace('_', ' ')}
                       </span>
                     </td>
-                    <td className="py-3 px-4 max-w-xs truncate text-[11px] text-slate-600">
+                    <td className="py-3 px-4 max-w-xs truncate text-[11px] text-slate-600" title={item.subjects_included}>
                       {item.subjects_included || 'All Core & Elective Subjects'}
                     </td>
                     <td className="py-3 px-4 font-mono text-slate-500">{item.academic_year}</td>
@@ -1556,21 +1704,21 @@ export const SyllabusManager: React.FC<{ token?: string }> = ({ token }) => {
                           href={item.file_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-navy-950 hover:bg-slate-100"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-[#00183F] hover:bg-slate-100"
                           title="Open PDF in new tab"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
                         </a>
                         <button
                           onClick={() => setEditing(item)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-navy-950 hover:bg-slate-100"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-[#00183F] hover:bg-slate-100 cursor-pointer"
                           title="Edit"
                         >
                           <Edit className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => setDeletingItem(item)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
                           title="Delete"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -1589,11 +1737,50 @@ export const SyllabusManager: React.FC<{ token?: string }> = ({ token }) => {
       {editing && (
         <Modal
           isOpen={!!editing}
-          title={editing.id ? 'Edit Syllabus Document' : 'Create / Upload New Syllabus'}
+          title={editing.id ? `Edit Syllabus (${editing.grade || 'Document'})` : 'Create / Upload Grade Syllabus'}
           onClose={() => setEditing(null)}
           maxWidth="lg"
         >
           <form onSubmit={handleSave} className="space-y-4">
+            {/* Quick Presets Bar */}
+            <div className="p-3 bg-amber-50/70 rounded-2xl border border-amber-200/80 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                  Quick Grade Preset Auto-Fill
+                </span>
+                <span className="text-[10px] text-amber-800 font-semibold">1-Click Setup</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {GRADE_PRESETS.map((p) => (
+                  <button
+                    key={p.grade}
+                    type="button"
+                    onClick={() => {
+                      setEditing({
+                        ...editing,
+                        grade: p.grade,
+                        title: p.title,
+                        curriculum_section: p.section,
+                        subjects_included: p.subjects,
+                        description: p.desc,
+                        academic_year: editing.academic_year || '2026-2027',
+                        term: editing.term || 'Full Academic Session',
+                        version: editing.version || 'v2026.1',
+                      });
+                    }}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                      editing.grade === p.grade
+                        ? 'bg-[#00183F] text-amber-300 shadow-sm'
+                        : 'bg-white hover:bg-amber-100 text-slate-700 border border-amber-200/60'
+                    }`}
+                  >
+                    {p.grade}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="Class / Grade *">
                 <input
@@ -1641,7 +1828,7 @@ export const SyllabusManager: React.FC<{ token?: string }> = ({ token }) => {
               </Field>
             </div>
 
-            <Field label="Subjects Included in this Grade PDF *">
+            <Field label="Subjects Included in this Grade PDF Booklet *">
               <input
                 className={inputCls}
                 placeholder="e.g. English, Mathematics, Science, Bengali, ICT, Art & Craft"
@@ -1649,7 +1836,7 @@ export const SyllabusManager: React.FC<{ token?: string }> = ({ token }) => {
                 onChange={(e) => setEditing({ ...editing, subjects_included: e.target.value })}
               />
               <span className="text-[11px] text-slate-400 mt-1 block">
-                List the subjects included inside this single consolidated PDF booklet.
+                List the subjects included inside this consolidated PDF booklet for this class.
               </span>
             </Field>
 
@@ -1693,7 +1880,7 @@ export const SyllabusManager: React.FC<{ token?: string }> = ({ token }) => {
                   onChange={(e) => setEditing({ ...editing, file_url: e.target.value })}
                 />
                 <label className="px-4 py-2 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 flex items-center gap-1.5 cursor-pointer shrink-0">
-                  <Upload className="w-3.5 h-3.5 text-navy-700" />
+                  <Upload className="w-3.5 h-3.5 text-[#00183F]" />
                   <span>Choose File</span>
                   <input
                     type="file"
@@ -1703,6 +1890,24 @@ export const SyllabusManager: React.FC<{ token?: string }> = ({ token }) => {
                   />
                 </label>
               </div>
+
+              {editing.file_url && (
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-200 text-xs">
+                  <div className="flex items-center gap-2 truncate">
+                    <FileText className="w-4 h-4 text-rose-500 shrink-0" />
+                    <span className="font-mono text-[11px] text-slate-700 truncate max-w-xs">{editing.file_url}</span>
+                  </div>
+                  <a
+                    href={editing.file_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#00183F] font-bold text-[11px] flex items-center gap-1 shrink-0 transition-colors cursor-pointer"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    <span>Test &amp; Preview PDF</span>
+                  </a>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="File Size Label">
@@ -1756,7 +1961,7 @@ export const SyllabusManager: React.FC<{ token?: string }> = ({ token }) => {
               <button
                 type="submit"
                 disabled={saving || uploading}
-                className="px-5 py-2 rounded-xl bg-[#00183F] text-white text-sm font-bold flex items-center gap-2 disabled:opacity-60 cursor-pointer shadow-md"
+                className="px-5 py-2 rounded-xl bg-[#00183F] hover:bg-[#070F1E] text-white text-sm font-bold flex items-center gap-2 disabled:opacity-60 cursor-pointer shadow-md transition-all"
               >
                 {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                 {editing.id ? 'Save Changes' : 'Publish Syllabus'}

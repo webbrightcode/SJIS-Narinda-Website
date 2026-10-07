@@ -190,14 +190,22 @@ export async function getNoticeBySlug(slug: string): Promise<Notice | null> {
 
 // ---------------- NEWS (separate from Notices) ---------------- //
 
-export async function getNews(category?: string, search?: string, activeOnly = true): Promise<News[]> {
+export async function getNews(
+  category?: string,
+  search?: string,
+  activeOnly = true,
+  token?: string
+): Promise<News[]> {
   const params: string[] = [];
   if (activeOnly) params.push('active=true');
   if (category && category !== 'all') params.push(`category=${encodeURIComponent(category)}`);
   if (search) params.push(`search=${encodeURIComponent(search)}`);
   const query = params.length > 0 ? `?${params.join('&')}` : '';
-  const items = await fetchWithFallback<News[]>(`/news/${query}`, FALLBACK_NEWS);
-  if (Array.isArray(items) && items.length === 0 && !search && (!category || category === 'all')) {
+  const items = await fetchWithFallback<News[]>(`/news/${query}`, FALLBACK_NEWS, {
+    headers: getAuthHeaders(token),
+    cache: token ? 'no-store' : undefined,
+  });
+  if (Array.isArray(items) && items.length === 0 && !search && (!category || category === 'all') && !token) {
     return FALLBACK_NEWS;
   }
   return items;
@@ -828,7 +836,8 @@ export async function getSyllabus(
   grade?: string,
   search?: string,
   academicYear?: string,
-  activeOnly = true
+  activeOnly = true,
+  token?: string
 ): Promise<SyllabusItem[]> {
   const params: string[] = [];
   if (activeOnly) params.push('active=true');
@@ -837,8 +846,11 @@ export async function getSyllabus(
   if (academicYear && academicYear !== 'all') params.push(`academic_year=${encodeURIComponent(academicYear)}`);
   if (search) params.push(`search=${encodeURIComponent(search)}`);
   const query = params.length > 0 ? `?${params.join('&')}` : '';
-  const items = await fetchWithFallback<SyllabusItem[]>(`/syllabus/${query}`, FALLBACK_SYLLABUS);
-  if (Array.isArray(items) && items.length === 0 && !search && (!curriculumSection || curriculumSection === 'all') && (!grade || grade === 'all')) {
+  const items = await fetchWithFallback<SyllabusItem[]>(`/syllabus/${query}`, FALLBACK_SYLLABUS, {
+    headers: getAuthHeaders(token),
+    cache: token ? 'no-store' : undefined,
+  });
+  if (Array.isArray(items) && items.length === 0 && !search && (!curriculumSection || curriculumSection === 'all') && (!grade || grade === 'all') && !token) {
     return FALLBACK_SYLLABUS;
   }
   return items;

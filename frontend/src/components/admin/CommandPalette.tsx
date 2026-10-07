@@ -24,6 +24,7 @@ import {
   Quote,
   HelpCircle,
   Globe,
+  Newspaper,
 } from 'lucide-react';
 import { Notice, Club, AdmissionInquiry, GalleryItem, SliderSlide } from '@/lib/types';
 
@@ -89,7 +90,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   const navItems = [
     { id: 'overview', label: 'Dashboard Overview', icon: LayoutDashboard, category: 'Navigation' },
     { id: 'slides', label: 'Hero Sliders', icon: Sliders, category: 'Navigation' },
+    { id: 'news', label: 'News & Events Articles', icon: Newspaper, category: 'Navigation' },
     { id: 'notices', label: 'Notice Board Circulars', icon: Bell, category: 'Navigation' },
+    { id: 'syllabus', label: 'Academic Syllabus & Curriculum Documents', icon: FileSpreadsheet, category: 'Navigation' },
     { id: 'faculty', label: 'Faculty & Staff Body', icon: GraduationCap, category: 'Navigation' },
     { id: 'clubs', label: 'Clubs & Guilds', icon: Users, category: 'Navigation' },
     { id: 'facilities', label: 'Campus Facilities & Labs', icon: Building2, category: 'Navigation' },

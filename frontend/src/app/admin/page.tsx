@@ -61,6 +61,7 @@ import {
   BookOpen,
   Loader2,
   Upload,
+  Newspaper,
 } from 'lucide-react';
 import {
   SliderSlide,
@@ -116,6 +117,7 @@ import { ImageHelper } from '@/components/admin/ImageHelper';
 import { SiteSettingsPanel, TestimonialsManager, FaqManager, FacultyManager, SyllabusManager } from '@/components/admin/SiteContentPanels';
 import { FacilitiesManager } from '@/components/admin/FacilitiesManager';
 import { AboutPageManager } from '@/components/admin/AboutPageManager';
+import { NewsManager } from '@/components/admin/NewsManager';
 
 export default function AdminDashboardPage() {
   // Authentication State
@@ -135,6 +137,7 @@ export default function AdminDashboardPage() {
     | 'overview'
     | 'about_page'
     | 'slides'
+    | 'news'
     | 'notices'
     | 'clubs'
     | 'facilities'
@@ -1127,6 +1130,7 @@ export default function AdminDashboardPage() {
               { id: 'overview', label: 'Dashboard Overview', icon: LayoutDashboard },
               { id: 'about_page', label: 'About Us Page & Heritage', icon: BookOpen },
               { id: 'slides', label: 'Hero Sliders', icon: Sliders, count: slides.length },
+              { id: 'news', label: 'News & Events', icon: Newspaper },
               { id: 'notices', label: 'Notice Board', icon: Bell, count: notices.length },
               { id: 'syllabus', label: 'Academic Syllabus', icon: FileSpreadsheet },
               { id: 'faculty', label: 'Faculty & Staff Body', icon: GraduationCap },
@@ -1317,6 +1321,7 @@ export default function AdminDashboardPage() {
           {activeTab === 'testimonials' && <TestimonialsManager token={token || undefined} />}
           {activeTab === 'faqs' && <FaqManager token={token || undefined} />}
           {activeTab === 'faculty' && <FacultyManager token={token || undefined} />}
+          {activeTab === 'news' && <NewsManager token={token || undefined} />}
           {activeTab === 'syllabus' && <SyllabusManager token={token || undefined} />}
           {activeTab === 'facilities' && (
             <FacilitiesManager
