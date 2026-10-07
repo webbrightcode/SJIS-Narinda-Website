@@ -3,8 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, GraduationCap, ChevronRight, Sparkles, ExternalLink } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Menu, X, GraduationCap, ChevronRight, ExternalLink } from 'lucide-react';
 import { useSiteSettings } from '@/components/layout/SiteSettingsContext';
 
 export const Navbar: React.FC = () => {
@@ -108,18 +107,7 @@ export const Navbar: React.FC = () => {
             })}
           </nav>
 
-          {/* 3. Desktop Standout Call-To-Action (Single high-conversion premier button) */}
-          <div className="hidden lg:flex items-center gap-3 shrink-0">
-            <Button
-              href="/admission"
-              variant="secondary"
-              size="sm"
-              className="whitespace-nowrap shrink-0 font-bold shadow-md shadow-rose-950/30 hover:shadow-lg transition-all"
-              icon={<Sparkles className="w-4 h-4 text-amber-300" />}
-            >
-              Apply For Admission
-            </Button>
-          </div>
+
 
           {/* 4. Mobile Menu Trigger */}
           <button
@@ -164,15 +152,6 @@ export const Navbar: React.FC = () => {
                 <span>Student & Parent Portal</span>
                 <ExternalLink className="w-3.5 h-3.5 opacity-70" />
               </a>
-              <Button
-                href="/admission"
-                variant="secondary"
-                size="md"
-                className="w-full justify-center shadow-md font-bold"
-                icon={<Sparkles className="w-4 h-4 text-amber-300" />}
-              >
-                Apply for Admission 2026–27
-              </Button>
             </div>
           </div>
         </div>
