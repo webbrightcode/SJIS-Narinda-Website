@@ -25,7 +25,6 @@ import { useSiteSettings } from '@/components/layout/SiteSettingsContext';
 interface SubMenuItem {
   name: string;
   href: string;
-  description: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: string;
   badgeColor?: string;
@@ -79,19 +78,16 @@ export const Navbar: React.FC = () => {
         {
           name: 'About & Heritage',
           href: '/about',
-          description: 'Our 1979 legacy, vision & Cambridge accreditation',
           icon: Building2,
         },
         {
           name: 'Faculty & Leadership',
           href: '/faculty',
-          description: 'Dedicated educators & academic council',
           icon: Users,
         },
         {
           name: 'Campus Facilities',
           href: '/about#facilities',
-          description: 'Science labs, ICT center & sports facilities',
           icon: Award,
         },
       ],
@@ -102,7 +98,6 @@ export const Navbar: React.FC = () => {
         {
           name: 'Academic Syllabus',
           href: '/syllabus',
-          description: 'Grade-wise syllabi (Playgroup to A-Levels)',
           icon: FileSpreadsheet,
           badge: '2025–26',
           badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
@@ -110,7 +105,6 @@ export const Navbar: React.FC = () => {
         {
           name: 'Cambridge Curriculum',
           href: '/about#academics',
-          description: 'CIE international benchmarks & exam pathways',
           icon: BookOpen,
         },
       ],
@@ -121,7 +115,6 @@ export const Navbar: React.FC = () => {
         {
           name: 'Magazine & Yearbooks',
           href: '/magazine',
-          description: 'Interactive 3D DearFlip book reader with real sound',
           icon: BookOpen,
           badge: '3D Flip',
           badgeColor: 'bg-gradient-to-r from-amber-400/30 via-[#D4AF37]/35 to-amber-500/30 text-amber-300 border-[#D4AF37]/50',
@@ -129,13 +122,11 @@ export const Navbar: React.FC = () => {
         {
           name: 'Clubs & Guilds',
           href: '/clubs',
-          description: 'Robotics, Science, Debate, Sports & Cultural clubs',
           icon: Sparkles,
         },
         {
           name: 'Campus Gallery',
           href: '/gallery',
-          description: 'High-res photos, festivals & memorable moments',
           icon: ImageIcon,
         },
       ],
@@ -146,7 +137,6 @@ export const Navbar: React.FC = () => {
         {
           name: 'Notice Board Circulars',
           href: '/notices',
-          description: 'Official academic circulars, routines & exams',
           icon: Bell,
           badge: 'Live',
           badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
@@ -154,7 +144,6 @@ export const Navbar: React.FC = () => {
         {
           name: 'News & Events',
           href: '/news',
-          description: 'Recent achievements, celebrations & campus stories',
           icon: Newspaper,
         },
       ],
@@ -290,14 +279,14 @@ export const Navbar: React.FC = () => {
                   {/* Dropdown Popover Card */}
                   {isOpen && item.children && (
                     <div
-                      className="absolute top-full left-0 mt-1.5 w-80 bg-[#001433]/98 backdrop-blur-xl border border-[#D4AF37]/25 shadow-2xl shadow-black/80 rounded-2xl p-2 z-50 animate-in fade-in-0 zoom-in-95 duration-150"
+                      className="absolute top-full left-0 mt-1.5 min-w-[240px] w-max bg-[#001433]/98 backdrop-blur-xl border border-[#D4AF37]/25 shadow-2xl shadow-black/80 rounded-2xl p-1.5 z-50 animate-in fade-in-0 zoom-in-95 duration-150"
                       onMouseEnter={() => handleMouseEnter(item.name)}
                       onMouseLeave={handleMouseLeave}
                     >
                       {/* Top Accent Line */}
-                      <div className="absolute top-0 left-6 right-6 h-0.5 bg-gradient-to-r from-transparent via-[#D4AF37]/60 to-transparent" />
+                      <div className="absolute top-0 left-4 right-4 h-0.5 bg-gradient-to-r from-transparent via-[#D4AF37]/60 to-transparent" />
 
-                      <div className="space-y-1">
+                      <div className="space-y-0.5">
                         {item.children.map((sub) => {
                           const SubIcon = sub.icon;
                           const isSubActive = pathname === sub.href;
@@ -307,47 +296,41 @@ export const Navbar: React.FC = () => {
                               key={sub.name}
                               href={sub.href}
                               onClick={() => setOpenDropdown(null)}
-                              className={`group/item flex items-start gap-3 p-2.5 rounded-xl transition-all duration-150 cursor-pointer border ${
+                              className={`group/item flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all duration-150 cursor-pointer border ${
                                 isSubActive
                                   ? 'bg-white/[0.08] border-[#D4AF37]/40 shadow-xs'
                                   : 'border-transparent hover:bg-white/[0.06] hover:border-white/10'
                               }`}
                             >
                               <div
-                                className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border transition-all duration-150 ${
+                                className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border transition-all duration-150 ${
                                   isSubActive
                                     ? 'bg-[#D4AF37]/20 border-[#D4AF37]/60 text-[#D4AF37]'
                                     : 'bg-white/5 border-white/10 text-slate-300 group-hover/item:bg-[#D4AF37]/15 group-hover/item:border-[#D4AF37]/50 group-hover/item:text-[#D4AF37]'
                                 }`}
                               >
-                                <SubIcon className="w-4 h-4" />
+                                <SubIcon className="w-3.5 h-3.5" />
                               </div>
 
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span
-                                    className={`text-xs xl:text-sm font-bold tracking-tight transition-colors ${
-                                      isSubActive
-                                        ? 'text-[#D4AF37]'
-                                        : 'text-white group-hover/item:text-[#D4AF37]'
-                                    }`}
-                                  >
-                                    {sub.name}
-                                  </span>
-                                  {sub.badge && (
-                                    <span
-                                      className={`px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md border ${
-                                        sub.badgeColor || 'bg-amber-400/20 text-amber-300 border-amber-400/30'
-                                      }`}
-                                    >
-                                      {sub.badge}
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-[11px] text-slate-400 leading-snug line-clamp-2 mt-0.5 group-hover/item:text-slate-300">
-                                  {sub.description}
-                                </p>
-                              </div>
+                              <span
+                                className={`text-xs xl:text-sm font-semibold tracking-tight transition-colors whitespace-nowrap ${
+                                  isSubActive
+                                    ? 'text-[#D4AF37]'
+                                    : 'text-white group-hover/item:text-[#D4AF37]'
+                                }`}
+                              >
+                                {sub.name}
+                              </span>
+
+                              {sub.badge && (
+                                <span
+                                  className={`ml-auto px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md border shrink-0 ${
+                                    sub.badgeColor || 'bg-amber-400/20 text-amber-300 border-amber-400/30'
+                                  }`}
+                                >
+                                  {sub.badge}
+                                </span>
+                              )}
                             </Link>
                           );
                         })}
