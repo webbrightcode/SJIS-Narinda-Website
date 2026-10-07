@@ -118,6 +118,7 @@ import { SiteSettingsPanel, TestimonialsManager, FaqManager, FacultyManager, Syl
 import { FacilitiesManager } from '@/components/admin/FacilitiesManager';
 import { AboutPageManager } from '@/components/admin/AboutPageManager';
 import { NewsManager } from '@/components/admin/NewsManager';
+import { PublicationManager } from '@/components/admin/PublicationManager';
 
 export default function AdminDashboardPage() {
   // Authentication State
@@ -150,6 +151,7 @@ export default function AdminDashboardPage() {
     | 'faqs'
     | 'faculty'
     | 'syllabus'
+    | 'publications'
   >('overview');
 
   // Search & Filter state for lists
@@ -1133,6 +1135,7 @@ export default function AdminDashboardPage() {
               { id: 'news', label: 'News & Events', icon: Newspaper },
               { id: 'notices', label: 'Notice Board', icon: Bell, count: notices.length },
               { id: 'syllabus', label: 'Academic Syllabus', icon: FileSpreadsheet },
+              { id: 'publications', label: 'Magazines & Yearbooks', icon: BookOpen },
               { id: 'faculty', label: 'Faculty & Staff Body', icon: GraduationCap },
               { id: 'clubs', label: 'Clubs & Guilds', icon: Users, count: clubs.length },
               { id: 'facilities', label: 'Campus Facilities', icon: Building2, count: aboutInfo?.facilities?.length || 4 },
@@ -1323,6 +1326,7 @@ export default function AdminDashboardPage() {
           {activeTab === 'faculty' && <FacultyManager token={token || undefined} />}
           {activeTab === 'news' && <NewsManager token={token || undefined} />}
           {activeTab === 'syllabus' && <SyllabusManager token={token || undefined} />}
+          {activeTab === 'publications' && <PublicationManager token={token || undefined} />}
           {activeTab === 'facilities' && (
             <FacilitiesManager
               token={token || undefined}

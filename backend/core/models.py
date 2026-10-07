@@ -430,3 +430,52 @@ class SyllabusItem(models.Model):
     def __str__(self):
         return f"[{self.grade}] {self.title} ({self.academic_year})"
 
+
+class Publication(models.Model):
+    TYPE_CHOICES = [
+        ('magazine', 'Annual School Magazine'),
+        ('yearbook', 'Annual Yearbook & Milestones'),
+        ('newsletter', 'Term Newsletter & Gazette'),
+        ('prospectus', 'Academic Prospectus'),
+        ('handbook', 'Student & Parent Handbook'),
+    ]
+
+    title = models.CharField(max_length=255, help_text="e.g. The Josephite Chronicle - Annual School Magazine")
+    slug = models.SlugField(max_length=300, unique=True, blank=True)
+    publication_type = models.CharField(max_length=50, choices=TYPE_CHOICES, default='magazine')
+    edition = models.CharField(max_length=100, default="Annual Edition 2025-2026", help_text="e.g. Volume XIV, Issue 1")
+    academic_year = models.CharField(max_length=50, default="2025-2026")
+    cover_image_url = models.TextField(blank=True, default="", help_text="Cover photo preview URL")
+    pdf_url = models.TextField(help_text="PDF file URL for the flipbook")
+    file_size = models.CharField(max_length=50, blank=True, default="PDF Document")
+    pages_count = models.PositiveIntegerField(default=0, help_text="Total number of pages")
+    description = models.TextField(blank=True, default="", help_text="Foreword, editorial message, or description")
+    editor_name = models.CharField(max_length=150, blank=True, default="SJIS Editorial Board")
+    publish_date = models.DateField(null=True, blank=True)
+    is_featured = models.BooleanField(default=False)
+    order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    views_count = models.PositiveIntegerField(default=0)
+    download_count = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['order', '-publish_date', '-created_at']
+        verbose_name = "School Publication"
+        verbose_name_plural = "School Publications"
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base_slug = slugify(f"{self.title}-{self.academic_year}") or 'publication'
+            slug = base_slug
+            counter = 1
+            while Publication.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.title} ({self.get_publication_type_display()} - {self.academic_year})"
+

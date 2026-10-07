@@ -138,6 +138,30 @@ export interface SyllabusItem {
   updated_at?: string;
 }
 
+export interface Publication {
+  id: number;
+  title: string;
+  slug: string;
+  publication_type: 'magazine' | 'yearbook' | 'newsletter' | 'prospectus' | 'handbook';
+  publication_type_display?: string;
+  edition: string;
+  academic_year: string;
+  cover_image_url: string;
+  pdf_url: string;
+  file_size?: string;
+  pages_count: number;
+  description: string;
+  editor_name?: string;
+  publish_date?: string;
+  is_featured: boolean;
+  order: number;
+  is_active: boolean;
+  views_count: number;
+  download_count: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Club {
   id: number;
   name: string;

@@ -10,6 +10,7 @@ from .models import (
     GalleryItem,
     StaffMember,
     SyllabusItem,
+    Publication,
 )
 
 admin.site.site_header = "St. Joseph International School, Narinda - Administration"
@@ -107,5 +108,14 @@ class SyllabusItemAdmin(admin.ModelAdmin):
     list_editable = ('order', 'is_active')
     list_filter = ('curriculum_section', 'academic_year', 'grade', 'is_active')
     search_fields = ('title', 'subject', 'grade', 'description')
+    prepopulated_fields = {'slug': ('title',)}
+
+
+@admin.register(Publication)
+class PublicationAdmin(admin.ModelAdmin):
+    list_display = ('title', 'publication_type', 'edition', 'academic_year', 'order', 'is_featured', 'is_active', 'views_count', 'download_count')
+    list_editable = ('order', 'is_featured', 'is_active')
+    list_filter = ('publication_type', 'academic_year', 'is_featured', 'is_active')
+    search_fields = ('title', 'edition', 'description', 'editor_name')
     prepopulated_fields = {'slug': ('title',)}
 

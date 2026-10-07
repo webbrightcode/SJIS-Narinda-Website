@@ -15,6 +15,7 @@ import {
   FAQ,
   StaffMember,
   SyllabusItem,
+  Publication,
 } from './types';
 import {
   FALLBACK_BUNDLE,
@@ -27,6 +28,7 @@ import {
   FALLBACK_GALLERY,
   FALLBACK_FACULTY,
   FALLBACK_SYLLABUS,
+  FALLBACK_PUBLICATIONS,
 } from './fallback-data';
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
@@ -892,5 +894,80 @@ export async function incrementSyllabusDownload(id: number): Promise<number | nu
 
 export const saveSyllabusItem = (item: Partial<SyllabusItem>, token?: string) => saveResource<SyllabusItem>('syllabus', item, token);
 export const deleteSyllabusItem = (id: number, token?: string) => removeResource('syllabus', id, token);
+
+// --- PUBLICATIONS & YEARBOOK API ---
+export async function getPublications(
+  publicationType?: string,
+  search?: string,
+  academicYear?: string,
+  activeOnly = true,
+  token?: string
+): Promise<Publication[]> {
+  const params: string[] = [];
+  if (activeOnly) params.push('active=true');
+  if (publicationType && publicationType !== 'all') params.push(`type=${encodeURIComponent(publicationType)}`);
+  if (academicYear && academicYear !== 'all') params.push(`year=${encodeURIComponent(academicYear)}`);
+  if (search) params.push(`search=${encodeURIComponent(search)}`);
+  const query = params.length > 0 ? `?${params.join('&')}` : '';
+  const items = await fetchWithFallback<Publication[]>(`/publications/${query}`, FALLBACK_PUBLICATIONS, {
+    headers: getAuthHeaders(token),
+    cache: token ? 'no-store' : undefined,
+  });
+  if (Array.isArray(items) && items.length === 0 && !search && (!publicationType || publicationType === 'all') && !token) {
+    return FALLBACK_PUBLICATIONS;
+  }
+  return items;
+}
+
+export async function getPublicationBySlug(slug: string): Promise<Publication | null> {
+  const decoded = decodeURIComponent(slug);
+  try {
+    const res = await fetch(apiUrl(`/publications/${encodeURIComponent(decoded)}/`), {
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store',
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.id) return data as Publication;
+    }
+  } catch (e) {}
+
+  const all = await getPublications();
+  const found = all.find((p) => p.slug === decoded || String(p.id) === decoded || p.slug === slug || String(p.id) === slug);
+  if (found) return found;
+
+  return FALLBACK_PUBLICATIONS.find((p) => p.slug === decoded || String(p.id) === decoded || p.slug === slug || String(p.id) === slug) || null;
+}
+
+export async function incrementPublicationView(id: number): Promise<number | null> {
+  try {
+    const res = await fetch(apiUrl(`/publications/${id}/increment_view/`), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return typeof data.views_count === 'number' ? data.views_count : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function incrementPublicationDownload(id: number): Promise<number | null> {
+  try {
+    const res = await fetch(apiUrl(`/publications/${id}/increment_download/`), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return typeof data.download_count === 'number' ? data.download_count : null;
+  } catch {
+    return null;
+  }
+}
+
+export const savePublication = (item: Partial<Publication>, token?: string) => saveResource<Publication>('publications', item, token);
+export const deletePublication = (id: number, token?: string) => removeResource('publications', id, token);
 
 

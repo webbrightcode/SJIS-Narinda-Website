@@ -13,6 +13,7 @@ from .models import (
     FAQ,
     StaffMember,
     SyllabusItem,
+    Publication,
 )
 
 
@@ -150,4 +151,13 @@ class SyllabusItemSerializer(serializers.ModelSerializer):
         if url and ('w3.org' in url or 'dummy.pdf' in url):
             data['file_url'] = '/circulars/sjis-official-circular.pdf'
         return data
+
+
+class PublicationSerializer(serializers.ModelSerializer):
+    publication_type_display = serializers.CharField(source='get_publication_type_display', read_only=True)
+
+    class Meta:
+        model = Publication
+        fields = '__all__'
+        extra_kwargs = {'slug': {'required': False}}
 
