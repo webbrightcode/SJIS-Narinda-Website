@@ -97,24 +97,35 @@ export const PublicationManager: React.FC<PublicationManagerProps> = ({ token })
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !editing) return;
+
+    // Validate 200 MB maximum limit
+    const maxSizeBytes = 200 * 1024 * 1024;
+    if (file.size > maxSizeBytes) {
+      notify(false, `File is too large (${(file.size / (1024 * 1024)).toFixed(1)} MB). Maximum allowed size is 200 MB. Please compress the PDF before uploading.`);
+      e.target.value = '';
+      return;
+    }
+
+    const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
     setUploadingPdf(true);
+    notify(true, `Uploading "${file.name}" (${sizeMb} MB)... Please wait while it uploads.`);
     try {
       const res = await uploadMediaFile(file, token);
       if (res && res.url) {
-        const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
         setEditing({
           ...editing,
           pdf_url: res.url,
           file_size: `${sizeMb} MB PDF`,
         });
-        notify(true, `Publication PDF uploaded successfully (${file.name}).`);
+        notify(true, `Publication PDF uploaded successfully (${file.name}, ${sizeMb} MB).`);
       } else {
-        notify(false, 'PDF upload failed. You can paste a direct URL.');
+        notify(false, res?.error || 'PDF upload failed. You can paste a direct URL.');
       }
     } catch {
       notify(false, 'Network error during PDF file upload.');
     } finally {
       setUploadingPdf(false);
+      e.target.value = '';
     }
   };
 
@@ -465,13 +476,18 @@ export const PublicationManager: React.FC<PublicationManagerProps> = ({ token })
 
             {/* PDF Uploader Field */}
             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700">
-                  Magazine PDF File (For 3D Flipbook Reader) *
-                </label>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700">
+                    Magazine PDF File (For 3D Flipbook Reader) *
+                  </label>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Supports high-resolution yearbooks and magazines up to <strong>200 MB</strong> (PDF).
+                  </p>
+                </div>
                 {uploadingPdf && (
-                  <span className="text-xs text-amber-600 font-semibold flex items-center gap-1">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Uploading PDF...
+                  <span className="text-xs text-amber-600 font-semibold flex items-center gap-1.5 animate-pulse">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Uploading large document...
                   </span>
                 )}
               </div>

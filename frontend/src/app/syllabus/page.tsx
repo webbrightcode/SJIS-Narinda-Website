@@ -3,7 +3,7 @@ import { BookOpen, Sparkles, GraduationCap } from 'lucide-react';
 import { getSyllabus } from '@/lib/api';
 import SyllabusClientView from '@/components/syllabus/SyllabusClientView';
 
-export const revalidate = 60;
+export const revalidate = 0;
 
 export default async function SyllabusPage() {
   const syllabi = await getSyllabus('all', 'all', '', 'all', true);

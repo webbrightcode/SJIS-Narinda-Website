@@ -278,6 +278,7 @@ export interface SiteSettings {
   school_name: string;
   school_subtitle: string;
   logo_url?: string;
+  footer_bg_url?: string;
   phone_primary: string;
   phone_secondary: string;
   email: string;

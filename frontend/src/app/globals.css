@@ -150,3 +150,19 @@ html[data-splash='seen'] #sjis-splash { display: none; }
   .animate-img-in, .skeleton { animation: none; }
   #sjis-splash { display: none !important; }
 }
+
+/* Footer Parallax Scrolling Effect (NDC / St. Joseph Style) */
+.footer-parallax-bg {
+  background-size: cover;
+  background-position: center bottom;
+  background-repeat: no-repeat;
+  background-attachment: scroll;
+}
+
+@media (min-width: 768px) {
+  .footer-parallax-bg {
+    background-attachment: fixed;
+    background-position: center center;
+  }
+}
+

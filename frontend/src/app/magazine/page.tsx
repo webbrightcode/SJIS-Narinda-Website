@@ -234,8 +234,14 @@ export default function MagazinePage() {
         ) : filtered.length === 0 ? (
           <div className="py-20 text-center bg-white rounded-3xl border border-dashed border-slate-200 p-8">
             <FileText className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <h3 className="text-base font-bold text-slate-700">No publications matched your filter</h3>
-            <p className="text-xs text-slate-400 mt-1">Try switching categories or clearing search keywords.</p>
+            <h3 className="text-base font-bold text-slate-700">
+              {publications.length === 0 ? 'No publications found' : 'No publications matched your filter'}
+            </h3>
+            <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+              {publications.length === 0
+                ? 'There are currently no digitized school magazines or yearbooks published in the archive.'
+                : 'Try switching categories or clearing search keywords.'}
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

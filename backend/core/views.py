@@ -714,6 +714,14 @@ class FileUploadView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        max_size = 200 * 1024 * 1024  # 200 MB limit
+        if file_obj.size > max_size:
+            size_mb = file_obj.size / (1024 * 1024)
+            return Response(
+                {'error': f'File exceeds the 200 MB maximum size limit ({size_mb:.1f} MB). Please compress the PDF before uploading.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         from django.core.files.base import ContentFile
         from .image_utils import CONVERTIBLE_EXTENSIONS, image_to_webp_bytes, webp_name
 

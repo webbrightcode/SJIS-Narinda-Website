@@ -27,14 +27,13 @@ import {
   FALLBACK_ADMISSION,
   FALLBACK_GALLERY,
   FALLBACK_FACULTY,
-  FALLBACK_SYLLABUS,
-  FALLBACK_PUBLICATIONS,
 } from './fallback-data';
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   school_name: 'St. Joseph International School',
   school_subtitle: 'INTERNATIONAL SCHOOL \u2022 NARINDA',
   logo_url: '/sjis-crest-logo.png',
+  footer_bg_url: '',
   phone_primary: '+880 1746-866393',
   phone_secondary: '',
   email: 'sjisnarinda2021@gmail.com',
@@ -809,7 +808,7 @@ export const deleteStaffMember = (id: number, token?: string) => removeResource(
 export async function uploadMediaFile(
   file: File,
   token?: string
-): Promise<{ url: string; name?: string; size?: number } | null> {
+): Promise<{ url: string; name?: string; size?: number; error?: string } | null> {
   try {
     const formData = new FormData();
     formData.append('file', file);
@@ -823,11 +822,16 @@ export async function uploadMediaFile(
       headers,
       body: formData,
     });
-    if (res.ok) {
-      return await res.json();
+    const data = await res.json().catch(() => null);
+    if (res.ok && data) {
+      return data;
     }
-  } catch (err) {
-    console.warn('API file upload failed, falling back to local encoding:', err);
+    if (data?.error) {
+      return { url: '', error: data.error };
+    }
+  } catch (err: any) {
+    console.warn('API file upload error:', err);
+    return { url: '', error: err?.message || 'Network error during file upload.' };
   }
   return null;
 }
@@ -848,14 +852,11 @@ export async function getSyllabus(
   if (academicYear && academicYear !== 'all') params.push(`academic_year=${encodeURIComponent(academicYear)}`);
   if (search) params.push(`search=${encodeURIComponent(search)}`);
   const query = params.length > 0 ? `?${params.join('&')}` : '';
-  const items = await fetchWithFallback<SyllabusItem[]>(`/syllabus/${query}`, FALLBACK_SYLLABUS, {
+  const items = await fetchWithFallback<SyllabusItem[]>(`/syllabus/${query}`, [], {
     headers: getAuthHeaders(token),
     cache: token ? 'no-store' : undefined,
   });
-  if (Array.isArray(items) && items.length === 0 && !search && (!curriculumSection || curriculumSection === 'all') && (!grade || grade === 'all') && !token) {
-    return FALLBACK_SYLLABUS;
-  }
-  return items;
+  return Array.isArray(items) ? items : [];
 }
 
 export async function getSyllabusBySlug(slug: string): Promise<SyllabusItem | null> {
@@ -873,9 +874,7 @@ export async function getSyllabusBySlug(slug: string): Promise<SyllabusItem | nu
 
   const all = await getSyllabus();
   const found = all.find((s) => s.slug === decoded || String(s.id) === decoded || s.slug === slug || String(s.id) === slug);
-  if (found) return found;
-
-  return FALLBACK_SYLLABUS.find((s) => s.slug === decoded || String(s.id) === decoded || s.slug === slug || String(s.id) === slug) || null;
+  return found || null;
 }
 
 export async function incrementSyllabusDownload(id: number): Promise<number | null> {
@@ -909,14 +908,11 @@ export async function getPublications(
   if (academicYear && academicYear !== 'all') params.push(`year=${encodeURIComponent(academicYear)}`);
   if (search) params.push(`search=${encodeURIComponent(search)}`);
   const query = params.length > 0 ? `?${params.join('&')}` : '';
-  const items = await fetchWithFallback<Publication[]>(`/publications/${query}`, FALLBACK_PUBLICATIONS, {
+  const items = await fetchWithFallback<Publication[]>(`/publications/${query}`, [], {
     headers: getAuthHeaders(token),
-    cache: token ? 'no-store' : undefined,
+    cache: 'no-store',
   });
-  if (Array.isArray(items) && items.length === 0 && !search && (!publicationType || publicationType === 'all') && !token) {
-    return FALLBACK_PUBLICATIONS;
-  }
-  return items;
+  return Array.isArray(items) ? items : [];
 }
 
 export async function getPublicationBySlug(slug: string): Promise<Publication | null> {
@@ -934,9 +930,7 @@ export async function getPublicationBySlug(slug: string): Promise<Publication | 
 
   const all = await getPublications();
   const found = all.find((p) => p.slug === decoded || String(p.id) === decoded || p.slug === slug || String(p.id) === slug);
-  if (found) return found;
-
-  return FALLBACK_PUBLICATIONS.find((p) => p.slug === decoded || String(p.id) === decoded || p.slug === slug || String(p.id) === slug) || null;
+  return found || null;
 }
 
 export async function incrementPublicationView(id: number): Promise<number | null> {

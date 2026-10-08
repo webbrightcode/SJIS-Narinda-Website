@@ -1272,23 +1272,6 @@ export default function AdminDashboardPage() {
               </button>
             )}
 
-            <button
-              onClick={() => setRestoreModalOpen(true)}
-              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-colors"
-              title="Disaster Recovery: Restore Database from JSON"
-            >
-              <UploadCloud className="w-3.5 h-3.5 text-sky-600" />
-              <span>Restore DB</span>
-            </button>
-
-            <button
-              onClick={handleDownloadFullBackup}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-colors"
-              title="Download Full Database JSON Backup"
-            >
-              <Database className="w-3.5 h-3.5 text-amber-600" />
-              <span>Backup JSON</span>
-            </button>
 
             <Link
               href="/"

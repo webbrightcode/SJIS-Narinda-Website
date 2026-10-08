@@ -135,9 +135,9 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Allow up to 50MB request payloads for high-resolution base64 logos and assets
-DATA_UPLOAD_MAX_MEMORY_SIZE = 52428800
-FILE_UPLOAD_MAX_MEMORY_SIZE = 52428800
+# Allow up to 200MB request payloads for high-resolution magazines, annual yearbooks, and media assets
+DATA_UPLOAD_MAX_MEMORY_SIZE = 209715200  # 200 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760   # 10 MB in RAM, larger files stream safely to disk temporary buffer
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [

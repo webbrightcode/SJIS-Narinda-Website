@@ -28,6 +28,7 @@ import {
   FileText,
   Download,
   Upload,
+  Info,
 } from 'lucide-react';
 import { FAQ, HighlightItem, SiteSettings, Testimonial, StaffMember, SyllabusItem } from '@/lib/types';
 import {
@@ -270,6 +271,105 @@ export const SiteSettingsPanel: React.FC<{ token?: string }> = ({ token }) => {
             <p className="text-xs text-slate-500 mt-2">
               Upload a transparent PNG, SVG, or high-res image. If left blank, the website uses the official St. Joseph golden crest emblem.
             </p>
+          </div>
+
+          {/* Footer Parallax Campus Background Image */}
+          <div className="border-t border-slate-200 pt-5 space-y-3">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                Footer Parallax Campus Background Image
+              </label>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Full-width photographic background displayed in the footer with a smooth fixed parallax scrolling effect.
+              </p>
+            </div>
+
+            {/* Expected Size / Format Specification Card */}
+            <div className="p-3.5 rounded-xl bg-amber-50/80 border border-amber-200 text-xs text-amber-950 flex items-start gap-3">
+              <div className="p-1 rounded-lg bg-amber-100 text-amber-800 shrink-0 mt-0.5">
+                <Info className="w-4 h-4" />
+              </div>
+              <div className="space-y-1">
+                <div className="font-bold text-amber-900 flex items-center gap-2">
+                  <span>Recommended Image Size &amp; Format:</span>
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-amber-200/60 text-amber-900">
+                    High Resolution Landscape
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] text-amber-800 pt-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    <span><strong>Dimensions:</strong> 1920 × 1080 px (or 1920 × 1200 px)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    <span><strong>Aspect Ratio:</strong> 16:9 Landscape Wide</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    <span><strong>Format:</strong> JPG or WebP (max 3 MB)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <ImageHelper
+              label="Campus Photo URL or Upload Device File"
+              value={form.footer_bg_url || ''}
+              onChange={(url) => set('footer_bg_url', url)}
+              required={false}
+            />
+
+            {/* Live Preview of Footer Background */}
+            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                <span>Live Footer Parallax Background Preview</span>
+                {form.footer_bg_url && (
+                  <button
+                    type="button"
+                    onClick={() => set('footer_bg_url', '')}
+                    className="text-xs text-amber-400 hover:text-amber-300 font-semibold cursor-pointer"
+                  >
+                    Reset to Default Campus Photo
+                  </button>
+                )}
+              </div>
+
+              <div className="relative h-44 rounded-xl overflow-hidden border border-white/10 group">
+                <div
+                  className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+                  style={{
+                    backgroundImage: `url('${form.footer_bg_url || '/images/footer-parallax-bg.jpg'}')`,
+                  }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-b from-[#050C1A]/92 via-[#070F1E]/88 to-[#020612]/96" />
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#00183F] via-[#D4AF37] to-[#C8102E]" />
+
+                <div className="relative z-10 h-full p-4 flex flex-col justify-between text-white">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <img
+                        src={form.logo_url || '/sjis-crest-logo.png'}
+                        alt="Logo"
+                        className="w-8 h-8 rounded-full object-contain bg-white/10 p-0.5"
+                      />
+                      <div>
+                        <div className="text-xs font-bold font-cinzel leading-none">{form.school_name || 'St. Joseph International School'}</div>
+                        <div className="text-[10px] text-amber-400 font-semibold mt-0.5">Parallax Effect Active</div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-white/10 text-slate-300 border border-white/10">
+                      {form.footer_bg_url ? 'Custom Upload Active' : 'Default Campus Photo'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-white/10">
+                    <span>© {new Date().getFullYear()} St. Joseph International School</span>
+                    <span className="text-amber-400/90 text-[10px]">Fixed attachment parallax effect active on public site</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Live Preview of Header & Footer Branding */}
@@ -1479,7 +1579,7 @@ export const SyllabusManager: React.FC<{ token?: string }> = ({ token }) => {
         });
         setFlash({ ok: true, text: `PDF uploaded successfully (${file.name}).` });
       } else {
-        setFlash({ ok: false, text: 'File upload failed. Please try again or use direct URL.' });
+        setFlash({ ok: false, text: res?.error || 'File upload failed. Please try again or use direct URL.' });
       }
     } catch {
       setFlash({ ok: false, text: 'Network error during PDF upload.' });

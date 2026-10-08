@@ -285,6 +285,7 @@ class SiteSettings(models.Model):
     school_name = models.CharField(max_length=255, default="St. Joseph International School")
     school_subtitle = models.CharField(max_length=255, default="INTERNATIONAL SCHOOL \u2022 NARINDA", blank=True)
     logo_url = models.TextField(blank=True, default="", help_text="Custom logo image URL or uploaded base64 data URL. If blank, official crest icon is used.")
+    footer_bg_url = models.TextField(blank=True, default="", help_text="Custom parallax background image URL or uploaded data URL for the website footer. Recommended: 1920x1080px (16:9) landscape.")
     phone_primary = models.CharField(max_length=60, default="+880 1746-866393")
     phone_secondary = models.CharField(max_length=60, blank=True, default="")
     email = models.EmailField(default="sjisnarinda2021@gmail.com")
