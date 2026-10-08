@@ -204,8 +204,14 @@ export default function NoticesPage() {
             {filteredNotices.length === 0 && (
               <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-slate-300">
                 <Bell className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                <h3 className="text-lg font-bold text-slate-700">No circulars match your search</h3>
-                <p className="text-sm text-slate-500 mt-1">Try refining your keyword or category filter.</p>
+                <h3 className="text-lg font-bold text-slate-700">
+                  {notices.length === 0 ? 'No circulars currently published' : 'No circulars match your search'}
+                </h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  {notices.length === 0
+                    ? 'Official notices and academic circulars will appear here once released by the administration.'
+                    : 'Try refining your keyword or category filter.'}
+                </p>
               </div>
             )}
           </div>

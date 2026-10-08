@@ -21,7 +21,6 @@ import {
   FALLBACK_BUNDLE,
   FALLBACK_SLIDES,
   FALLBACK_ABOUT,
-  FALLBACK_NOTICES,
   FALLBACK_NEWS,
   FALLBACK_CLUBS,
   FALLBACK_ADMISSION,
@@ -168,7 +167,7 @@ export async function getNotices(category?: string, search?: string, activeOnly 
   if (search) params.push(`search=${encodeURIComponent(search)}`);
   const query = params.length > 0 ? `?${params.join('&')}` : '';
 
-  return fetchWithFallback<Notice[]>(`/notices/${query}`, FALLBACK_NOTICES);
+  return fetchWithFallback<Notice[]>(`/notices/${query}`, [], { cache: 'no-store' });
 }
 
 export async function getNoticeBySlug(slug: string): Promise<Notice | null> {
@@ -185,8 +184,7 @@ export async function getNoticeBySlug(slug: string): Promise<Notice | null> {
 
   const notices = await getNotices();
   const found = notices.find((n) => n.slug === slug || String(n.id) === slug);
-  if (found) return found;
-  return FALLBACK_NOTICES.find((n) => n.slug === slug || String(n.id) === slug) || null;
+  return found || null;
 }
 
 // ---------------- NEWS (separate from Notices) ---------------- //

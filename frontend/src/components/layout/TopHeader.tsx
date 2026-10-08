@@ -27,7 +27,7 @@ export const TopHeader: React.FC = () => {
   useEffect(() => {
     let mounted = true;
     getNotices('all', '', true).then((data) => {
-      if (mounted && Array.isArray(data) && data.length > 0) {
+      if (mounted && Array.isArray(data)) {
         setNotices(data.slice(0, 5));
       }
     });
