@@ -192,7 +192,7 @@ export const Footer: React.FC = () => {
           {/* Circular Social Buttons (NDC Style) */}
           <div className="order-1 md:order-2 flex items-center gap-3">
             <a
-              href={site.facebook_url || 'https://www.facebook.com/sjis.narinda'}
+              href={site.facebook_url || 'https://www.facebook.com/StJosephInternationalSchoolNarinda'}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Facebook"

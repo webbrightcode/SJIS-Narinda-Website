@@ -103,7 +103,7 @@ export function buildMetadata({
 export function schoolJsonLd(extra?: { sameAs?: string[]; address?: string }) {
   const sameAsList = Array.from(
     new Set([
-      'https://www.facebook.com/sjis.narinda',
+      'https://www.facebook.com/StJosephInternationalSchoolNarinda',
       ...(extra?.sameAs || []),
     ])
   );

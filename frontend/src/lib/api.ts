@@ -45,7 +45,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   admissions_label: 'Admissions 2026\u201327 Open',
   map_embed_url: '',
   map_link: 'https://maps.google.com/?q=St+Joseph+International+School+Narinda+Dhaka',
-  facebook_url: '',
+  facebook_url: 'https://www.facebook.com/StJosephInternationalSchoolNarinda',
   instagram_url: '',
   youtube_url: '',
   security_note: '',
