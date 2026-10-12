@@ -1,3 +1,4 @@
+import re
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.shortcuts import get_object_or_404
@@ -439,14 +440,29 @@ class SiteSettingsView(APIView):
 
     def put(self, request):
         data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
-        # Sanitize optional URL fields to prevent validation errors on placeholders or missing protocol
+        # Sanitize optional URL fields to prevent validation errors on placeholders, iframes, or missing protocol
         for url_field in ['facebook_url', 'instagram_url', 'youtube_url', 'map_embed_url', 'map_link']:
             if url_field in data and isinstance(data[url_field], str):
                 val = data[url_field].strip()
+                if url_field == 'map_embed_url' and val:
+                    # Automatically extract src if full <iframe> snippet or src="..." was submitted
+                    iframe_match = re.search(r'src=["\']([^"\']+)["\']', val, re.IGNORECASE)
+                    if iframe_match:
+                        val = iframe_match.group(1).strip()
+                    val = val.strip('"`\'<> ')
+                    # Convert standard search map URLs to embed format if output=embed is missing
+                    if 'maps.google.com' in val and '/embed' not in val and 'q=' in val:
+                        if 'output=embed' not in val:
+                            val = f"{val}&output=embed" if '?' in val else f"{val}?output=embed"
+                elif url_field == 'map_link' and val:
+                    val = val.strip('"`\'<> ')
+
                 if val.endswith('…') or val.endswith('...') or val in ['https://', 'http://', '']:
                     data[url_field] = ''
                 elif val and not val.startswith(('http://', 'https://')):
                     data[url_field] = f'https://{val}'
+                else:
+                    data[url_field] = val
 
         serializer = SiteSettingsSerializer(get_site_settings(), data=data, partial=True)
         if serializer.is_valid():

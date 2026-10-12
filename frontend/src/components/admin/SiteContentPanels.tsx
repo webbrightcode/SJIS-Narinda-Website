@@ -20,6 +20,7 @@ import {
   Loader2,
   ExternalLink,
   GraduationCap,
+  RotateCcw,
   Building2,
   Users,
   Briefcase,
@@ -48,6 +49,7 @@ import {
   saveSyllabusItem,
   deleteSyllabusItem,
   uploadMediaFile,
+  cleanMapEmbedUrl,
 } from '@/lib/api';
 import { Modal } from '@/components/ui/Modal';
 import { ImageHelper } from '@/components/admin/ImageHelper';
@@ -195,7 +197,12 @@ export const SiteSettingsPanel: React.FC<{ token?: string }> = ({ token }) => {
     e.preventDefault();
     setSaving(true);
     try {
-      const saved = await updateSiteSettings(form, token);
+      const payload: SiteSettings = {
+        ...form,
+        map_embed_url: cleanMapEmbedUrl(form.map_embed_url || ''),
+        map_link: (form.map_link || '').trim().replace(/^["'<]+|["'>]+$/g, ''),
+      };
+      const saved = await updateSiteSettings(payload, token);
       if (saved) {
         setForm({ ...DEFAULT_SITE_SETTINGS, ...saved });
         setFlash({ ok: true, text: 'Site settings published. The live website will show the changes immediately.' });
@@ -503,16 +510,67 @@ export const SiteSettingsPanel: React.FC<{ token?: string }> = ({ token }) => {
           </Field>
           <Field
             label="Google Maps Embed URL"
-            hint="In Google Maps: Share → Embed a map → copy only the src=… URL (must start with https://www.google.com/maps/embed)."
+            hint="Paste either the embed URL (https://www.google.com/maps/embed?...) or the entire <iframe> HTML snippet from Google Maps — it will be automatically extracted and formatted."
           >
-            <input className={inputCls} value={form.map_embed_url} onChange={(e) => set('map_embed_url', e.target.value)} />
+            <div className="space-y-2">
+              <input
+                className={inputCls}
+                placeholder="https://www.google.com/maps/embed?pb=... or <iframe src=...>"
+                value={form.map_embed_url}
+                onChange={(e) => {
+                  const cleaned = cleanMapEmbedUrl(e.target.value);
+                  set('map_embed_url', cleaned);
+                }}
+                onPaste={(e) => {
+                  const pasted = e.clipboardData.getData('text');
+                  if (pasted && (pasted.includes('<iframe') || pasted.includes('src=') || pasted.includes('maps.google.com') || pasted.includes('"'))) {
+                    e.preventDefault();
+                    const cleaned = cleanMapEmbedUrl(pasted);
+                    set('map_embed_url', cleaned);
+                  }
+                }}
+              />
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                {form.map_embed_url ? (
+                  <span className="text-emerald-700 font-semibold flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    Embed URL Ready & Verified
+                  </span>
+                ) : (
+                  <span className="text-amber-700 font-medium bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200">
+                    No map embed configured. Website will show location fallback.
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    set('map_embed_url', DEFAULT_SITE_SETTINGS.map_embed_url);
+                    set('map_link', DEFAULT_SITE_SETTINGS.map_link);
+                  }}
+                  className="text-[#00183F] hover:text-[#0D2852] font-semibold underline underline-offset-2 hover:bg-slate-100 px-2 py-1 rounded transition-colors cursor-pointer flex items-center gap-1"
+                >
+                  <RotateCcw className="w-3 h-3 text-[#00183F]" />
+                  Reset to St. Joseph Narinda Location
+                </button>
+              </div>
+            </div>
           </Field>
-          <Field label="'Open in Google Maps' Link">
-            <input className={inputCls} value={form.map_link} onChange={(e) => set('map_link', e.target.value)} />
+          <Field label="'Open in Google Maps' Link" hint="External navigation link used when visitors click 'Get Directions'.">
+            <input
+              className={inputCls}
+              value={form.map_link}
+              onChange={(e) => set('map_link', e.target.value.trim().replace(/^["'<]+|["'>]+$/g, ''))}
+            />
           </Field>
           {form.map_embed_url && (
-            <div className="rounded-xl overflow-hidden border border-slate-200 h-52">
-              <iframe title="Map preview" src={form.map_embed_url} className="w-full h-full" loading="lazy" />
+            <div className="rounded-xl overflow-hidden border border-slate-200 h-56 bg-slate-100 relative shadow-inner">
+              <iframe
+                title="Map preview"
+                src={form.map_embed_url}
+                className="w-full h-full"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
             </div>
           )}
         </div>

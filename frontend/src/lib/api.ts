@@ -43,7 +43,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   accreditation_label: 'Cambridge International Curriculum',
   admissions_open: true,
   admissions_label: 'Admissions 2026\u201327 Open',
-  map_embed_url: '',
+  map_embed_url: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3652.793740209498!2d90.41908027589578!3d23.719047789972323!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3755b85a3c1032cf%3A0xb35a8bc3410eb818!2sNarinda%2C%20Dhaka!5e0!3m2!1sen!2sbd!4v1717000000000!5m2!1sen!2sbd',
   map_link: 'https://maps.google.com/?q=St+Joseph+International+School+Narinda+Dhaka',
   facebook_url: 'https://www.facebook.com/StJosephInternationalSchoolNarinda',
   instagram_url: '',
@@ -707,13 +707,52 @@ export async function getSiteSettings(): Promise<SiteSettings> {
   return fresh;
 }
 
+export function cleanMapEmbedUrl(raw: string): string {
+  if (!raw) return '';
+  let val = raw.trim();
+
+  // 1. If full <iframe> snippet was pasted, extract src attribute
+  const iframeMatch = val.match(/src=["']([^"']+)["']/i);
+  if (iframeMatch && iframeMatch[1]) {
+    val = iframeMatch[1].trim();
+  }
+
+  // 2. Strip surrounding quotes, backticks, angle brackets or spaces
+  val = val.replace(/^["'`<]+|["'`>]+$/g, '').trim();
+
+  // 3. Remove leading src= if user copied src="https://..."
+  if (val.startsWith('src=')) {
+    val = val.replace(/^src=["']?/, '').replace(/["'].*$/, '').trim();
+  }
+
+  // 4. Convert standard Google Maps links to embed format if output=embed is missing
+  if (val.includes('maps.google.com') && !val.includes('/embed') && val.includes('q=')) {
+    if (!val.includes('output=embed')) {
+      val = val.includes('?') ? `${val}&output=embed` : `${val}?output=embed`;
+    }
+  }
+
+  // 5. Ensure protocol
+  if (val && !val.startsWith('http://') && !val.startsWith('https://')) {
+    val = `https://${val}`;
+  }
+
+  return val;
+}
+
 export async function updateSiteSettings(data: Partial<SiteSettings>, token?: string): Promise<SiteSettings | null> {
-  // 1. Optimistic write to localStorage for instant real-time reflection across tabs
+  const payload = { ...data };
+  if (typeof payload.map_embed_url === 'string') {
+    payload.map_embed_url = cleanMapEmbedUrl(payload.map_embed_url);
+  }
+
+  // 1. Snapshot previous cache in case backend rejects
+  let prevCached: string | null = null;
   if (typeof window !== 'undefined') {
-    let merged = { ...DEFAULT_SITE_SETTINGS, ...data };
+    prevCached = localStorage.getItem('sjis_site_settings');
+    let merged = { ...DEFAULT_SITE_SETTINGS, ...payload };
     try {
-      const existing = localStorage.getItem('sjis_site_settings');
-      if (existing) merged = { ...DEFAULT_SITE_SETTINGS, ...JSON.parse(existing), ...data };
+      if (prevCached) merged = { ...DEFAULT_SITE_SETTINGS, ...JSON.parse(prevCached), ...payload };
     } catch (e) {}
     localStorage.setItem('sjis_site_settings', JSON.stringify(merged));
     window.dispatchEvent(new CustomEvent('sjis_settings_updated', { detail: merged }));
@@ -724,7 +763,7 @@ export async function updateSiteSettings(data: Partial<SiteSettings>, token?: st
     const res = await fetchWithTimeout(apiUrl('/site-settings/'), {
       method: 'PUT',
       headers: getAuthHeaders(token),
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     }, 8000);
     if (res.ok) {
       const saved = await res.json();
@@ -736,20 +775,28 @@ export async function updateSiteSettings(data: Partial<SiteSettings>, token?: st
     } else {
       const err = await res.json().catch(() => null);
       console.warn('Backend rejected site settings:', res.status, err);
+      // Revert optimistic cache on explicit rejection so state doesn't lie to user
+      if (typeof window !== 'undefined' && prevCached) {
+        localStorage.setItem('sjis_site_settings', prevCached);
+        try {
+          window.dispatchEvent(new CustomEvent('sjis_settings_updated', { detail: JSON.parse(prevCached) }));
+        } catch (e) {}
+      }
+      return null;
     }
   } catch (e) {
     console.warn('Network error or timeout on PUT /site-settings/:', e);
-  }
-
-  // If backend was temporarily unreachable, return optimistic data so user experience is not blocked
-  if (typeof window !== 'undefined') {
-    const cached = localStorage.getItem('sjis_site_settings');
-    if (cached) {
-      try {
-        return JSON.parse(cached);
-      } catch (e) {}
+    // If backend was temporarily unreachable (network blip), return optimistic data so offline editing is kept
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('sjis_site_settings');
+      if (cached) {
+        try {
+          return JSON.parse(cached);
+        } catch (err) {}
+      }
     }
   }
+
   return null;
 }
 
