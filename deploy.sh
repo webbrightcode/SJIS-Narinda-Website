@@ -50,6 +50,16 @@ if [ ! -f .env ]; then
         sed -i.bak "s/DJANGO_SECRET_KEY=.*/DJANGO_SECRET_KEY=sjis-sec-${RAND_SECRET}/" .env && rm -f .env.bak
     fi
     echo -e "${GREEN}[✓] .env generated successfully.${NC}"
+else
+    # Automatically synchronize legacy default credentials in existing .env file
+    if grep -q "DJANGO_SUPERUSER_PASSWORD=sjisadmin2026" .env 2>/dev/null; then
+        sed -i.bak 's/DJANGO_SUPERUSER_PASSWORD=sjisadmin2026/DJANGO_SUPERUSER_PASSWORD=HolyCro\$\$Narind@2026/' .env && rm -f .env.bak
+        echo -e "${GREEN}[✓] Synchronized superadmin password to HolyCro\$\$Narind@2026 in .env${NC}"
+    fi
+    if grep -q "DJANGO_SUPERUSER_USERNAME=admin" .env 2>/dev/null; then
+        sed -i.bak 's/DJANGO_SUPERUSER_USERNAME=admin/DJANGO_SUPERUSER_USERNAME=SjisN_Admin/' .env && rm -f .env.bak
+        echo -e "${GREEN}[✓] Synchronized superadmin username to SjisN_Admin in .env${NC}"
+    fi
 fi
 
 # Load variables from .env for summary output
@@ -195,8 +205,8 @@ echo -e "  ⚙️  Django Admin Console:      ${CYAN}https://narinda.sjis.edu.bd
 echo -e "  🔌 API Diagnostic Endpoint:   ${CYAN}https://narinda.sjis.edu.bd/api/system-diagnostics/${NC}"
 echo -e "--------------------------------------------------------------------"
 echo -e "  🔑 Administrator Credentials:"
-echo -e "     Username:  ${YELLOW}${DJANGO_SUPERUSER_USERNAME:-SjisN_Admin}${NC}"
-echo -e "     Password:  ${YELLOW}${DJANGO_SUPERUSER_PASSWORD:-HolyCro\\$\\$Narind@2026}${NC}"
+echo -e "     Username:  ${YELLOW}SjisN_Admin${NC}"
+echo -e "     Password:  ${YELLOW}HolyCro\\$\\$Narind@2026${NC}"
 echo -e "     Email:     ${YELLOW}${DJANGO_SUPERUSER_EMAIL:-admin@sjis-narinda.edu.bd}${NC}"
 echo -e "====================================================================\n"
 
