@@ -64,9 +64,8 @@ npm run dev
 ---
 
 ## 🔑 Default Administrator Credentials
-- **Username**: `admin`
-- **Password**: `sjisadmin2026`
-*(Pre-filled demo credentials link is also available on `/admin` for rapid access)*
+- **Username**: `SjisN_Admin`
+- **Password**: `HolyCro$$Narind@2026`
 
 ---
 
@@ -116,7 +115,7 @@ This automatically configures the Python virtualenv, runs migrations, creates th
 - **REST API Diagnostics**: `https://narinda.sjis.edu.bd/api/system-diagnostics/`
 
 ## 🔑 Default Administrator Credentials
-- **Username**: `admin` (configurable via `DJANGO_SUPERUSER_USERNAME`)
-- **Password**: `sjisadmin2026` (configurable via `DJANGO_SUPERUSER_PASSWORD`)
+- **Username**: `SjisN_Admin` (configurable via `DJANGO_SUPERUSER_USERNAME`)
+- **Password**: `HolyCro$$Narind@2026` (configurable via `DJANGO_SUPERUSER_PASSWORD`)
 - **Email**: `admin@sjis-narinda.edu.bd`
 

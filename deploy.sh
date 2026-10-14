@@ -195,8 +195,8 @@ echo -e "  ⚙️  Django Admin Console:      ${CYAN}https://narinda.sjis.edu.bd
 echo -e "  🔌 API Diagnostic Endpoint:   ${CYAN}https://narinda.sjis.edu.bd/api/system-diagnostics/${NC}"
 echo -e "--------------------------------------------------------------------"
 echo -e "  🔑 Administrator Credentials:"
-echo -e "     Username:  ${YELLOW}${DJANGO_SUPERUSER_USERNAME:-admin}${NC}"
-echo -e "     Password:  ${YELLOW}${DJANGO_SUPERUSER_PASSWORD:-sjisadmin2026}${NC}"
+echo -e "     Username:  ${YELLOW}${DJANGO_SUPERUSER_USERNAME:-SjisN_Admin}${NC}"
+echo -e "     Password:  ${YELLOW}${DJANGO_SUPERUSER_PASSWORD:-HolyCro\\$\\$Narind@2026}${NC}"
 echo -e "     Email:     ${YELLOW}${DJANGO_SUPERUSER_EMAIL:-admin@sjis-narinda.edu.bd}${NC}"
 echo -e "====================================================================\n"
 

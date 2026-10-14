@@ -37,8 +37,8 @@ services:
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-django-insecure-sjis-narinda-prod-key-739281a9}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-narinda.sjis.edu.bd,www.narinda.sjis.edu.bd,localhost,127.0.0.1,backend,web,172.17.0.1}
       DATABASE_URL: postgres://${POSTGRES_USER:-sjis_user}:${POSTGRES_PASSWORD:-sjis_secure_pass_2026}@db:5432/${POSTGRES_DB:-sjis_narinda_db}
-      DJANGO_SUPERUSER_USERNAME: ${DJANGO_SUPERUSER_USERNAME:-admin}
-      DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD:-sjisadmin2026}
+      DJANGO_SUPERUSER_USERNAME: ${DJANGO_SUPERUSER_USERNAME:-SjisN_Admin}
+      DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD:-HolyCro$$$$Narind@2026}
       DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL:-admin@sjis-narinda.edu.bd}
       FRONTEND_URL: ${FRONTEND_URL:-https://narinda.sjis.edu.bd}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://narinda.sjis.edu.bd,http://narinda.sjis.edu.bd,https://www.narinda.sjis.edu.bd,http://localhost:3000,http://127.0.0.1:3000}
