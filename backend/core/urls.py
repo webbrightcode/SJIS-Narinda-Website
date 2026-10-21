@@ -23,6 +23,9 @@ from .views import (
     SyllabusItemViewSet,
     PublicationViewSet,
     FileUploadView,
+    OnlineApplicationViewSet,
+    ApplicationDocumentViewSet,
+    ApplicationStatusLookupView,
 )
 
 router = DefaultRouter()
@@ -38,6 +41,8 @@ router.register(r'faqs', FAQViewSet, basename='faq')
 router.register(r'faculty', StaffMemberViewSet, basename='faculty')
 router.register(r'staff-members', StaffMemberViewSet, basename='staff-member')
 router.register(r'inquiries', AdmissionInquiryViewSet, basename='inquiry')
+router.register(r'applications', OnlineApplicationViewSet, basename='application')
+router.register(r'app-documents', ApplicationDocumentViewSet, basename='app-document')
 
 urlpatterns = [
     path('', include(router.urls)),
@@ -52,4 +57,5 @@ urlpatterns = [
     path('data-restore/', DataRestoreView.as_view(), name='data-restore'),
     path('auth/login/', AdminLoginView.as_view(), name='admin-login'),
     path('auth/me/', AdminVerifyView.as_view(), name='admin-verify'),
+    path('applications/track/', ApplicationStatusLookupView.as_view(), name='application-track'),
 ]

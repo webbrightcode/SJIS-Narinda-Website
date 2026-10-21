@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   GraduationCap,
   Sparkles,
@@ -98,12 +99,31 @@ export default function AdmissionPage() {
             {guide?.overview ||
               "Begin your child's transformative journey at St. Joseph International School, Narinda. Review criteria, fee details, and apply online."}
           </p>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+            <Link
+              href="/admission/apply"
+              className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-2xl bg-gradient-to-r from-[#D4AF37] via-amber-400 to-[#D4AF37] text-[#00183F] font-black text-sm shadow-xl shadow-amber-400/25 hover:shadow-amber-400/40 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer group"
+            >
+              <Sparkles className="w-4 h-4 text-[#00183F] fill-current" />
+              <span>Apply Online (Session {guide?.academic_year || '2026-2027'})</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
+
+            <Link
+              href="/admission/status"
+              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-sm backdrop-blur-sm transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+            >
+              <Clock className="w-4 h-4 text-amber-300" />
+              <span>Track Application Status</span>
+            </Link>
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
             <a
               href="https://portal.narinda.sjis.edu.bd/"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-amber-400/40 text-amber-300 text-xs font-bold transition-all shadow-sm group"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-amber-400/30 text-amber-300 text-xs font-semibold transition-all shadow-sm group"
             >
               <GraduationCap className="w-4 h-4 text-[#D4AF37]" />
               <span>Already Enrolled? Student & Parent Portal Login</span>
@@ -140,6 +160,68 @@ export default function AdmissionPage() {
           </ScrollReveal>
         )}
 
+        {/* Online Admission Portal Feature Card */}
+        <ScrollReveal direction="up" distance={20} duration={600}>
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#00183F] via-[#071F48] to-[#00122E] p-8 sm:p-10 border border-[#D4AF37]/30 shadow-2xl text-white">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-[#D4AF37]/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+              <div className="lg:col-span-7 space-y-4">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/40 text-[#D4AF37] text-xs font-bold uppercase tracking-wider">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Digital Admission System Active</span>
+                </div>
+                <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight">
+                  Seamless Online Admission for Academic Session {guide?.academic_year || '2026-2027'}
+                </h3>
+                <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+                  Experience a streamlined, paperless application process modeled on world-class English medium standards. Complete student details, upload documents digitally, and track real-time admission milestones.
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 text-xs">
+                  <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                    <span className="block text-[#D4AF37] font-bold text-sm">Step 1</span>
+                    <span className="text-slate-300 text-[11px]">Digital Form</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                    <span className="block text-[#D4AF37] font-bold text-sm">Step 2</span>
+                    <span className="text-slate-300 text-[11px]">Doc Verification</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                    <span className="block text-[#D4AF37] font-bold text-sm">Step 3</span>
+                    <span className="text-slate-300 text-[11px]">Assessment/Exam</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                    <span className="block text-[#D4AF37] font-bold text-sm">Step 4</span>
+                    <span className="text-slate-300 text-[11px]">Enrolment & Slip</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="lg:col-span-5 flex flex-col sm:flex-row lg:flex-col gap-3 justify-center">
+                <Link
+                  href="/admission/apply"
+                  className="w-full inline-flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl bg-gradient-to-r from-[#D4AF37] via-amber-400 to-[#D4AF37] text-[#00183F] font-black text-sm shadow-xl shadow-amber-400/20 hover:scale-[1.02] active:scale-[0.98] transition-all text-center group"
+                >
+                  <FileText className="w-4 h-4 text-[#00183F]" />
+                  <span>Start Online Application</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
+
+                <Link
+                  href="/admission/status"
+                  className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-sm backdrop-blur-sm transition-all hover:scale-[1.02] active:scale-[0.98] text-center"
+                >
+                  <Clock className="w-4 h-4 text-amber-300" />
+                  <span>Track Application & Download Slip</span>
+                </Link>
+
+                <p className="text-[11px] text-slate-400 text-center">
+                  Need assistance? Call Admissions Desk: <span className="text-slate-200 font-semibold">+880 1746-866393</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </ScrollReveal>
+
         {/* 1. Admission Roadmap (5 Steps) */}
         <section>
           <ScrollReveal direction="up" distance={20} duration={600}>
@@ -174,6 +256,30 @@ export default function AdmissionPage() {
                       {step.description}
                     </p>
                   </div>
+
+                  {step.step === 1 && (
+                    <div className="mt-4 pt-3 border-t border-slate-100">
+                      <Link
+                        href="/admission/apply"
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-[#00183F] hover:text-[#C8102E] transition-colors"
+                      >
+                        <span>Apply Online Now</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  )}
+
+                  {step.step === 2 && (
+                    <div className="mt-4 pt-3 border-t border-slate-100">
+                      <Link
+                        href="/admission/status"
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-[#00183F] hover:text-[#C8102E] transition-colors"
+                      >
+                        <span>Check Verification</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </ScrollReveal>
             ))}

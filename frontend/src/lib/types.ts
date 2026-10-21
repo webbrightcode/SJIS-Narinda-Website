@@ -351,3 +351,124 @@ export interface StaffMember {
 }
 
 
+// ── Online Application System ─────────────────────────────────────────────────
+
+export type ApplicationStatus =
+  | 'draft'
+  | 'submitted'
+  | 'under_review'
+  | 'shortlisted'
+  | 'interview_scheduled'
+  | 'documents_required'
+  | 'approved'
+  | 'enrolled'
+  | 'waitlisted'
+  | 'rejected'
+  | 'withdrawn';
+
+export interface OnlineApplicationFormData {
+  // Step 1 – Student Info
+  student_first_name: string;
+  student_last_name: string;
+  student_name_bangla: string;
+  date_of_birth: string;
+  gender: 'male' | 'female' | 'other';
+  religion: string;
+  blood_group: string;
+  nationality: string;
+  birth_certificate_no: string;
+  passport_no: string;
+  student_photo_url: string;
+
+  // Step 2 – Academic Background
+  grade_applying: string;
+  section_preference: string;
+  previous_school_name: string;
+  previous_school_city: string;
+  previous_school_board: string;
+  last_grade_result: string;
+  last_grade_year: string;
+  previous_curriculum: string;
+  extracurricular_interests: string;
+  special_needs_or_conditions: string;
+
+  // Step 3 – Parent / Guardian
+  father_name: string;
+  father_profession: string;
+  father_organization: string;
+  father_qualification: string;
+  father_phone: string;
+  father_nid: string;
+  mother_name: string;
+  mother_profession: string;
+  mother_organization: string;
+  mother_qualification: string;
+  mother_phone: string;
+  mother_nid: string;
+  guardian_relation: 'father' | 'mother' | 'guardian' | 'other';
+  contact_email: string;
+  contact_phone: string;
+  emergency_contact_name: string;
+  emergency_contact_phone: string;
+  emergency_contact_relation: string;
+  present_address: string;
+  permanent_address: string;
+  present_thana: string;
+  present_district: string;
+  present_zip: string;
+
+  // Step 4 – Declaration
+  parent_declaration_accepted: boolean;
+  sibling_at_sjis: boolean;
+  sibling_name_class: string;
+  how_did_you_hear: string;
+  additional_notes: string;
+  academic_year: string;
+}
+
+export interface OnlineApplication extends OnlineApplicationFormData {
+  id: number;
+  application_id: string;
+  status: ApplicationStatus;
+  status_display: string;
+  student_full_name: string;
+  documents_count: number;
+  verified_docs_count: number;
+  documents_verified: boolean;
+  created_at: string;
+  updated_at: string;
+  submitted_at?: string;
+  entrance_exam_date?: string;
+  entrance_exam_venue?: string;
+  interview_date?: string;
+  admin_notes?: string;
+  offer_letter_sent?: boolean;
+  documents?: ApplicationDocument[];
+}
+
+export interface ApplicationDocument {
+  id: number;
+  application: number;
+  doc_type: string;
+  doc_type_display: string;
+  file_url: string;
+  original_filename: string;
+  file_size: string;
+  verified: boolean;
+  verified_by: string;
+  uploaded_at: string;
+}
+
+export interface ApplicationStatusResult {
+  application_id: string;
+  student_name: string;
+  grade_applying: string;
+  academic_year: string;
+  status: ApplicationStatus;
+  status_display: string;
+  status_message: string;
+  submitted_at?: string;
+  entrance_exam_date?: string;
+  entrance_exam_venue?: string;
+  documents_verified: boolean;
+}

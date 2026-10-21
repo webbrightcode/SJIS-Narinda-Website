@@ -480,3 +480,205 @@ class Publication(models.Model):
     def __str__(self):
         return f"{self.title} ({self.get_publication_type_display()} - {self.academic_year})"
 
+
+import uuid as _uuid
+
+
+class OnlineApplication(models.Model):
+    """Full online admission application (multi-step form)."""
+
+    STATUS_CHOICES = [
+        ('draft', 'Draft (Incomplete)'),
+        ('submitted', 'Submitted – Pending Review'),
+        ('under_review', 'Under Review'),
+        ('shortlisted', 'Shortlisted – Entrance Exam Scheduled'),
+        ('interview_scheduled', 'Interview Scheduled'),
+        ('documents_required', 'Additional Documents Required'),
+        ('approved', 'Approved – Admission Offered'),
+        ('enrolled', 'Enrolled / Confirmed'),
+        ('waitlisted', 'Waitlisted'),
+        ('rejected', 'Not Selected'),
+        ('withdrawn', 'Withdrawn by Applicant'),
+    ]
+
+    GENDER_CHOICES = [
+        ('male', 'Male'),
+        ('female', 'Female'),
+        ('other', 'Other / Prefer not to say'),
+    ]
+
+    RELIGION_CHOICES = [
+        ('islam', 'Islam'),
+        ('christianity', 'Christianity'),
+        ('hinduism', 'Hinduism'),
+        ('buddhism', 'Buddhism'),
+        ('other', 'Other'),
+    ]
+
+    BLOOD_GROUP_CHOICES = [
+        ('A+', 'A+'), ('A-', 'A-'),
+        ('B+', 'B+'), ('B-', 'B-'),
+        ('AB+', 'AB+'), ('AB-', 'AB-'),
+        ('O+', 'O+'), ('O-', 'O-'),
+        ('unknown', 'Unknown'),
+    ]
+
+    GUARDIAN_RELATION_CHOICES = [
+        ('father', 'Father'),
+        ('mother', 'Mother'),
+        ('guardian', 'Legal Guardian'),
+        ('other', 'Other Relative'),
+    ]
+
+    # ── Unique Application Reference ──────────────────────────────────────────
+    application_id = models.CharField(
+        max_length=20, unique=True, blank=True,
+        help_text="Auto-generated e.g. SJIS-2026-00042"
+    )
+    academic_year = models.CharField(max_length=20, default="2026-2027")
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='submitted')
+    current_step = models.PositiveSmallIntegerField(default=4, help_text="Last completed step (1-4)")
+
+    # ── STEP 1 · Student Information ─────────────────────────────────────────
+    student_first_name = models.CharField(max_length=100)
+    student_last_name = models.CharField(max_length=100)
+    student_name_bangla = models.CharField(max_length=200, blank=True, default="")
+    date_of_birth = models.DateField()
+    gender = models.CharField(max_length=20, choices=GENDER_CHOICES)
+    religion = models.CharField(max_length=20, choices=RELIGION_CHOICES, blank=True, default="")
+    blood_group = models.CharField(max_length=10, choices=BLOOD_GROUP_CHOICES, default='unknown')
+    nationality = models.CharField(max_length=80, default="Bangladeshi")
+    birth_certificate_no = models.CharField(max_length=100, blank=True, default="")
+    passport_no = models.CharField(max_length=50, blank=True, default="")
+    student_photo_url = models.TextField(blank=True, default="")
+
+    # ── STEP 2 · Academic Background ─────────────────────────────────────────
+    grade_applying = models.CharField(max_length=80)
+    section_preference = models.CharField(max_length=30, blank=True, default="",
+        help_text="e.g. English Medium, Bangla Medium")
+    previous_school_name = models.CharField(max_length=255, blank=True, default="")
+    previous_school_city = models.CharField(max_length=120, blank=True, default="")
+    previous_school_board = models.CharField(max_length=120, blank=True, default="",
+        help_text="e.g. Dhaka Board, CAIE, NCTB")
+    last_grade_result = models.CharField(max_length=100, blank=True, default="",
+        help_text="e.g. GPA 5.00 / A* / 95%")
+    last_grade_year = models.CharField(max_length=20, blank=True, default="")
+    previous_curriculum = models.CharField(max_length=100, blank=True, default="",
+        help_text="e.g. Cambridge, National Curriculum, IB")
+    extracurricular_interests = models.TextField(blank=True, default="",
+        help_text="Clubs, sports, arts, competitions, etc.")
+    special_needs_or_conditions = models.TextField(blank=True, default="",
+        help_text="Any medical / learning conditions the school should know about")
+
+    # ── STEP 3 · Parent / Guardian Information ───────────────────────────────
+    # Father
+    father_name = models.CharField(max_length=200, blank=True, default="")
+    father_profession = models.CharField(max_length=150, blank=True, default="")
+    father_organization = models.CharField(max_length=200, blank=True, default="")
+    father_qualification = models.CharField(max_length=150, blank=True, default="")
+    father_phone = models.CharField(max_length=30, blank=True, default="")
+    father_nid = models.CharField(max_length=50, blank=True, default="")
+
+    # Mother
+    mother_name = models.CharField(max_length=200, blank=True, default="")
+    mother_profession = models.CharField(max_length=150, blank=True, default="")
+    mother_organization = models.CharField(max_length=200, blank=True, default="")
+    mother_qualification = models.CharField(max_length=150, blank=True, default="")
+    mother_phone = models.CharField(max_length=30, blank=True, default="")
+    mother_nid = models.CharField(max_length=50, blank=True, default="")
+
+    # Primary Guardian / Contact
+    guardian_relation = models.CharField(max_length=20, choices=GUARDIAN_RELATION_CHOICES, default='father')
+    contact_email = models.EmailField()
+    contact_phone = models.CharField(max_length=30)
+    emergency_contact_name = models.CharField(max_length=200, blank=True, default="")
+    emergency_contact_phone = models.CharField(max_length=30, blank=True, default="")
+    emergency_contact_relation = models.CharField(max_length=80, blank=True, default="")
+
+    # Address
+    present_address = models.TextField()
+    permanent_address = models.TextField(blank=True, default="")
+    present_thana = models.CharField(max_length=100, blank=True, default="")
+    present_district = models.CharField(max_length=100, blank=True, default="")
+    present_zip = models.CharField(max_length=20, blank=True, default="")
+
+    # ── STEP 4 · Declaration & Submission ────────────────────────────────────
+    parent_declaration_accepted = models.BooleanField(default=False)
+    sibling_at_sjis = models.BooleanField(default=False,
+        help_text="Does the student have a sibling currently enrolled at SJIS?")
+    sibling_name_class = models.CharField(max_length=200, blank=True, default="")
+    how_did_you_hear = models.CharField(max_length=150, blank=True, default="",
+        help_text="e.g. Facebook, Friend, Newspaper, Alumni")
+    additional_notes = models.TextField(blank=True, default="")
+
+    # ── Admin / Internal ─────────────────────────────────────────────────────
+    admin_notes = models.TextField(blank=True, default="")
+    entrance_exam_date = models.DateField(null=True, blank=True)
+    entrance_exam_venue = models.CharField(max_length=255, blank=True, default="")
+    entrance_exam_score = models.CharField(max_length=50, blank=True, default="")
+    interview_date = models.DateTimeField(null=True, blank=True)
+    offer_letter_sent = models.BooleanField(default=False)
+    documents_verified = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    submitted_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Online Admission Application"
+        verbose_name_plural = "Online Admission Applications"
+
+    def save(self, *args, **kwargs):
+        if not self.application_id:
+            # Generate SJIS-YYYY-NNNNN format
+            import datetime
+            year = datetime.date.today().year
+            last = OnlineApplication.objects.order_by('-id').first()
+            seq = (last.id + 1) if last else 1
+            self.application_id = f"SJIS-{year}-{seq:05d}"
+        super().save(*args, **kwargs)
+
+    @property
+    def student_full_name(self):
+        return f"{self.student_first_name} {self.student_last_name}".strip()
+
+    def __str__(self):
+        return f"[{self.application_id}] {self.student_full_name} – {self.grade_applying} ({self.get_status_display()})"
+
+
+class ApplicationDocument(models.Model):
+    """Documents uploaded as part of an OnlineApplication."""
+
+    DOC_TYPE_CHOICES = [
+        ('birth_certificate', 'Birth Certificate'),
+        ('previous_report_card', 'Previous School Report Card / Marksheet'),
+        ('transfer_certificate', 'Transfer Certificate (TC)'),
+        ('student_photo', 'Student Passport-size Photo'),
+        ('parent_nid', 'Parent / Guardian NID'),
+        ('immunization_record', 'Immunization / Health Record'),
+        ('recommendation_letter', 'Recommendation Letter'),
+        ('other', 'Other Supporting Document'),
+    ]
+
+    application = models.ForeignKey(
+        OnlineApplication,
+        on_delete=models.CASCADE,
+        related_name='documents'
+    )
+    doc_type = models.CharField(max_length=50, choices=DOC_TYPE_CHOICES)
+    file_url = models.TextField(help_text="Uploaded file URL")
+    original_filename = models.CharField(max_length=255, blank=True, default="")
+    file_size = models.CharField(max_length=50, blank=True, default="")
+    verified = models.BooleanField(default=False)
+    verified_by = models.CharField(max_length=100, blank=True, default="")
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['doc_type']
+        verbose_name = "Application Document"
+        verbose_name_plural = "Application Documents"
+
+    def __str__(self):
+        return f"{self.get_doc_type_display()} for {self.application.application_id}"
+

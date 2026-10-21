@@ -11,6 +11,8 @@ from .models import (
     StaffMember,
     SyllabusItem,
     Publication,
+    OnlineApplication,
+    ApplicationDocument,
 )
 
 admin.site.site_header = "St. Joseph International School, Narinda - Administration"
@@ -119,3 +121,96 @@ class PublicationAdmin(admin.ModelAdmin):
     search_fields = ('title', 'edition', 'description', 'editor_name')
     prepopulated_fields = {'slug': ('title',)}
 
+
+
+class ApplicationDocumentInline(admin.TabularInline):
+    model = ApplicationDocument
+    extra = 0
+    fields = ('doc_type', 'file_url', 'original_filename', 'file_size', 'verified', 'verified_by', 'uploaded_at')
+    readonly_fields = ('uploaded_at',)
+
+
+@admin.register(OnlineApplication)
+class OnlineApplicationAdmin(admin.ModelAdmin):
+    list_display = (
+        'application_id', 'student_full_name_display', 'gender', 'grade_applying',
+        'academic_year', 'status', 'documents_verified', 'created_at',
+    )
+    list_filter = ('status', 'grade_applying', 'academic_year', 'gender', 'documents_verified')
+    search_fields = (
+        'application_id', 'student_first_name', 'student_last_name',
+        'contact_email', 'contact_phone', 'father_name', 'mother_name',
+    )
+    readonly_fields = ('application_id', 'created_at', 'updated_at', 'submitted_at')
+    inlines = [ApplicationDocumentInline]
+    list_per_page = 30
+    date_hierarchy = 'created_at'
+
+    fieldsets = (
+        ('Application Reference', {
+            'fields': ('application_id', 'academic_year', 'status', 'current_step',
+                       'submitted_at', 'created_at', 'updated_at')
+        }),
+        ('Student Information', {
+            'fields': (
+                'student_first_name', 'student_last_name', 'student_name_bangla',
+                'date_of_birth', 'gender', 'religion', 'blood_group',
+                'nationality', 'birth_certificate_no', 'passport_no', 'student_photo_url',
+            )
+        }),
+        ('Academic Background', {
+            'fields': (
+                'grade_applying', 'section_preference',
+                'previous_school_name', 'previous_school_city', 'previous_school_board',
+                'last_grade_result', 'last_grade_year', 'previous_curriculum',
+                'extracurricular_interests', 'special_needs_or_conditions',
+            )
+        }),
+        ("Father Information", {
+            'fields': (
+                'father_name', 'father_profession', 'father_organization',
+                'father_qualification', 'father_phone', 'father_nid',
+            ),
+            'classes': ('collapse',),
+        }),
+        ("Mother Information", {
+            'fields': (
+                'mother_name', 'mother_profession', 'mother_organization',
+                'mother_qualification', 'mother_phone', 'mother_nid',
+            ),
+            'classes': ('collapse',),
+        }),
+        ('Contact and Address', {
+            'fields': (
+                'guardian_relation', 'contact_email', 'contact_phone',
+                'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relation',
+                'present_address', 'present_thana', 'present_district', 'present_zip',
+                'permanent_address',
+            )
+        }),
+        ('Declaration and Extras', {
+            'fields': (
+                'parent_declaration_accepted', 'sibling_at_sjis', 'sibling_name_class',
+                'how_did_you_hear', 'additional_notes',
+            )
+        }),
+        ('Admin and Evaluation', {
+            'fields': (
+                'admin_notes', 'entrance_exam_date', 'entrance_exam_venue',
+                'entrance_exam_score', 'interview_date',
+                'offer_letter_sent', 'documents_verified',
+            )
+        }),
+    )
+
+    def student_full_name_display(self, obj):
+        return obj.student_full_name
+    student_full_name_display.short_description = 'Student Name'
+
+
+@admin.register(ApplicationDocument)
+class ApplicationDocumentAdmin(admin.ModelAdmin):
+    list_display = ('application', 'doc_type', 'original_filename', 'verified', 'verified_by', 'uploaded_at')
+    list_filter = ('doc_type', 'verified')
+    search_fields = ('application__application_id', 'application__student_first_name', 'original_filename')
+    readonly_fields = ('uploaded_at',)

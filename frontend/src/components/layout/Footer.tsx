@@ -128,12 +128,12 @@ export const Footer: React.FC = () => {
             </h4>
             <ul className="space-y-2.5 text-sm">
               {[
-                { name: 'Playgroup to Grade 5 (Primary)', href: '/admission#curriculum' },
-                { name: 'Junior Section (Grade 6-8)', href: '/admission#curriculum' },
+                { name: 'Apply Online (2026-27)', href: '/admission/apply' },
+                { name: 'Track Application Status', href: '/admission/status' },
+                { name: 'Admission Guidelines', href: '/admission' },
+                { name: 'Fee Schedule 2026-2027', href: '/admission#fees' },
                 { name: 'Cambridge IGCSE & O-Levels', href: '/admission#curriculum' },
                 { name: 'Cambridge GCE A-Levels', href: '/admission#curriculum' },
-                { name: 'Fee Schedule 2026-2027', href: '/admission#fees' },
-                { name: 'Download Prospectus', href: '/admission' },
               ].map((item) => (
                 <li key={item.name}>
                   <Link

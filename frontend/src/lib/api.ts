@@ -16,6 +16,9 @@ import {
   StaffMember,
   SyllabusItem,
   Publication,
+  OnlineApplicationFormData,
+  OnlineApplication,
+  ApplicationStatusResult,
 } from './types';
 import {
   FALLBACK_BUNDLE,
@@ -1009,4 +1012,175 @@ export async function incrementPublicationDownload(id: number): Promise<number |
 export const savePublication = (item: Partial<Publication>, token?: string) => saveResource<Publication>('publications', item, token);
 export const deletePublication = (id: number, token?: string) => removeResource('publications', id, token);
 
+
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Online Admission Application API
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Public: Submit a full online admission application.
+ */
+export async function submitOnlineApplication(
+  data: OnlineApplicationFormData
+): Promise<{ success: boolean; application_id?: string; id?: number; message: string }> {
+  try {
+    const res = await fetchWithTimeout(apiUrl('/applications/'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(data),
+    }, 15000);
+    const json = await res.json();
+    if (res.ok) {
+      return { success: true, application_id: json.application_id, id: json.id, message: json.message || 'Application submitted.' };
+    }
+    const errMsg = Object.entries(json as Record<string, unknown>)
+      .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : String(v)}`)
+      .join(' | ');
+    return { success: false, message: errMsg || 'Submission failed. Please try again.' };
+  } catch {
+    return { success: false, message: 'Network error. Please check your connection and try again.' };
+  }
+}
+
+/**
+ * Public: Look up application status by application_id.
+ */
+export async function trackApplicationStatus(
+  applicationId: string
+): Promise<{ success: boolean; data?: ApplicationStatusResult; error?: string }> {
+  try {
+    const res = await fetchWithTimeout(
+      apiUrl(`/applications/track/?id=${encodeURIComponent(applicationId)}`),
+      { headers: { Accept: 'application/json' } },
+      8000
+    );
+    const json = await res.json();
+    if (res.ok) return { success: true, data: json as ApplicationStatusResult };
+    return { success: false, error: (json as { error?: string }).error || 'Application not found.' };
+  } catch {
+    return { success: false, error: 'Network error. Please try again.' };
+  }
+}
+
+/**
+ * Admin: List all applications.
+ */
+export async function listApplications(
+  token: string,
+  params: { status?: string; grade?: string; year?: string; q?: string } = {}
+): Promise<OnlineApplication[]> {
+  try {
+    const query = new URLSearchParams();
+    if (params.status) query.set('status', params.status);
+    if (params.grade) query.set('grade', params.grade);
+    if (params.year) query.set('year', params.year);
+    if (params.q) query.set('q', params.q);
+    const url = apiUrl(`/applications/?${query.toString()}`);
+    const res = await fetchWithTimeout(url, { headers: getAuthHeaders(token) });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data) ? data : ((data as { results?: OnlineApplication[] }).results ?? []);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Admin: Get full details of a single application.
+ */
+export async function getApplication(id: number, token: string): Promise<OnlineApplication | null> {
+  try {
+    const res = await fetchWithTimeout(apiUrl(`/applications/${id}/`), { headers: getAuthHeaders(token) });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Admin: Change application status + optional fields.
+ */
+export async function changeApplicationStatus(
+  id: number,
+  token: string,
+  payload: {
+    status?: string;
+    admin_notes?: string;
+    entrance_exam_date?: string;
+    entrance_exam_venue?: string;
+    documents_verified?: boolean;
+    offer_letter_sent?: boolean;
+  }
+): Promise<{ success: boolean; data?: OnlineApplication; error?: string }> {
+  try {
+    const res = await fetchWithTimeout(apiUrl(`/applications/${id}/change-status/`), {
+      method: 'PATCH',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (res.ok) return { success: true, data: json as OnlineApplication };
+    return { success: false, error: (json as { error?: string }).error || 'Update failed.' };
+  } catch {
+    return { success: false, error: 'Network error.' };
+  }
+}
+
+/**
+ * Admin: Get application statistics.
+ */
+export async function getApplicationStats(
+  token: string
+): Promise<{ total: number; by_status: { status: string; count: number }[]; by_grade: { grade_applying: string; count: number }[] } | null> {
+  try {
+    const res = await fetchWithTimeout(apiUrl('/applications/stats/'), { headers: getAuthHeaders(token) });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Admin: Verify or unverify an uploaded application document.
+ */
+export async function verifyApplicationDocument(
+  docId: number,
+  verified: boolean,
+  token: string
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    const res = await fetchWithTimeout(apiUrl(`/app-documents/${docId}/verify/`), {
+      method: 'PATCH',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify({ verified }),
+    });
+    const json = await res.json();
+    if (res.ok) return { success: true, data: json };
+    return { success: false, error: (json as { error?: string }).error || 'Verification failed.' };
+  } catch {
+    return { success: false, error: 'Network error.' };
+  }
+}
+
+/**
+ * Admin: Delete an application.
+ */
+export async function deleteApplication(
+  id: number,
+  token: string
+): Promise<boolean> {
+  try {
+    const res = await fetchWithTimeout(apiUrl(`/applications/${id}/`), {
+      method: 'DELETE',
+      headers: getAuthHeaders(token),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
 

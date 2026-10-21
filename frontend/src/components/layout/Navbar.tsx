@@ -148,7 +148,28 @@ export const Navbar: React.FC = () => {
         },
       ],
     },
-    { name: 'Admission', href: '/admission' },
+    {
+      name: 'Admission',
+      children: [
+        {
+          name: 'Admission Guide & Fees',
+          href: '/admission',
+          icon: GraduationCap,
+        },
+        {
+          name: 'Online Application Form',
+          href: '/admission/apply',
+          icon: FileSpreadsheet,
+          badge: 'Apply Now',
+          badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+        },
+        {
+          name: 'Track Application Status',
+          href: '/admission/status',
+          icon: Sparkles,
+        },
+      ],
+    },
   ];
 
   const handleMouseEnter = (itemName: string) => {

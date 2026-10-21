@@ -119,6 +119,7 @@ import { FacilitiesManager } from '@/components/admin/FacilitiesManager';
 import { AboutPageManager } from '@/components/admin/AboutPageManager';
 import { NewsManager } from '@/components/admin/NewsManager';
 import { PublicationManager } from '@/components/admin/PublicationManager';
+import { OnlineApplicationsManager } from '@/components/admin/OnlineApplicationsManager';
 
 export default function AdminDashboardPage() {
   // Authentication State
@@ -165,6 +166,7 @@ export default function AdminDashboardPage() {
 
   const [inquirySearch, setInquirySearch] = useState('');
   const [inquiryStatusFilter, setInquiryStatusFilter] = useState('all');
+  const [admissionPipelineSubTab, setAdmissionPipelineSubTab] = useState<'applications' | 'inquiries'>('applications');
 
   // Activity Audit Log
   const [activityLogs, setActivityLogs] = useState<Array<{ id: string; action: string; time: string; type: string }>>([
@@ -2270,7 +2272,41 @@ export default function AdminDashboardPage() {
           {/* TAB 6: INQUIRIES & ADMISSIONS PIPELINE */}
           {activeTab === 'inquiries' && (
             <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              {/* Admissions Sub-tabs Toggle */}
+              <div className="flex border-b border-slate-200 bg-white p-2 rounded-2xl shadow-xs gap-2">
+                <button
+                  onClick={() => setAdmissionPipelineSubTab('applications')}
+                  className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                    admissionPipelineSubTab === 'applications'
+                      ? 'bg-[#00183F] text-amber-300 shadow-md'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  }`}
+                >
+                  <GraduationCap className="w-4 h-4" />
+                  <span>Full Online Applications (Form & Documents)</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                    Live Portal
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => setAdmissionPipelineSubTab('inquiries')}
+                  className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                    admissionPipelineSubTab === 'inquiries'
+                      ? 'bg-[#00183F] text-amber-300 shadow-md'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  }`}
+                >
+                  <UserCheck className="w-4 h-4" />
+                  <span>Quick Inquiries ({inquiries.length})</span>
+                </button>
+              </div>
+
+              {admissionPipelineSubTab === 'applications' ? (
+                <OnlineApplicationsManager token={token!} onToast={showToast} />
+              ) : (
+                <div className="space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h3 className="text-xl font-black text-[#00183F]">
                     Admission Inquiries & Application Tracker
@@ -2482,6 +2518,8 @@ export default function AdminDashboardPage() {
                   >
                     Cancel
                   </button>
+                </div>
+              )}
                 </div>
               )}
             </div>

@@ -24,6 +24,8 @@ from .models import (
     StaffMember,
     SyllabusItem,
     Publication,
+    OnlineApplication,
+    ApplicationDocument,
 )
 from .serializers import (
     SliderSlideSerializer,
@@ -40,6 +42,9 @@ from .serializers import (
     StaffMemberSerializer,
     SyllabusItemSerializer,
     PublicationSerializer,
+    OnlineApplicationSerializer,
+    OnlineApplicationListSerializer,
+    ApplicationDocumentSerializer,
 )
 
 
@@ -769,4 +774,186 @@ class FileUploadView(APIView):
         }, status=status.HTTP_201_CREATED)
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# Online Admission Application System
+# ══════════════════════════════════════════════════════════════════════════════
 
+class OnlineApplicationViewSet(viewsets.ModelViewSet):
+    """
+    Public: POST (create application).
+    Authenticated admins: GET list, GET detail, PATCH/PUT update, DELETE.
+    """
+
+    def get_permissions(self):
+        if self.action in ('create',):
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return OnlineApplicationListSerializer
+        return OnlineApplicationSerializer
+
+    def get_queryset(self):
+        qs = OnlineApplication.objects.all()
+        status_filter = self.request.query_params.get('status')
+        grade = self.request.query_params.get('grade')
+        year = self.request.query_params.get('year')
+        q = self.request.query_params.get('q')
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        if grade:
+            qs = qs.filter(grade_applying__icontains=grade)
+        if year:
+            qs = qs.filter(academic_year=year)
+        if q:
+            qs = qs.filter(
+                models.Q(student_first_name__icontains=q) |
+                models.Q(student_last_name__icontains=q) |
+                models.Q(application_id__icontains=q) |
+                models.Q(contact_email__icontains=q) |
+                models.Q(contact_phone__icontains=q)
+            )
+        return qs
+
+    def create(self, request, *args, **kwargs):
+        """Public endpoint: submit a full application."""
+        import django.utils.timezone as tz
+        serializer = OnlineApplicationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.save(
+            status='submitted',
+            current_step=4,
+            submitted_at=tz.now(),
+        )
+        return Response(
+            {
+                'success': True,
+                'message': 'Your application has been submitted successfully.',
+                'application_id': instance.application_id,
+                'id': instance.id,
+            },
+            status=status.HTTP_201_CREATED
+        )
+
+    @action(detail=True, methods=['patch'], url_path='change-status')
+    def change_status(self, request, pk=None):
+        """Admin: change application status and optionally add notes."""
+        app = self.get_object()
+        new_status = request.data.get('status')
+        notes = request.data.get('admin_notes')
+        exam_date = request.data.get('entrance_exam_date')
+        exam_venue = request.data.get('entrance_exam_venue')
+        interview_dt = request.data.get('interview_date')
+        offer_letter_sent = request.data.get('offer_letter_sent')
+        docs_verified = request.data.get('documents_verified')
+
+        valid_statuses = [s[0] for s in OnlineApplication.STATUS_CHOICES]
+        if new_status and new_status not in valid_statuses:
+            return Response({'error': f'Invalid status: {new_status}'}, status=400)
+
+        if new_status:
+            app.status = new_status
+        if notes is not None:
+            app.admin_notes = notes
+        if exam_date is not None:
+            app.entrance_exam_date = exam_date or None
+        if exam_venue is not None:
+            app.entrance_exam_venue = exam_venue
+        if interview_dt is not None:
+            app.interview_date = interview_dt or None
+        if offer_letter_sent is not None:
+            app.offer_letter_sent = bool(offer_letter_sent)
+        if docs_verified is not None:
+            app.documents_verified = bool(docs_verified)
+        app.save()
+
+        return Response(OnlineApplicationSerializer(app).data)
+
+    @action(detail=False, methods=['get'], url_path='stats')
+    def stats(self, request):
+        """Admin: aggregate counts by status."""
+        from django.db.models import Count
+        total = OnlineApplication.objects.count()
+        by_status = list(
+            OnlineApplication.objects.values('status').annotate(count=Count('id'))
+        )
+        by_grade = list(
+            OnlineApplication.objects.values('grade_applying').annotate(count=Count('id')).order_by('-count')[:10]
+        )
+        return Response({
+            'total': total,
+            'by_status': by_status,
+            'by_grade': by_grade,
+        })
+
+
+class ApplicationStatusLookupView(APIView):
+    """
+    Public: GET /api/applications/track/?id=SJIS-2026-00001
+    Lets applicants check their status without login.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        app_id = request.query_params.get('id', '').strip().upper()
+        if not app_id:
+            return Response({'error': 'Please provide an application ID (e.g. ?id=SJIS-2026-00001)'}, status=400)
+
+        try:
+            app = OnlineApplication.objects.get(application_id=app_id)
+        except OnlineApplication.DoesNotExist:
+            return Response({'error': 'No application found with that ID. Please check and try again.'}, status=404)
+
+        STATUS_MESSAGES = {
+            'submitted': 'Your application has been received and is awaiting review by our admissions team.',
+            'under_review': 'Our admissions team is currently reviewing your application.',
+            'shortlisted': 'Congratulations! You have been shortlisted. Please check your email for the entrance exam details.',
+            'interview_scheduled': 'An interview has been scheduled. Please check your email for the date and venue.',
+            'documents_required': 'Additional documents are required. Please contact the admissions office.',
+            'approved': 'Congratulations! Your child has been offered admission. Please contact us to confirm enrollment.',
+            'enrolled': 'Enrollment confirmed. Welcome to St. Joseph International School, Narinda!',
+            'waitlisted': 'Your application has been placed on the waitlist. We will notify you of any updates.',
+            'rejected': 'We regret that your application was not selected for the current session.',
+            'withdrawn': 'This application has been marked as withdrawn.',
+            'draft': 'Your application is still in draft. Please complete the form.',
+        }
+
+        return Response({
+            'application_id': app.application_id,
+            'student_name': app.student_full_name,
+            'grade_applying': app.grade_applying,
+            'academic_year': app.academic_year,
+            'status': app.status,
+            'status_display': app.get_status_display(),
+            'status_message': STATUS_MESSAGES.get(app.status, ''),
+            'submitted_at': app.submitted_at,
+            'entrance_exam_date': app.entrance_exam_date,
+            'entrance_exam_venue': app.entrance_exam_venue if app.entrance_exam_date else None,
+            'documents_verified': app.documents_verified,
+        })
+
+
+class ApplicationDocumentViewSet(viewsets.ModelViewSet):
+    serializer_class = ApplicationDocumentSerializer
+
+    def get_permissions(self):
+        if self.action in ('create', 'list'):
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
+
+    def get_queryset(self):
+        app_id = self.request.query_params.get('application')
+        qs = ApplicationDocument.objects.all()
+        if app_id:
+            qs = qs.filter(application_id=app_id)
+        return qs
+
+    @action(detail=True, methods=['patch'], url_path='verify', permission_classes=[permissions.IsAuthenticated])
+    def verify_document(self, request, pk=None):
+        """Admin: mark a document as verified."""
+        doc = self.get_object()
+        doc.verified = request.data.get('verified', True)
+        doc.verified_by = request.user.username
+        doc.save()
+        return Response(ApplicationDocumentSerializer(doc).data)

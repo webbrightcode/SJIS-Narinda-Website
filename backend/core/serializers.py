@@ -14,6 +14,8 @@ from .models import (
     StaffMember,
     SyllabusItem,
     Publication,
+    OnlineApplication,
+    ApplicationDocument,
 )
 
 
@@ -160,4 +162,53 @@ class PublicationSerializer(serializers.ModelSerializer):
         model = Publication
         fields = '__all__'
         extra_kwargs = {'slug': {'required': False}}
+
+
+class ApplicationDocumentSerializer(serializers.ModelSerializer):
+    doc_type_display = serializers.CharField(source='get_doc_type_display', read_only=True)
+
+    class Meta:
+        model = ApplicationDocument
+        fields = '__all__'
+        read_only_fields = ['uploaded_at']
+
+
+class OnlineApplicationSerializer(serializers.ModelSerializer):
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    gender_display = serializers.CharField(source='get_gender_display', read_only=True)
+    guardian_relation_display = serializers.CharField(source='get_guardian_relation_display', read_only=True)
+    student_full_name = serializers.CharField(read_only=True)
+    documents = ApplicationDocumentSerializer(many=True, read_only=True)
+    documents_count = serializers.SerializerMethodField()
+    verified_docs_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = OnlineApplication
+        fields = '__all__'
+        read_only_fields = ['application_id', 'created_at', 'updated_at']
+
+    def get_documents_count(self, obj):
+        return obj.documents.count()
+
+    def get_verified_docs_count(self, obj):
+        return obj.documents.filter(verified=True).count()
+
+
+class OnlineApplicationListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for list views (no nested docs)."""
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    student_full_name = serializers.CharField(read_only=True)
+    documents_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = OnlineApplication
+        fields = [
+            'id', 'application_id', 'student_full_name', 'student_first_name',
+            'student_last_name', 'gender', 'grade_applying', 'academic_year',
+            'contact_email', 'contact_phone', 'status', 'status_display',
+            'documents_count', 'documents_verified', 'created_at', 'submitted_at',
+        ]
+
+    def get_documents_count(self, obj):
+        return obj.documents.count()
 
