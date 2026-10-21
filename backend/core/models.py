@@ -554,8 +554,8 @@ class OnlineApplication(models.Model):
 
     # ── STEP 2 · Academic Background ─────────────────────────────────────────
     grade_applying = models.CharField(max_length=80)
-    section_preference = models.CharField(max_length=30, blank=True, default="",
-        help_text="e.g. English Medium, Bangla Medium")
+    section_preference = models.CharField(max_length=60, blank=True, default="English Medium (Cambridge)",
+        help_text="Exclusively English Medium (Cambridge Curriculum)")
     previous_school_name = models.CharField(max_length=255, blank=True, default="")
     previous_school_city = models.CharField(max_length=120, blank=True, default="")
     previous_school_board = models.CharField(max_length=120, blank=True, default="",

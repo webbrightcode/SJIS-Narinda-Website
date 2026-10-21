@@ -34,7 +34,7 @@ const INITIAL_FORM: OnlineApplicationFormData = {
   date_of_birth: '', gender: 'male', religion: '', blood_group: 'Unknown',
   nationality: 'Bangladeshi', birth_certificate_no: '', passport_no: '',
   student_photo_url: '',
-  grade_applying: 'Grade 1', section_preference: 'English Medium',
+  grade_applying: 'Grade 1', section_preference: 'English Medium (Cambridge)',
   previous_school_name: '', previous_school_city: '', previous_school_board: '',
   last_grade_result: '', last_grade_year: '', previous_curriculum: 'Cambridge International (CAIE)',
   extracurricular_interests: '', special_needs_or_conditions: '',
@@ -283,12 +283,16 @@ export default function OnlineApplicationPage() {
                         {GRADES.map(g => <option key={g} value={g}>{g}</option>)}
                       </select>
                     </Field>
-                    <Field label="Section / Medium Preference">
-                      <select className={selectClass} value={form.section_preference} onChange={e => set('section_preference', e.target.value)}>
-                        <option value="English Medium">English Medium (Cambridge)</option>
-                        <option value="Bangla Medium">Bangla Medium (NCTB)</option>
-                        <option value="No Preference">No Preference</option>
-                      </select>
+                    <Field label="Curriculum & Medium" hint="SJIS operates exclusively under the Cambridge International Curriculum">
+                      <div className="w-full px-4 py-2.5 rounded-xl border border-emerald-300 bg-emerald-50/70 flex items-center justify-between text-xs font-bold text-emerald-950">
+                        <span className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                          English Medium (Cambridge International)
+                        </span>
+                        <span className="text-[10px] uppercase font-black tracking-wider px-2 py-0.5 rounded bg-emerald-200 text-emerald-900 border border-emerald-300/60">
+                          CAIE Exclusive
+                        </span>
+                      </div>
                     </Field>
                   </div>
                   <div className="border-t border-slate-100 pt-4">
@@ -496,7 +500,7 @@ export default function OnlineApplicationPage() {
                         { label: 'Date of Birth', value: form.date_of_birth || '-' },
                         { label: 'Gender', value: form.gender ? form.gender.charAt(0).toUpperCase() + form.gender.slice(1) : '-' },
                         { label: 'Grade Applying', value: form.grade_applying || '-' },
-                        { label: 'Section', value: form.section_preference || '-' },
+                        { label: 'Curriculum & Medium', value: form.section_preference || 'English Medium (Cambridge)' },
                         { label: 'Academic Year', value: form.academic_year },
                         { label: 'Previous School', value: form.previous_school_name || 'Fresh Applicant' },
                         { label: 'Father', value: form.father_name || '-' },
