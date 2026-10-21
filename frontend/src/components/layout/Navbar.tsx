@@ -246,10 +246,11 @@ export const Navbar: React.FC = () => {
 
           {/* 2. Desktop Navigation with Grouped Dropdowns */}
           <nav className="hidden lg:flex items-center gap-1 xl:gap-2 2xl:gap-3 shrink-0">
-            {navItems.map((item) => {
+            {navItems.map((item, index) => {
               const active = isGroupActive(item);
               const hasChildren = Boolean(item.children && item.children.length > 0);
               const isOpen = openDropdown === item.name;
+              const isAlignRight = index >= navItems.length - 2;
 
               if (!hasChildren && item.href) {
                 return (
@@ -300,7 +301,9 @@ export const Navbar: React.FC = () => {
                   {/* Dropdown Popover Card */}
                   {isOpen && item.children && (
                     <div
-                      className="absolute top-full left-0 mt-1.5 min-w-[240px] w-max bg-[#001433]/98 backdrop-blur-xl border border-[#D4AF37]/25 shadow-2xl shadow-black/80 rounded-2xl p-1.5 z-50 animate-in fade-in-0 zoom-in-95 duration-150"
+                      className={`absolute top-full mt-1.5 min-w-[250px] w-max bg-[#001433]/98 backdrop-blur-xl border border-[#D4AF37]/25 shadow-2xl shadow-black/80 rounded-2xl p-1.5 z-50 animate-in fade-in-0 zoom-in-95 duration-150 ${
+                        isAlignRight ? 'right-0' : 'left-0'
+                      }`}
                       onMouseEnter={() => handleMouseEnter(item.name)}
                       onMouseLeave={handleMouseLeave}
                     >
