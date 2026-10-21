@@ -389,105 +389,9 @@ export default function OnlineApplicationPage() {
   // SUCCESS CONFIRMATION VIEW
   if (result?.success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-slate-50 flex items-center justify-center p-4 py-12">
-        <div className="max-w-2xl w-full bg-white rounded-3xl shadow-2xl border border-emerald-100 p-6 sm:p-12 text-center space-y-6">
-          <div className="w-20 h-20 rounded-full bg-emerald-50 border-4 border-emerald-200 flex items-center justify-center mx-auto shadow-md">
-            <CheckCircle2 className="w-10 h-10 text-emerald-500" />
-          </div>
-
-          <div>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold uppercase tracking-wider mb-2">
-              <Sparkles className="w-3.5 h-3.5" /> Application Received
-            </span>
-            <h1 className="text-2xl sm:text-3xl font-black text-[#00183F]">
-              Online Application Submitted Successfully!
-            </h1>
-            <p className="text-slate-600 text-xs sm:text-sm mt-2 max-w-lg mx-auto leading-relaxed">
-              Thank you for applying to <strong>St. Joseph International School, Narinda</strong> (Session{' '}
-              {form.academic_year}). Your candidate file has been recorded in our admissions registry.
-            </p>
-          </div>
-
-          {result.application_id && (
-            <div className="bg-[#00183F] text-white rounded-2xl p-6 shadow-xl relative overflow-hidden text-center space-y-2">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-[#D4AF37]/10 rounded-full blur-2xl pointer-events-none" />
-              <p className="text-xs text-slate-300 uppercase tracking-widest font-semibold">
-                Official Application Reference ID
-              </p>
-              <div className="flex items-center justify-center gap-3">
-                <span className="font-mono text-2xl sm:text-3xl font-black text-[#D4AF37] tracking-wider">
-                  {result.application_id}
-                </span>
-                <button
-                  type="button"
-                  onClick={copyAppId}
-                  className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
-                  title="Copy Application ID"
-                >
-                  {copiedId ? <CheckCircle2 className="w-5 h-5 text-emerald-400" /> : <Copy className="w-5 h-5" />}
-                </button>
-              </div>
-              {copiedId && (
-                <p className="text-[11px] text-emerald-300 font-bold animate-in fade-in">
-                  Reference ID copied to clipboard!
-                </p>
-              )}
-              <p className="text-[11px] text-slate-400">
-                Please save this ID. You will need it along with your contact phone to check admission milestones and download your entrance admit slip.
-              </p>
-            </div>
-          )}
-
-          {/* Next Steps Checklist */}
-          <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-5 text-left space-y-3">
-            <p className="text-xs font-black text-amber-900 uppercase tracking-wide flex items-center gap-2">
-              <Info className="w-4 h-4 text-amber-600" /> What Happens Next?
-            </p>
-            <ul className="text-xs text-amber-900 space-y-2">
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <span>
-                  <strong>Document Verification:</strong> Our admissions board will verify submitted documents within 2-4 business days.
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <span>
-                  <strong>Assessment & Interview:</strong> You will be notified via SMS/email regarding the date and time of the candidate assessment.
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <span>
-                  <strong>Entrance Admit Card:</strong> You can download and print your official Candidate Admit Card directly from the tracking portal.
-                </span>
-              </li>
-            </ul>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => setShowPrintModal(true)}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold text-sm shadow-lg shadow-emerald-700/25 active:scale-[0.98] transition-all cursor-pointer"
-            >
-              <Download className="w-4 h-4" />
-              <span>Download / Print Completed Form (PDF)</span>
-            </button>
-
-            <a
-              href={`/admission/status?id=${result.application_id}&phone=${encodeURIComponent(form.contact_phone)}`}
-              className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-[#00183F] text-amber-300 font-bold text-sm hover:bg-[#002257] transition-all shadow-md cursor-pointer"
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>Track Status</span>
-              <ArrowRight className="w-4 h-4" />
-            </a>
-          </div>
-        </div>
-
+      <>
         {/* Hidden Printable Container for Direct Browser Print Command */}
-        <div className="hidden print:block">
+        <div className="hidden print:block print:w-full print:m-0 print:p-0">
           <PrintableApplicationForm
             form={form}
             applicationId={result.application_id}
@@ -495,9 +399,108 @@ export default function OnlineApplicationPage() {
           />
         </div>
 
-        {/* Print & PDF Interactive Modal */}
+        {/* Screen View */}
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-slate-50 flex items-center justify-center p-4 py-12 print:hidden">
+          <div className="max-w-2xl w-full bg-white rounded-3xl shadow-2xl border border-emerald-100 p-6 sm:p-12 text-center space-y-6">
+            <div className="w-20 h-20 rounded-full bg-emerald-50 border-4 border-emerald-200 flex items-center justify-center mx-auto shadow-md">
+              <CheckCircle2 className="w-10 h-10 text-emerald-500" />
+            </div>
+
+            <div>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold uppercase tracking-wider mb-2">
+                <Sparkles className="w-3.5 h-3.5" /> Application Received
+              </span>
+              <h1 className="text-2xl sm:text-3xl font-black text-[#00183F]">
+                Online Application Submitted Successfully!
+              </h1>
+              <p className="text-slate-600 text-xs sm:text-sm mt-2 max-w-lg mx-auto leading-relaxed">
+                Thank you for applying to <strong>St. Joseph International School, Narinda</strong> (Session{' '}
+                {form.academic_year}). Your candidate file has been recorded in our admissions registry.
+              </p>
+            </div>
+
+            {result.application_id && (
+              <div className="bg-[#00183F] text-white rounded-2xl p-6 shadow-xl relative overflow-hidden text-center space-y-2">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[#D4AF37]/10 rounded-full blur-2xl pointer-events-none" />
+                <p className="text-xs text-slate-300 uppercase tracking-widest font-semibold">
+                  Official Application Reference ID
+                </p>
+                <div className="flex items-center justify-center gap-3">
+                  <span className="font-mono text-2xl sm:text-3xl font-black text-[#D4AF37] tracking-wider">
+                    {result.application_id}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={copyAppId}
+                    className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+                    title="Copy Application ID"
+                  >
+                    {copiedId ? <CheckCircle2 className="w-5 h-5 text-emerald-400" /> : <Copy className="w-5 h-5" />}
+                  </button>
+                </div>
+                {copiedId && (
+                  <p className="text-[11px] text-emerald-300 font-bold animate-in fade-in">
+                    Reference ID copied to clipboard!
+                  </p>
+                )}
+                <p className="text-[11px] text-slate-400">
+                  Please save this ID. You will need it along with your contact phone to check admission milestones and download your entrance admit slip.
+                </p>
+              </div>
+            )}
+
+            {/* Next Steps Checklist */}
+            <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-5 text-left space-y-3">
+              <p className="text-xs font-black text-amber-900 uppercase tracking-wide flex items-center gap-2">
+                <Info className="w-4 h-4 text-amber-600" /> What Happens Next?
+              </p>
+              <ul className="text-xs text-amber-900 space-y-2">
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Document Verification:</strong> Our admissions board will verify submitted documents within 2-4 business days.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Assessment & Interview:</strong> You will be notified via SMS/email regarding the date and time of the candidate assessment.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Entrance Admit Card:</strong> You can download and print your official Candidate Admit Card directly from the tracking portal.
+                  </span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowPrintModal(true)}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold text-sm shadow-lg shadow-emerald-700/25 active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download / Print Completed Form (PDF)</span>
+              </button>
+
+              <a
+                href={`/admission/status?id=${result.application_id}&phone=${encodeURIComponent(form.contact_phone)}`}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-[#00183F] text-amber-300 font-bold text-sm hover:bg-[#002257] transition-all shadow-md cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>Track Status</span>
+                <ArrowRight className="w-4 h-4" />
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* Print & PDF Interactive Modal (Screen Only) */}
         {showPrintModal && (
-          <div className="fixed inset-0 z-50 bg-slate-900/85 backdrop-blur-sm overflow-y-auto p-3 sm:p-6 flex flex-col items-center">
+          <div className="fixed inset-0 z-50 bg-slate-900/85 backdrop-blur-sm overflow-y-auto p-3 sm:p-6 flex flex-col items-center print:hidden">
             {/* Action Bar */}
             <div className="sticky top-2 z-10 w-full max-w-[210mm] bg-[#00183F] text-white rounded-2xl p-4 shadow-2xl flex flex-wrap items-center justify-between gap-3 border border-amber-400/30 mb-4">
               <div className="flex items-center gap-3">
@@ -538,14 +541,24 @@ export default function OnlineApplicationPage() {
             </div>
           </div>
         )}
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="bg-slate-50 min-h-screen" ref={topRef}>
-      {/* Top Hero Banner */}
-      <section className="relative py-14 sm:py-20 bg-[#00183F] text-white overflow-hidden">
+    <>
+      {/* Hidden Printable Container for Direct Browser Print Command */}
+      <div className="hidden print:block print:w-full print:m-0 print:p-0">
+        <PrintableApplicationForm
+          form={form}
+          applicationId={result?.application_id}
+          documents={documents}
+        />
+      </div>
+
+      <div className="bg-slate-50 min-h-screen print:hidden" ref={topRef}>
+        {/* Top Hero Banner */}
+        <section className="relative py-14 sm:py-20 bg-[#00183F] text-white overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-[#D4AF37]/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 text-center space-y-3">
           <div className="flex flex-wrap items-center justify-center gap-2">
@@ -1977,19 +1990,11 @@ export default function OnlineApplicationPage() {
           </p>
         </div>
       </div>
-
-      {/* Hidden Printable Container for Direct Browser Print Command */}
-      <div className="hidden print:block">
-        <PrintableApplicationForm
-          form={form}
-          applicationId={result?.application_id}
-          documents={documents}
-        />
-      </div>
+    </div>
 
       {/* Print & PDF Interactive Modal (When Viewing on Screen) */}
       {showPrintModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/85 backdrop-blur-sm overflow-y-auto p-3 sm:p-6 flex flex-col items-center">
+        <div className="fixed inset-0 z-50 bg-slate-900/85 backdrop-blur-sm overflow-y-auto p-3 sm:p-6 flex flex-col items-center print:hidden">
           {/* Top Control Bar */}
           <div className="sticky top-2 z-10 w-full max-w-[210mm] bg-[#00183F] text-white rounded-2xl p-4 shadow-2xl flex flex-wrap items-center justify-between gap-3 border border-amber-400/30 mb-4">
             <div className="flex items-center gap-3">
@@ -2030,6 +2035,6 @@ export default function OnlineApplicationPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

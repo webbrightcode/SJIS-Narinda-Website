@@ -75,38 +75,36 @@ export function PrintableApplicationForm({
         @media print {
           html, body {
             background: #fff !important;
+            color: #000 !important;
             margin: 0 !important;
             padding: 0 !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
-          /* Hide standard web page content */
-          body > *:not(#print-root) {
+          nav, header, footer, aside, .no-print, [role="navigation"] {
             display: none !important;
-          }
-          /* Or if inside normal page tree, show printable root */
-          .no-print {
-            display: none !important;
-          }
-          .print-only-block {
-            display: block !important;
           }
           #printable-admission-form {
             display: block !important;
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
+            visibility: visible !important;
+            opacity: 1 !important;
             width: 100% !important;
             max-width: 100% !important;
-            padding: 8mm 10mm !important;
-            margin: 0 !important;
+            padding: 2mm 4mm !important;
+            margin: 0 auto !important;
             box-shadow: none !important;
             border: none !important;
             background: #fff !important;
+            color: #000 !important;
+          }
+          #printable-admission-form * {
+            visibility: visible !important;
+            color-adjust: exact !important;
+            -webkit-print-color-adjust: exact !important;
           }
           @page {
             size: A4 portrait;
-            margin: 8mm 10mm 8mm 10mm;
+            margin: 6mm 8mm 6mm 8mm;
           }
           .page-break-before {
             page-break-before: always;
