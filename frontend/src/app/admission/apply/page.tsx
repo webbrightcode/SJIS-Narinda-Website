@@ -858,10 +858,7 @@ export default function OnlineApplicationPage() {
 
                   {/* ── Birth Certificate & Passport Numbers ────────────────── */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <Field
-                      label="Birth Certificate Number"
-                      hint="17-digit Bangladesh online verified birth registration number"
-                    >
+                    <Field label="Birth Certificate Number">
                       <input
                         type="text"
                         className={inputClass}
@@ -871,10 +868,7 @@ export default function OnlineApplicationPage() {
                       />
                     </Field>
 
-                    <Field
-                      label="Passport Number (if available)"
-                      hint="Required for foreign passport holders or dual nationals"
-                    >
+                    <Field label="Passport Number (if applicable)">
                       <input
                         type="text"
                         className={inputClass}
@@ -1334,7 +1328,7 @@ export default function OnlineApplicationPage() {
                         {
                           type: 'birth_certificate',
                           title: 'Birth Registration Certificate',
-                          desc: '17-digit digital verified certificate',
+                          desc: 'Official certified birth certificate',
                           required: true,
                         },
                         {
