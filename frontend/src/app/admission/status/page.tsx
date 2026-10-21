@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   Search, CheckCircle2, Clock, XCircle, AlertCircle, FileCheck2,
-  GraduationCap, CalendarDays, Shield, RefreshCw, ArrowRight, Loader2,
+  GraduationCap, CalendarDays, Shield, RefreshCw, ArrowRight, Loader2, Printer,
 } from 'lucide-react';
 import { trackApplicationStatus } from '@/lib/api';
 import type { ApplicationStatusResult, ApplicationStatus } from '@/lib/types';
@@ -143,6 +143,14 @@ function StatusResult({ data }: { data: ApplicationStatusResult }) {
 
       {/* CTA */}
       <div className="flex flex-col sm:flex-row gap-3">
+        <button
+          type="button"
+          onClick={() => window.print()}
+          className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors cursor-pointer"
+        >
+          <Printer className="w-4 h-4 text-slate-500" />
+          <span>Print Status Slip</span>
+        </button>
         <a href="/admission"
           className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors">
           Back to Admissions

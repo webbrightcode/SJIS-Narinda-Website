@@ -30,10 +30,12 @@ import {
   ChevronDown,
   ChevronUp,
   Edit3,
+  Download,
 } from 'lucide-react';
 import { submitOnlineApplication, uploadMediaFile, getAdmissionGuide } from '@/lib/api';
 import type { OnlineApplicationFormData, AdmissionGuide } from '@/lib/types';
 import { ScrollReveal } from '@/components/ui/ScrollReveal';
+import { PrintableApplicationForm } from '@/components/admission/PrintableApplicationForm';
 
 const STEPS = [
   { id: 1, title: 'Student Information', icon: User, description: 'Personal details & candidate photograph' },
@@ -186,6 +188,7 @@ export default function OnlineApplicationPage() {
   const [form, setForm] = useState<OnlineApplicationFormData>(INITIAL_FORM);
   const [guide, setGuide] = useState<AdmissionGuide | null>(null);
   const [showGuidelines, setShowGuidelines] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ success: boolean; application_id?: string; message: string } | null>(null);
   const [stepError, setStepError] = useState<string | null>(null);
@@ -463,25 +466,78 @@ export default function OnlineApplicationPage() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
-            <a
-              href={`/admission/status?id=${result.application_id}&phone=${encodeURIComponent(form.contact_phone)}`}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-[#00183F] text-amber-300 font-bold text-sm hover:bg-[#002257] transition-all shadow-md cursor-pointer"
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>Track Application & Admit Slip</span>
-              <ArrowRight className="w-4 h-4" />
-            </a>
-
             <button
               type="button"
-              onClick={() => window.print()}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl border border-slate-200 text-slate-700 font-semibold text-sm hover:bg-slate-50 transition-colors cursor-pointer"
+              onClick={() => setShowPrintModal(true)}
+              className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold text-sm shadow-lg shadow-emerald-700/25 active:scale-[0.98] transition-all cursor-pointer"
             >
-              <Printer className="w-4 h-4 text-slate-500" />
-              <span>Print Confirmation</span>
+              <Download className="w-4 h-4" />
+              <span>Download / Print Completed Form (PDF)</span>
             </button>
+
+            <a
+              href={`/admission/status?id=${result.application_id}&phone=${encodeURIComponent(form.contact_phone)}`}
+              className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-[#00183F] text-amber-300 font-bold text-sm hover:bg-[#002257] transition-all shadow-md cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Track Status</span>
+              <ArrowRight className="w-4 h-4" />
+            </a>
           </div>
         </div>
+
+        {/* Hidden Printable Container for Direct Browser Print Command */}
+        <div className="hidden print:block">
+          <PrintableApplicationForm
+            form={form}
+            applicationId={result.application_id}
+            documents={documents}
+          />
+        </div>
+
+        {/* Print & PDF Interactive Modal */}
+        {showPrintModal && (
+          <div className="fixed inset-0 z-50 bg-slate-900/85 backdrop-blur-sm overflow-y-auto p-3 sm:p-6 flex flex-col items-center">
+            {/* Action Bar */}
+            <div className="sticky top-2 z-10 w-full max-w-[210mm] bg-[#00183F] text-white rounded-2xl p-4 shadow-2xl flex flex-wrap items-center justify-between gap-3 border border-amber-400/30 mb-4">
+              <div className="flex items-center gap-3">
+                <Printer className="w-5 h-5 text-[#D4AF37] shrink-0" />
+                <div>
+                  <h3 className="text-sm font-bold text-white">Official Application Print & PDF Generator</h3>
+                  <p className="text-[11px] text-slate-300">
+                    To download as PDF, choose <strong>"Save as PDF"</strong> in your print destination.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#D4AF37] hover:bg-[#c59f2e] text-[#00183F] font-black text-xs sm:text-sm shadow-md transition-all cursor-pointer"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Print / Save as PDF</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowPrintModal(false)}
+                  className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs sm:text-sm transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+
+            {/* A4 Sheet Container */}
+            <div className="w-full max-w-[210mm] bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-300 mb-8">
+              <PrintableApplicationForm
+                form={form}
+                applicationId={result.application_id}
+                documents={documents}
+              />
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -1542,16 +1598,26 @@ export default function OnlineApplicationPage() {
               <ScrollReveal direction="up" distance={15} duration={400}>
                 <div className="space-y-6">
                   {/* Review Notice Banner */}
-                  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 sm:p-5 flex items-start gap-3">
-                    <Info className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                    <div>
-                      <h3 className="text-xs sm:text-sm font-bold text-amber-950">
-                        Please Carefully Review All Information Before Submitting
-                      </h3>
-                      <p className="text-[11px] sm:text-xs text-amber-800 mt-1 leading-relaxed">
-                        Verify that all student details, grade applied, parent contact numbers, and uploaded documents are correct. You can click <strong>Edit</strong> on any section to make changes.
-                      </p>
+                  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <Info className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <h3 className="text-xs sm:text-sm font-bold text-amber-950">
+                          Please Carefully Review All Information Before Submitting
+                        </h3>
+                        <p className="text-[11px] sm:text-xs text-amber-800 mt-1 leading-relaxed">
+                          Verify that all student details, grade applied, parent contact numbers, and uploaded documents are correct. You can click <strong>Edit</strong> on any section to make changes.
+                        </p>
+                      </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowPrintModal(true)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-amber-300 text-amber-900 font-bold text-xs hover:bg-amber-100 transition-colors shadow-sm shrink-0 cursor-pointer self-start sm:self-auto"
+                    >
+                      <Printer className="w-3.5 h-3.5 text-amber-700" />
+                      <span>Print / PDF Preview</span>
+                    </button>
                   </div>
 
                   {/* Candidate Quick Profile Card */}
@@ -1911,6 +1977,59 @@ export default function OnlineApplicationPage() {
           </p>
         </div>
       </div>
+
+      {/* Hidden Printable Container for Direct Browser Print Command */}
+      <div className="hidden print:block">
+        <PrintableApplicationForm
+          form={form}
+          applicationId={result?.application_id}
+          documents={documents}
+        />
+      </div>
+
+      {/* Print & PDF Interactive Modal (When Viewing on Screen) */}
+      {showPrintModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/85 backdrop-blur-sm overflow-y-auto p-3 sm:p-6 flex flex-col items-center">
+          {/* Top Control Bar */}
+          <div className="sticky top-2 z-10 w-full max-w-[210mm] bg-[#00183F] text-white rounded-2xl p-4 shadow-2xl flex flex-wrap items-center justify-between gap-3 border border-amber-400/30 mb-4">
+            <div className="flex items-center gap-3">
+              <Printer className="w-5 h-5 text-[#D4AF37] shrink-0" />
+              <div>
+                <h3 className="text-sm font-bold text-white">Official Application Print & PDF Generator</h3>
+                <p className="text-[11px] text-slate-300">
+                  To download as PDF, choose <strong>"Save as PDF"</strong> in your print destination.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#D4AF37] hover:bg-[#c59f2e] text-[#00183F] font-black text-xs sm:text-sm shadow-md transition-all cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                <span>Print / Save as PDF</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPrintModal(false)}
+                className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs sm:text-sm transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+
+          {/* A4 Sheet Container */}
+          <div className="w-full max-w-[210mm] bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-300 mb-8">
+            <PrintableApplicationForm
+              form={form}
+              applicationId={result?.application_id}
+              documents={documents}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
