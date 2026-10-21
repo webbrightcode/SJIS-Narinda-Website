@@ -1023,7 +1023,14 @@ export const deletePublication = (id: number, token?: string) => removeResource(
  * Public: Submit a full online admission application.
  */
 export async function submitOnlineApplication(
-  data: OnlineApplicationFormData
+  data: OnlineApplicationFormData & {
+    documents?: Array<{
+      doc_type: string;
+      file_url: string;
+      original_filename?: string;
+      file_size?: string;
+    }>;
+  }
 ): Promise<{ success: boolean; application_id?: string; id?: number; message: string }> {
   try {
     const res = await fetchWithTimeout(apiUrl('/applications/'), {

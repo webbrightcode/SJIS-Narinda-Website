@@ -817,15 +817,27 @@ class OnlineApplicationViewSet(viewsets.ModelViewSet):
         return qs
 
     def create(self, request, *args, **kwargs):
-        """Public endpoint: submit a full application."""
+        """Public endpoint: submit a full application with optional documents."""
         import django.utils.timezone as tz
-        serializer = OnlineApplicationSerializer(data=request.data)
+        data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+        documents_data = data.pop('documents', []) if isinstance(data, dict) else []
+        serializer = OnlineApplicationSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         instance = serializer.save(
             status='submitted',
             current_step=4,
             submitted_at=tz.now(),
         )
+        if isinstance(documents_data, list):
+            for doc in documents_data:
+                if isinstance(doc, dict) and doc.get('file_url'):
+                    ApplicationDocument.objects.create(
+                        application=instance,
+                        doc_type=doc.get('doc_type', 'other'),
+                        file_url=doc.get('file_url'),
+                        original_filename=doc.get('original_filename', ''),
+                        file_size=doc.get('file_size', ''),
+                    )
         return Response(
             {
                 'success': True,
