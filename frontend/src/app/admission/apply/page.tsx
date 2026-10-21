@@ -29,6 +29,7 @@ import {
   ExternalLink,
   ChevronDown,
   ChevronUp,
+  Edit3,
 } from 'lucide-react';
 import { submitOnlineApplication, uploadMediaFile, getAdmissionGuide } from '@/lib/api';
 import type { OnlineApplicationFormData, AdmissionGuide } from '@/lib/types';
@@ -38,7 +39,8 @@ const STEPS = [
   { id: 1, title: 'Student Information', icon: User, description: 'Personal details & candidate photograph' },
   { id: 2, title: 'Academic Background', icon: GraduationCap, description: 'Grade applying & Cambridge curriculum' },
   { id: 3, title: 'Parent / Guardian', icon: Users, description: 'Family, residential & contact particulars' },
-  { id: 4, title: 'Documents & Submit', icon: FileCheck2, description: 'Digital documents, review & declaration' },
+  { id: 4, title: 'Document Uploads', icon: UploadCloud, description: 'Digital certificates, report cards & NIDs' },
+  { id: 5, title: 'Review & Declaration', icon: FileCheck2, description: 'Verify all particulars & authentic declaration' },
 ];
 
 const GRADES = [
@@ -326,13 +328,18 @@ export default function OnlineApplicationPage() {
         setStepError('Please enter candidate present residential address.');
         return false;
       }
+    } else if (s === 5) {
+      if (!form.parent_declaration_accepted) {
+        setStepError('Please certify and confirm the authenticity consent declaration before submitting.');
+        return false;
+      }
     }
     return true;
   };
 
   const next = () => {
     if (validateStep(step)) {
-      setStep((s) => Math.min(s + 1, 4));
+      setStep((s) => Math.min(s + 1, STEPS.length));
       scrollTop();
     }
   };
@@ -345,7 +352,7 @@ export default function OnlineApplicationPage() {
 
   const handleSubmit = async () => {
     if (!form.parent_declaration_accepted) {
-      setStepError('Please accept the parent declaration before submitting.');
+      setStepError('Please certify and confirm the authenticity consent declaration before submitting.');
       return;
     }
     setSubmitting(true);
@@ -618,7 +625,7 @@ export default function OnlineApplicationPage() {
           {/* Mobile active step notice */}
           <div className="mt-3 text-center sm:hidden">
             <span className="text-xs font-bold text-[#00183F]">
-              Step {step} of 4: {STEPS[step - 1].title}
+              Step {step} of {STEPS.length}: {STEPS[step - 1].title}
             </span>
           </div>
         </div>
@@ -631,7 +638,7 @@ export default function OnlineApplicationPage() {
               {React.createElement(STEPS[step - 1].icon, { className: 'w-6 h-6 text-[#D4AF37]' })}
               <div>
                 <span className="text-[10px] text-slate-300 font-bold uppercase tracking-widest block">
-                  Step {step} of 4
+                  Step {step} of {STEPS.length}
                 </span>
                 <h2 className="text-base sm:text-lg font-black text-white">{STEPS[step - 1].title}</h2>
               </div>
@@ -1445,33 +1452,6 @@ export default function OnlineApplicationPage() {
                     </div>
                   </div>
 
-                  {/* Candidate Summary Box */}
-                  <div className="bg-[#00183F]/5 border border-[#00183F]/15 rounded-2xl p-5 space-y-3">
-                    <h3 className="text-xs font-black text-[#00183F] uppercase tracking-wider">
-                      Application Summary Preview
-                    </h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                      <div className="bg-white rounded-xl p-3 border border-slate-200/70">
-                        <div className="text-[10px] text-slate-400 uppercase font-semibold">Candidate</div>
-                        <div className="font-bold text-[#00183F] truncate">
-                          {form.student_first_name} {form.student_last_name}
-                        </div>
-                      </div>
-                      <div className="bg-white rounded-xl p-3 border border-slate-200/70">
-                        <div className="text-[10px] text-slate-400 uppercase font-semibold">Grade Applying</div>
-                        <div className="font-bold text-[#C8102E] truncate">{form.grade_applying}</div>
-                      </div>
-                      <div className="bg-white rounded-xl p-3 border border-slate-200/70">
-                        <div className="text-[10px] text-slate-400 uppercase font-semibold">Curriculum</div>
-                        <div className="font-bold text-emerald-700 truncate">Cambridge CAIE</div>
-                      </div>
-                      <div className="bg-white rounded-xl p-3 border border-slate-200/70">
-                        <div className="text-[10px] text-slate-400 uppercase font-semibold">Session</div>
-                        <div className="font-bold text-slate-800">{form.academic_year}</div>
-                      </div>
-                    </div>
-                  </div>
-
                   {/* Sibling & Survey */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div className="space-y-3">
@@ -1551,27 +1531,305 @@ export default function OnlineApplicationPage() {
                       </div>
                     </div>
                   </div>
+                </div>
+              </ScrollReveal>
+            )}
 
-                  {/* Formal Parent Declaration */}
-                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 sm:p-6 space-y-3">
-                    <h4 className="text-sm font-black text-[#00183F] flex items-center gap-2">
-                      <Shield className="w-4 h-4 text-[#C8102E]" /> Parent / Guardian Legal Undertaking
-                    </h4>
-                    <p className="text-xs text-slate-600 leading-relaxed">
-                      I/We, the parent(s) / legal guardian(s) of the candidate, hereby declare that all particulars entered in this application are correct, authentic, and complete to the best of my/our knowledge. I/We understand that willful concealment of information or presentation of forged documents will lead to immediate cancellation of admission. I/We undertake to abide by the school rules, Cambridge curriculum regulations, and code of discipline of St. Joseph International School, Narinda.
-                    </p>
+            {/* ══════════════════════════════════════════════════════════════════
+                STEP 5 · COMPREHENSIVE REVIEW & AUTHENTIC DECLARATION
+               ══════════════════════════════════════════════════════════════════ */}
+            {step === 5 && (
+              <ScrollReveal direction="up" distance={15} duration={400}>
+                <div className="space-y-6">
+                  {/* Review Notice Banner */}
+                  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 sm:p-5 flex items-start gap-3">
+                    <Info className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-bold text-amber-950">
+                        Please Carefully Review All Information Before Submitting
+                      </h3>
+                      <p className="text-[11px] sm:text-xs text-amber-800 mt-1 leading-relaxed">
+                        Verify that all student details, grade applied, parent contact numbers, and uploaded documents are correct. You can click <strong>Edit</strong> on any section to make changes.
+                      </p>
+                    </div>
+                  </div>
 
-                    <label className="flex items-start gap-3 cursor-pointer pt-2">
+                  {/* Candidate Quick Profile Card */}
+                  <div className="bg-gradient-to-br from-[#00183F] to-[#0A2558] text-white rounded-2xl p-5 sm:p-6 shadow-md flex flex-col sm:flex-row items-center sm:items-start gap-5">
+                    <div className="w-24 h-28 rounded-xl overflow-hidden bg-white/10 border-2 border-[#D4AF37] shrink-0 shadow flex items-center justify-center">
+                      {form.student_photo_url ? (
+                        <img
+                          src={form.student_photo_url}
+                          alt="Candidate"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <User className="w-10 h-10 text-white/40" />
+                      )}
+                    </div>
+                    <div className="flex-1 text-center sm:text-left space-y-1">
+                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#D4AF37] text-[#00183F] uppercase tracking-wider">
+                          Candidate Profile
+                        </span>
+                        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                          {form.academic_year} Session
+                        </span>
+                      </div>
+                      <h3 className="text-xl sm:text-2xl font-black text-white">
+                        {form.student_first_name} {form.student_last_name}
+                      </h3>
+                      {form.student_name_bangla && (
+                        <p className="text-xs text-slate-300 font-serif">{form.student_name_bangla}</p>
+                      )}
+                      <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1 text-xs text-slate-300">
+                        <span><strong>Applying For:</strong> <span className="text-[#D4AF37] font-bold">{form.grade_applying}</span></span>
+                        <span>•</span>
+                        <span><strong>Curriculum:</strong> Cambridge CAIE (English Medium)</span>
+                        <span>•</span>
+                        <span><strong>Gender:</strong> {form.gender}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Section 1: Student Personal Details */}
+                  <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                      <h4 className="text-xs font-black text-[#00183F] uppercase tracking-wider flex items-center gap-2">
+                        <User className="w-4 h-4 text-[#00183F]" /> 1. Student Particulars
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => { setStep(1); scrollTop(); }}
+                        className="text-xs font-bold text-[#00183F] hover:text-[#C8102E] flex items-center gap-1 cursor-pointer transition-colors"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" /> Edit
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                      <div>
+                        <span className="text-[10px] text-slate-400 block font-semibold">Date of Birth</span>
+                        <span className="font-bold text-slate-800">{form.date_of_birth || '—'}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 block font-semibold">Gender</span>
+                        <span className="font-bold text-slate-800">{form.gender}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 block font-semibold">Blood Group</span>
+                        <span className="font-bold text-slate-800">{form.blood_group || '—'}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 block font-semibold">Religion</span>
+                        <span className="font-bold text-slate-800">{form.religion || '—'}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 block font-semibold">Nationality</span>
+                        <span className="font-bold text-slate-800">{form.nationality}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 block font-semibold">Birth Certificate No</span>
+                        <span className="font-bold text-slate-800 font-mono">{form.birth_certificate_no || '—'}</span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-[10px] text-slate-400 block font-semibold">Passport Number</span>
+                        <span className="font-bold text-slate-800 font-mono">{form.passport_no || 'N/A'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Section 2: Academic Background */}
+                  <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                      <h4 className="text-xs font-black text-[#00183F] uppercase tracking-wider flex items-center gap-2">
+                        <GraduationCap className="w-4 h-4 text-[#00183F]" /> 2. Academic Background
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => { setStep(2); scrollTop(); }}
+                        className="text-xs font-bold text-[#00183F] hover:text-[#C8102E] flex items-center gap-1 cursor-pointer transition-colors"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" /> Edit
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                      <div>
+                        <span className="text-[10px] text-slate-400 block font-semibold">Grade Applying</span>
+                        <span className="font-bold text-[#C8102E]">{form.grade_applying}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 block font-semibold">Curriculum</span>
+                        <span className="font-bold text-emerald-700">Cambridge CAIE</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 block font-semibold">Academic Session</span>
+                        <span className="font-bold text-slate-800">{form.academic_year}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 block font-semibold">Previous Curriculum</span>
+                        <span className="font-bold text-slate-800">{form.previous_curriculum || 'None / Fresh Admission'}</span>
+                      </div>
+                      <div className="col-span-2 sm:col-span-4">
+                        <span className="text-[10px] text-slate-400 block font-semibold">Previous School Name</span>
+                        <span className="font-bold text-slate-800">{form.previous_school_name || 'N/A'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Section 3: Parent & Contact Details */}
+                  <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                      <h4 className="text-xs font-black text-[#00183F] uppercase tracking-wider flex items-center gap-2">
+                        <Users className="w-4 h-4 text-[#00183F]" /> 3. Parent / Guardian Particulars
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => { setStep(3); scrollTop(); }}
+                        className="text-xs font-bold text-[#00183F] hover:text-[#C8102E] flex items-center gap-1 cursor-pointer transition-colors"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" /> Edit
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                      <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Father's Information</span>
+                        <div className="font-bold text-slate-800">{form.father_name || '—'}</div>
+                        <div className="text-slate-600">Mobile: {form.father_phone || '—'}</div>
+                        <div className="text-slate-500 text-[11px]">Profession: {form.father_profession || '—'}</div>
+                      </div>
+                      <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Mother's Information</span>
+                        <div className="font-bold text-slate-800">{form.mother_name || '—'}</div>
+                        <div className="text-slate-600">Mobile: {form.mother_phone || '—'}</div>
+                        <div className="text-slate-500 text-[11px]">Profession: {form.mother_profession || '—'}</div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-1">
+                      <div>
+                        <span className="text-[10px] text-slate-400 block font-semibold">Primary Contact Phone</span>
+                        <span className="font-bold text-[#00183F]">{form.contact_phone}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 block font-semibold">Primary Email</span>
+                        <span className="font-bold text-[#00183F] truncate block">{form.contact_email}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 block font-semibold">Emergency Contact</span>
+                        <span className="font-bold text-slate-800">{form.emergency_contact_phone || '—'}</span>
+                      </div>
+                      <div className="col-span-1 sm:col-span-3">
+                        <span className="text-[10px] text-slate-400 block font-semibold">Present Residential Address</span>
+                        <span className="text-slate-700">{form.present_address}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Section 4: Attached Documents */}
+                  <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                      <h4 className="text-xs font-black text-[#00183F] uppercase tracking-wider flex items-center gap-2">
+                        <UploadCloud className="w-4 h-4 text-[#00183F]" /> 4. Uploaded Digital Documents ({documents.length})
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => { setStep(4); scrollTop(); }}
+                        className="text-xs font-bold text-[#00183F] hover:text-[#C8102E] flex items-center gap-1 cursor-pointer transition-colors"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" /> Edit
+                      </button>
+                    </div>
+                    {documents.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {documents.map((doc, idx) => (
+                          <div key={idx} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
+                              <div className="min-w-0">
+                                <span className="text-xs font-bold text-slate-800 block truncate">
+                                  {doc.original_filename || doc.doc_type}
+                                </span>
+                                <span className="text-[10px] text-slate-400 capitalize">{doc.doc_type.replace('_', ' ')} • {doc.file_size}</span>
+                              </div>
+                            </div>
+                            <a
+                              href={doc.file_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[11px] font-bold text-[#00183F] hover:underline flex items-center gap-1 shrink-0"
+                            >
+                              <ExternalLink className="w-3 h-3" /> View
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-400 italic">No optional documents uploaded. Physical documents must be presented on exam day.</p>
+                    )}
+                  </div>
+
+                  {/* ── Official Legal Consent & Authenticity Undertaking ────── */}
+                  <div className="bg-gradient-to-br from-slate-900 to-[#00183F] text-white rounded-3xl p-6 sm:p-8 shadow-xl space-y-4 border border-amber-400/30">
+                    <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+                      <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/20 border border-[#D4AF37]/40 flex items-center justify-center text-[#D4AF37] shrink-0">
+                        <Shield className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-base sm:text-lg font-black text-[#D4AF37] tracking-tight">
+                          Parent / Guardian Authenticity Undertaking & Consent
+                        </h4>
+                        <p className="text-xs text-slate-300">
+                          Mandatory legal declaration for official school admission records
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-5 text-xs text-slate-200 leading-relaxed space-y-2">
+                      <p>
+                        I/We, the parent(s) / legal guardian(s) of <strong>{form.student_first_name} {form.student_last_name}</strong>, hereby solemnly affirm, declare, and certify that:
+                      </p>
+                      <ul className="list-disc pl-5 space-y-1.5 text-slate-300 text-[11px] sm:text-xs">
+                        <li>
+                          All statements, particulars, academic records, and personal information provided in this application are <strong>100% genuine, authentic, correct, and complete</strong> to the best of my/our knowledge and belief.
+                        </li>
+                        <li>
+                          I/We understand that <strong>willful concealment, alteration, or submission of forged / incorrect documents</strong> will lead to the immediate cancellation of this application and summary termination of admission without any refund.
+                        </li>
+                        <li>
+                          I/We agree to abide by the rules, code of discipline, fees policies, and Cambridge Assessment International Education (CAIE) curriculum regulations of <strong>St. Joseph International School, Narinda</strong>.
+                        </li>
+                      </ul>
+                    </div>
+
+                    {/* Affirmative Checkbox */}
+                    <label className="flex items-start gap-3.5 cursor-pointer p-4 rounded-2xl bg-white/10 hover:bg-white/15 border-2 border-[#D4AF37]/40 hover:border-[#D4AF37] transition-all">
                       <input
                         type="checkbox"
                         checked={form.parent_declaration_accepted}
                         onChange={(e) => set('parent_declaration_accepted', e.target.checked)}
-                        className="w-4 h-4 mt-0.5 rounded accent-[#00183F] cursor-pointer"
+                        className="w-5 h-5 mt-0.5 rounded accent-[#D4AF37] cursor-pointer shrink-0"
                       />
-                      <span className="text-xs font-bold text-slate-800">
-                        I/We confirm and accept the above declaration and submit this application officially. <span className="text-[#C8102E]">*</span>
-                      </span>
+                      <div className="space-y-0.5">
+                        <span className="text-xs sm:text-sm font-black text-[#D4AF37] block">
+                          I certify and declare that all information provided is authentic and correct. *
+                        </span>
+                        <span className="text-[11px] text-slate-300 block">
+                          By checking this box, I electronically sign this admission application on behalf of the applicant family.
+                        </span>
+                      </div>
                     </label>
+
+                    {/* Digital Signature Details */}
+                    <div className="pt-2 flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-400 border-t border-white/10">
+                      <span>
+                        <strong>Signatory:</strong> {form.father_name || form.mother_name || 'Parent / Legal Guardian'}
+                      </span>
+                      <span>
+                        <strong>Declaration Date:</strong> {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                      </span>
+                      <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Ready for Verification
+                      </span>
+                    </div>
                   </div>
                 </div>
               </ScrollReveal>
@@ -1603,13 +1861,13 @@ export default function OnlineApplicationPage() {
                 ))}
               </div>
 
-              {step < 4 ? (
+              {step < STEPS.length ? (
                 <button
                   type="button"
                   onClick={next}
                   className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#00183F] text-white text-xs sm:text-sm font-bold hover:bg-[#002257] active:scale-[0.98] transition-all shadow-md cursor-pointer"
                 >
-                  <span>Continue</span>
+                  <span>{step === STEPS.length - 1 ? 'Proceed to Review' : 'Continue'}</span>
                   <ChevronRight className="w-4 h-4" />
                 </button>
               ) : (
@@ -1617,17 +1875,17 @@ export default function OnlineApplicationPage() {
                   type="button"
                   onClick={handleSubmit}
                   disabled={submitting || !form.parent_declaration_accepted}
-                  className="inline-flex items-center gap-2 px-7 py-3 rounded-xl bg-[#C8102E] text-white text-xs sm:text-sm font-bold hover:bg-[#a00d25] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg cursor-pointer"
+                  className="inline-flex items-center gap-2 px-7 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white text-xs sm:text-sm font-bold shadow-lg shadow-emerald-700/25 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {submitting ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin text-white" />
-                      <span>Submitting File...</span>
+                      <span>Submitting Application...</span>
                     </>
                   ) : (
                     <>
-                      <FileCheck2 className="w-4 h-4 text-[#D4AF37]" />
-                      <span>Submit Application</span>
+                      <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                      <span>Confirm & Submit Application</span>
                     </>
                   )}
                 </button>
