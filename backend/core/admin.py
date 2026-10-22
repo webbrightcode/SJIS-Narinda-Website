@@ -13,6 +13,8 @@ from .models import (
     Publication,
     OnlineApplication,
     ApplicationDocument,
+    AdmissionSettings,
+    InterviewSlot,
 )
 
 admin.site.site_header = "St. Joseph International School, Narinda - Administration"
@@ -214,3 +216,46 @@ class ApplicationDocumentAdmin(admin.ModelAdmin):
     list_filter = ('doc_type', 'verified')
     search_fields = ('application__application_id', 'application__student_first_name', 'original_filename')
     readonly_fields = ('uploaded_at',)
+
+
+@admin.register(AdmissionSettings)
+class AdmissionSettingsAdmin(admin.ModelAdmin):
+    list_display = ('__str__', 'payment_required', 'payment_gateway', 'application_fee', 'print_page_size', 'interview_mode', 'updated_at')
+    fieldsets = (
+        ('Payment Toggle', {
+            'fields': ('payment_required', 'payment_gateway', 'application_fee', 'payment_currency'),
+            'description': 'Master payment switch. If OFF, users can submit and download forms without paying.',
+        }),
+        ('SSLCommerz Credentials', {
+            'fields': ('sslcommerz_store_id', 'sslcommerz_store_pass', 'sslcommerz_is_sandbox'),
+            'classes': ('collapse',),
+        }),
+        ('bKash Credentials', {
+            'fields': ('bkash_app_key', 'bkash_app_secret', 'bkash_username', 'bkash_password', 'bkash_is_sandbox'),
+            'classes': ('collapse',),
+        }),
+        ('Nagad Credentials', {
+            'fields': ('nagad_merchant_id', 'nagad_merchant_key', 'nagad_is_sandbox'),
+            'classes': ('collapse',),
+        }),
+        ('Print & Form Settings', {
+            'fields': ('print_page_size', 'form_header_note'),
+        }),
+        ('Document Checklist (Printed on Admit Card)', {
+            'fields': ('document_checklist', 'reporting_instructions'),
+        }),
+        ('Interview Scheduling', {
+            'fields': ('interview_mode',),
+        }),
+    )
+
+
+@admin.register(InterviewSlot)
+class InterviewSlotAdmin(admin.ModelAdmin):
+    list_display = ('display_label', 'date', 'start_time', 'end_time', 'grade_filter', 'capacity', 'booked_count', 'available_seats', 'is_active')
+    list_editable = ('is_active', 'capacity')
+    list_filter = ('date', 'is_active', 'grade_filter')
+    search_fields = ('label', 'grade_filter', 'venue', 'notes')
+    date_hierarchy = 'date'
+    readonly_fields = ('booked_count', 'created_at')
+

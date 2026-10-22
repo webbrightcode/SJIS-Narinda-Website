@@ -26,6 +26,8 @@ from .models import (
     Publication,
     OnlineApplication,
     ApplicationDocument,
+    AdmissionSettings,
+    InterviewSlot,
 )
 from .serializers import (
     SliderSlideSerializer,
@@ -45,6 +47,9 @@ from .serializers import (
     OnlineApplicationSerializer,
     OnlineApplicationListSerializer,
     ApplicationDocumentSerializer,
+    AdmissionSettingsSerializer,
+    AdmissionSettingsFullSerializer,
+    InterviewSlotSerializer,
 )
 
 
@@ -821,13 +826,31 @@ class OnlineApplicationViewSet(viewsets.ModelViewSet):
         import django.utils.timezone as tz
         data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
         documents_data = data.pop('documents', []) if isinstance(data, dict) else []
+
+        # Determine if payment is required
+        adm_settings = AdmissionSettings.get_settings()
+        payment_required = adm_settings.payment_required
+
         serializer = OnlineApplicationSerializer(data=data)
         serializer.is_valid(raise_exception=True)
-        instance = serializer.save(
-            status='submitted',
-            current_step=4,
-            submitted_at=tz.now(),
-        )
+
+        if payment_required:
+            # Save with payment_pending status — no form_no assigned yet
+            instance = serializer.save(
+                status='payment_pending',
+                payment_status='pending',
+                current_step=4,
+                submitted_at=tz.now(),
+            )
+        else:
+            # No payment required — form_no will be assigned immediately in save()
+            instance = serializer.save(
+                status='submitted',
+                payment_status='not_required',
+                current_step=4,
+                submitted_at=tz.now(),
+            )
+
         if isinstance(documents_data, list):
             for doc in documents_data:
                 if isinstance(doc, dict) and doc.get('file_url'):
@@ -838,12 +861,19 @@ class OnlineApplicationViewSet(viewsets.ModelViewSet):
                         original_filename=doc.get('original_filename', ''),
                         file_size=doc.get('file_size', ''),
                     )
+
         return Response(
             {
                 'success': True,
                 'message': 'Your application has been submitted successfully.',
                 'application_id': instance.application_id,
                 'id': instance.id,
+                'payment_required': payment_required,
+                'payment_status': instance.payment_status,
+                'form_no': instance.form_no,
+                'application_fee': str(adm_settings.application_fee),
+                'payment_currency': adm_settings.payment_currency,
+                'payment_gateway': adm_settings.payment_gateway,
             },
             status=status.HTTP_201_CREATED
         )
@@ -857,8 +887,10 @@ class OnlineApplicationViewSet(viewsets.ModelViewSet):
         exam_date = request.data.get('entrance_exam_date')
         exam_venue = request.data.get('entrance_exam_venue')
         interview_dt = request.data.get('interview_date')
+        interview_time = request.data.get('interview_time')
         offer_letter_sent = request.data.get('offer_letter_sent')
         docs_verified = request.data.get('documents_verified')
+        slot_id = request.data.get('interview_slot')
 
         valid_statuses = [s[0] for s in OnlineApplication.STATUS_CHOICES]
         if new_status and new_status not in valid_statuses:
@@ -874,10 +906,29 @@ class OnlineApplicationViewSet(viewsets.ModelViewSet):
             app.entrance_exam_venue = exam_venue
         if interview_dt is not None:
             app.interview_date = interview_dt or None
+        if interview_time is not None:
+            app.interview_time = interview_time
         if offer_letter_sent is not None:
             app.offer_letter_sent = bool(offer_letter_sent)
         if docs_verified is not None:
             app.documents_verified = bool(docs_verified)
+        if slot_id is not None:
+            # Unlink old slot
+            if app.interview_slot_id:
+                InterviewSlot.objects.filter(pk=app.interview_slot_id).update(
+                    booked_count=models.F('booked_count') - 1
+                )
+            if slot_id:
+                try:
+                    new_slot = InterviewSlot.objects.get(pk=slot_id)
+                    app.interview_slot = new_slot
+                    InterviewSlot.objects.filter(pk=slot_id).update(
+                        booked_count=models.F('booked_count') + 1
+                    )
+                except InterviewSlot.DoesNotExist:
+                    pass
+            else:
+                app.interview_slot = None
         app.save()
 
         return Response(OnlineApplicationSerializer(app).data)
@@ -893,10 +944,316 @@ class OnlineApplicationViewSet(viewsets.ModelViewSet):
         by_grade = list(
             OnlineApplication.objects.values('grade_applying').annotate(count=Count('id')).order_by('-count')[:10]
         )
+        payment_pending = OnlineApplication.objects.filter(payment_status='pending').count()
+        payment_completed = OnlineApplication.objects.filter(payment_status='completed').count()
         return Response({
             'total': total,
             'by_status': by_status,
             'by_grade': by_grade,
+            'payment_pending': payment_pending,
+            'payment_completed': payment_completed,
+        })
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Admission Settings
+# ══════════════════════════════════════════════════════════════════════════════
+
+class AdmissionSettingsView(APIView):
+    """
+    GET  → public: returns safe settings (no secrets).
+    PUT  → admin only: update all admission settings.
+    """
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
+
+    def get(self, request):
+        obj = AdmissionSettings.get_settings()
+        ser = AdmissionSettingsSerializer(obj)
+        return Response(ser.data)
+
+    def put(self, request):
+        obj = AdmissionSettings.get_settings()
+        ser = AdmissionSettingsFullSerializer(obj, data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        return Response(AdmissionSettingsFullSerializer(obj).data)
+
+    def patch(self, request):
+        return self.put(request)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Interview Slot Management
+# ══════════════════════════════════════════════════════════════════════════════
+
+class InterviewSlotViewSet(viewsets.ModelViewSet):
+    """
+    GET list  → public (shows date, time, capacity, available seats).
+    Create / update / delete → admin only.
+    """
+    serializer_class = InterviewSlotSerializer
+
+    def get_permissions(self):
+        if self.action in ('list', 'retrieve'):
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
+
+    def get_queryset(self):
+        qs = InterviewSlot.objects.all()
+        date_filter = self.request.query_params.get('date')
+        grade_filter = self.request.query_params.get('grade')
+        active_only = self.request.query_params.get('active', '1')
+        if active_only != '0':
+            qs = qs.filter(is_active=True)
+        if date_filter:
+            qs = qs.filter(date=date_filter)
+        if grade_filter:
+            qs = qs.filter(
+                models.Q(grade_filter='') | models.Q(grade_filter__icontains=grade_filter)
+            )
+        return qs
+
+    @action(detail=False, methods=['post'], url_path='bulk-create',
+            permission_classes=[permissions.IsAuthenticated])
+    def bulk_create(self, request):
+        """Admin: create multiple slots at once.
+        Payload: {slots: [{date, start_time, end_time, label, grade_filter, venue, capacity}, ...]}
+        """
+        slots_data = request.data.get('slots', [])
+        if not isinstance(slots_data, list) or not slots_data:
+            return Response({'error': 'Provide a list of slot objects under "slots".'}, status=400)
+        created = []
+        for slot_data in slots_data:
+            ser = InterviewSlotSerializer(data=slot_data)
+            if ser.is_valid():
+                obj = ser.save()
+                created.append(InterviewSlotSerializer(obj).data)
+        return Response({'created': len(created), 'slots': created}, status=201)
+
+    @action(detail=False, methods=['delete'], url_path='bulk-clear',
+            permission_classes=[permissions.IsAuthenticated])
+    def bulk_clear(self, request):
+        """Admin: delete ALL slots for a given date."""
+        date_val = request.data.get('date')
+        if not date_val:
+            return Response({'error': 'Provide "date" (YYYY-MM-DD).'}, status=400)
+        count, _ = InterviewSlot.objects.filter(date=date_val).delete()
+        return Response({'deleted': count})
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Payment Gateway
+# ══════════════════════════════════════════════════════════════════════════════
+
+class PaymentInitiateView(APIView):
+    """
+    POST /api/payment/initiate/
+    Body: {application_id: "SJIS-2026-00042"}
+    Returns gateway redirect URL (SSLCommerz) or payment info (bKash/Nagad).
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        app_id = (request.data.get('application_id') or '').strip().upper()
+        if not app_id:
+            return Response({'error': 'application_id is required.'}, status=400)
+
+        try:
+            app = OnlineApplication.objects.get(application_id=app_id)
+        except OnlineApplication.DoesNotExist:
+            return Response({'error': 'Application not found.'}, status=404)
+
+        if app.payment_status == 'completed':
+            return Response({'error': 'Payment already completed for this application.'}, status=400)
+
+        adm_settings = AdmissionSettings.get_settings()
+        if not adm_settings.payment_required:
+            return Response({'error': 'Online payment is not enabled for this session.'}, status=400)
+
+        gateway = adm_settings.payment_gateway
+        amount = float(adm_settings.application_fee)
+
+        if gateway == 'sslcommerz':
+            return self._initiate_sslcommerz(request, app, adm_settings, amount)
+        elif gateway in ('bkash', 'nagad'):
+            # Placeholder: manual instruction when gateway not yet wired
+            return Response({
+                'gateway': gateway,
+                'amount': amount,
+                'currency': adm_settings.payment_currency,
+                'application_id': app_id,
+                'message': f'{gateway.upper()} integration pending. Contact office for payment.',
+            })
+        else:  # manual
+            return Response({
+                'gateway': 'manual',
+                'amount': amount,
+                'currency': adm_settings.payment_currency,
+                'application_id': app_id,
+                'message': 'Please visit the school office to complete your application fee payment.',
+            })
+
+    def _initiate_sslcommerz(self, request, app, adm_settings, amount):
+        """Build SSLCommerz payment session."""
+        try:
+            # Build frontend base URL
+            scheme = request.scheme
+            host = request.get_host()
+            base_url = f"{scheme}://{host}"
+
+            post_data = {
+                'store_id': adm_settings.sslcommerz_store_id,
+                'store_passwd': adm_settings.sslcommerz_store_pass,
+                'total_amount': amount,
+                'currency': adm_settings.payment_currency,
+                'tran_id': f"{app.application_id}-{_uuid.uuid4().hex[:8].upper()}",
+                'success_url': f"{base_url}/api/payment/callback/?status=success&app_id={app.application_id}",
+                'fail_url': f"{base_url}/api/payment/callback/?status=fail&app_id={app.application_id}",
+                'cancel_url': f"{base_url}/api/payment/callback/?status=cancel&app_id={app.application_id}",
+                'ipn_url': f"{base_url}/api/payment/ipn/",
+                'cus_name': app.student_full_name,
+                'cus_email': app.contact_email or 'noreply@sjisnarinda.edu.bd',
+                'cus_phone': app.contact_phone or '01700000000',
+                'cus_add1': app.present_address or '32 Shah Shaheb Lane, Narinda, Dhaka',
+                'cus_city': 'Dhaka',
+                'cus_country': 'Bangladesh',
+                'product_name': f'Admission Application Fee – {app.application_id}',
+                'product_category': 'School Admission',
+                'product_profile': 'general',
+                'shipping_method': 'NO',
+                'num_of_item': 1,
+                'weight_of_items': 0,
+                'amount_of_delivery_charge': 0,
+            }
+
+            import urllib.request, urllib.parse, json as _json
+            ssl_domain = (
+                'sandbox.sslcommerz.com'
+                if adm_settings.sslcommerz_is_sandbox
+                else 'securepay.sslcommerz.com'
+            )
+            ssl_url = f"https://{ssl_domain}/gwprocess/v4/api.php"
+            encoded = urllib.parse.urlencode(post_data).encode('utf-8')
+            req = urllib.request.Request(ssl_url, data=encoded, method='POST')
+            req.add_header('Content-Type', 'application/x-www-form-urlencoded')
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                result = _json.loads(resp.read())
+
+            if result.get('status') == 'SUCCESS':
+                # Store tran_id reference
+                app.payment_transaction_id = post_data['tran_id']
+                app.payment_gateway_ref = result.get('sessionkey', '')
+                app.save(update_fields=['payment_transaction_id', 'payment_gateway_ref'])
+                return Response({
+                    'gateway': 'sslcommerz',
+                    'redirect_url': result.get('GatewayPageURL'),
+                    'session_key': result.get('sessionkey'),
+                    'tran_id': post_data['tran_id'],
+                    'amount': amount,
+                })
+            else:
+                return Response({
+                    'error': result.get('failedreason', 'SSLCommerz session creation failed.'),
+                }, status=502)
+        except Exception as exc:
+            return Response({'error': f'Payment gateway error: {str(exc)}'}, status=502)
+
+
+class PaymentCallbackView(APIView):
+    """
+    GET  /api/payment/callback/  — browser redirect from SSLCommerz after payment.
+    POST /api/payment/ipn/       — server-to-server IPN from SSLCommerz.
+    Both confirm or fail the payment on the application.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        """Browser redirect after gateway (success / fail / cancel)."""
+        pay_status = request.query_params.get('status', 'fail')
+        app_id = request.query_params.get('app_id', '').upper()
+        tran_id = request.query_params.get('tran_id', '')
+        val_id = request.query_params.get('val_id', '')
+
+        try:
+            app = OnlineApplication.objects.get(application_id=app_id)
+        except OnlineApplication.DoesNotExist:
+            from django.shortcuts import redirect
+            return redirect(f'/admission/payment/result?status=error&reason=notfound')
+
+        from django.shortcuts import redirect
+
+        if pay_status == 'success':
+            # Verify with SSLCommerz (optional but recommended)
+            app.confirm_payment(
+                transaction_id=tran_id or app.payment_transaction_id,
+                gateway_ref=val_id,
+            )
+            return redirect(f'/admission/payment/result?status=success&id={app_id}')
+        elif pay_status == 'cancel':
+            app.payment_status = 'pending'  # Allow retry
+            app.save(update_fields=['payment_status'])
+            return redirect(f'/admission/payment/result?status=cancelled&id={app_id}')
+        else:
+            app.payment_status = 'failed'
+            app.save(update_fields=['payment_status'])
+            return redirect(f'/admission/payment/result?status=failed&id={app_id}')
+
+    def post(self, request):
+        """SSLCommerz IPN — server-to-server payment confirmation."""
+        tran_id = request.data.get('tran_id', '')
+        val_id = request.data.get('val_id', '')
+        status_val = request.data.get('status', '')
+        amount = request.data.get('amount', 0)
+
+        # Extract application_id from tran_id (format: SJIS-YYYY-NNNNN-XXXXXXXX)
+        app_id = '-'.join(tran_id.split('-')[:3]) if tran_id else ''
+
+        try:
+            app = OnlineApplication.objects.get(application_id=app_id)
+        except OnlineApplication.DoesNotExist:
+            return Response({'status': 'INVALID', 'reason': 'Application not found.'}, status=200)
+
+        if status_val == 'VALID':
+            app.confirm_payment(
+                transaction_id=tran_id,
+                gateway_ref=val_id,
+                amount=amount,
+            )
+        elif status_val == 'FAILED':
+            app.payment_status = 'failed'
+            app.save(update_fields=['payment_status'])
+
+        return Response({'status': 'received'}, status=200)
+
+
+class PaymentManualConfirmView(APIView):
+    """
+    Admin: manually mark an application as paid.
+    POST /api/payment/manual-confirm/
+    Body: {application_id, transaction_id, amount}
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        app_id = (request.data.get('application_id') or '').strip().upper()
+        try:
+            app = OnlineApplication.objects.get(application_id=app_id)
+        except OnlineApplication.DoesNotExist:
+            return Response({'error': 'Application not found.'}, status=404)
+
+        app.confirm_payment(
+            transaction_id=request.data.get('transaction_id', 'MANUAL'),
+            gateway_ref='manual-confirmation',
+            amount=request.data.get('amount'),
+        )
+        return Response({
+            'success': True,
+            'message': f'Payment manually confirmed for {app_id}.',
+            'form_no': app.form_no,
         })
 
 
@@ -918,6 +1275,7 @@ class ApplicationStatusLookupView(APIView):
             return Response({'error': 'No application found with that ID. Please check and try again.'}, status=404)
 
         STATUS_MESSAGES = {
+            'payment_pending': 'Application details recorded. Online payment is pending. Please complete your fee payment to generate your official form number and download your admit card.',
             'submitted': 'Your application has been received and is awaiting review by our admissions team.',
             'under_review': 'Our admissions team is currently reviewing your application.',
             'shortlisted': 'Congratulations! You have been shortlisted. Please check your email for the entrance exam details.',
@@ -931,9 +1289,27 @@ class ApplicationStatusLookupView(APIView):
             'draft': 'Your application is still in draft. Please complete the form.',
         }
 
-        return Response({
+        adm_settings = AdmissionSettings.get_settings()
+        full_requested = request.query_params.get('full', '') == '1'
+
+        slot_data = None
+        if app.interview_slot:
+            slot_data = {
+                'id': app.interview_slot.id,
+                'date': str(app.interview_slot.date),
+                'start_time': str(app.interview_slot.start_time),
+                'end_time': str(app.interview_slot.end_time),
+                'label': app.interview_slot.label,
+                'reporting_venue': app.interview_slot.venue or 'Campus Auditorium, St. Joseph International School, 32 Shah Shaheb Lane, Narinda, Dhaka 1100',
+            }
+
+        res_data = {
             'application_id': app.application_id,
+            'form_no': app.form_no or None,
             'student_name': app.student_full_name,
+            'student_first_name': app.student_first_name,
+            'student_last_name': app.student_last_name,
+            'student_photo_url': app.student_photo_url,
             'grade_applying': app.grade_applying,
             'academic_year': app.academic_year,
             'status': app.status,
@@ -942,8 +1318,23 @@ class ApplicationStatusLookupView(APIView):
             'submitted_at': app.submitted_at,
             'entrance_exam_date': app.entrance_exam_date,
             'entrance_exam_venue': app.entrance_exam_venue if app.entrance_exam_date else None,
+            'interview_date': app.interview_date or (str(app.interview_slot.date) if app.interview_slot else None),
+            'interview_time': app.interview_time or (str(app.interview_slot.start_time) if app.interview_slot else None),
             'documents_verified': app.documents_verified,
-        })
+            'payment_status': app.payment_status,
+            'payment_required': adm_settings.payment_required,
+            'payment_amount': str(app.payment_amount) if app.payment_amount else str(adm_settings.application_fee),
+            'payment_transaction_id': app.payment_transaction_id,
+            'payment_gateway': adm_settings.payment_gateway,
+            'payment_currency': adm_settings.payment_currency,
+            'print_page_size': adm_settings.print_page_size,
+            'document_checklist': adm_settings.document_checklist,
+            'reporting_instructions': adm_settings.reporting_instructions,
+            'interview_slot': slot_data,
+        }
+        if full_requested:
+            res_data['application'] = OnlineApplicationSerializer(app).data
+        return Response(res_data)
 
 
 class ApplicationDocumentViewSet(viewsets.ModelViewSet):

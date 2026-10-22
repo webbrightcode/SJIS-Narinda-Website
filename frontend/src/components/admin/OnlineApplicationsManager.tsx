@@ -25,17 +25,30 @@ import {
   MapPin,
   Trash2,
   Sparkles,
+  CreditCard,
+  Lock,
 } from 'lucide-react';
-import { OnlineApplication, ApplicationDocument, ApplicationStatus } from '@/lib/types';
+import {
+  OnlineApplication,
+  ApplicationDocument,
+  ApplicationStatus,
+  InterviewSlot,
+  AdmissionSettings,
+} from '@/lib/types';
 import {
   listApplications,
   changeApplicationStatus,
   verifyApplicationDocument,
   deleteApplication,
+  manualConfirmPayment,
+  listInterviewSlots,
+  getAdmissionSettings,
 } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
+import { PrintableApplicationForm } from '@/components/admission/PrintableApplicationForm';
+import { printDocumentElement } from '@/lib/printUtils';
 
 interface Props {
   token: string;
@@ -43,6 +56,7 @@ interface Props {
 }
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  payment_pending: { bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-300' },
   draft: { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-200' },
   submitted: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
   under_review: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
@@ -57,6 +71,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; border: string }
 };
 
 const STATUS_LABELS: Record<string, string> = {
+  payment_pending: 'Payment Pending',
   draft: 'Draft',
   submitted: 'Submitted',
   under_review: 'Under Review',
@@ -81,6 +96,15 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
   const [updating, setUpdating] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
+  // Slots, payment, and settings state
+  const [availableSlots, setAvailableSlots] = useState<InterviewSlot[]>([]);
+  const [selectedSlotId, setSelectedSlotId] = useState<number | ''>('');
+  const [confirmingPayment, setConfirmingPayment] = useState(false);
+  const [manualTranId, setManualTranId] = useState('');
+  const [admSettings, setAdmSettings] = useState<AdmissionSettings | null>(null);
+  const [paymentFilter, setPaymentFilter] = useState<'all' | 'completed' | 'pending' | 'not_required'>('all');
+  const [printPageSize, setPrintPageSize] = useState<'A4' | 'Legal'>('A4');
+
   // Workflow update form state
   const [workflowState, setWorkflowState] = useState<{
     status: ApplicationStatus;
@@ -101,8 +125,19 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
   const loadData = async () => {
     setLoading(true);
     try {
-      const data = await listApplications(token);
-      setApplications(data);
+      const [appsData, slotsData, settingsData] = await Promise.all([
+        listApplications(token),
+        listInterviewSlots({}, token).catch(() => []),
+        getAdmissionSettings(token).catch(() => null),
+      ]);
+      setApplications(appsData);
+      setAvailableSlots(slotsData);
+      if (settingsData) {
+        setAdmSettings(settingsData);
+        if (settingsData.print_page_size) {
+          setPrintPageSize(settingsData.print_page_size);
+        }
+      }
     } catch {
       if (onToast) onToast('Failed to load online applications.');
     } finally {
@@ -125,6 +160,8 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
         documents_verified: selectedApp.documents_verified || false,
         offer_letter_sent: selectedApp.offer_letter_sent || false,
       });
+      setSelectedSlotId(selectedApp.interview_slot || '');
+      setManualTranId('');
     }
   }, [selectedApp]);
 
@@ -143,10 +180,11 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
 
       const matchStatus = statusFilter === 'all' || app.status === statusFilter;
       const matchGrade = gradeFilter === 'all' || app.grade_applying === gradeFilter;
+      const matchPayment = paymentFilter === 'all' || app.payment_status === paymentFilter;
 
-      return matchSearch && matchStatus && matchGrade;
+      return matchSearch && matchStatus && matchGrade && matchPayment;
     });
-  }, [applications, search, statusFilter, gradeFilter]);
+  }, [applications, search, statusFilter, gradeFilter, paymentFilter]);
 
   // Summary counts
   const stats = useMemo(() => {
@@ -155,14 +193,19 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
     const testScheduled = applications.filter((a) => a.status === 'shortlisted' || a.status === 'interview_scheduled').length;
     const approved = applications.filter((a) => a.status === 'approved' || a.status === 'enrolled').length;
     const verifiedDocs = applications.filter((a) => a.documents_verified).length;
-    return { total, submitted, testScheduled, approved, verifiedDocs };
+    const paidCount = applications.filter((a) => a.payment_status === 'completed').length;
+    const pendingPaymentCount = applications.filter((a) => a.payment_status === 'pending').length;
+    return { total, submitted, testScheduled, approved, verifiedDocs, paidCount, pendingPaymentCount };
   }, [applications]);
 
   // Save workflow status
   const handleSaveWorkflow = async () => {
     if (!selectedApp) return;
     setUpdating(true);
-    const res = await changeApplicationStatus(selectedApp.id, token, workflowState);
+    const res = await changeApplicationStatus(selectedApp.id, token, {
+      ...workflowState,
+      interview_slot: selectedSlotId ? Number(selectedSlotId) : null,
+    } as any);
     setUpdating(false);
 
     if (res.success && res.data) {
@@ -171,6 +214,41 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
       setApplications((prev) => prev.map((a) => (a.id === selectedApp.id ? (res.data as OnlineApplication) : a)));
     } else {
       if (onToast) onToast(res.error || 'Failed to update application.');
+    }
+  };
+
+  const handleManualConfirmPayment = async () => {
+    if (!selectedApp) return;
+    const tranId = manualTranId.trim() || `MANUAL-${Date.now().toString().slice(-6)}`;
+    setConfirmingPayment(true);
+    const res = await manualConfirmPayment(token, selectedApp.application_id, tranId);
+    setConfirmingPayment(false);
+    if (res.success) {
+      onToast?.(`Payment confirmed! Form No. ${res.form_no} assigned to ${selectedApp.application_id}.`);
+      setSelectedApp((prev) =>
+        prev
+          ? {
+              ...prev,
+              payment_status: 'completed',
+              form_no: res.form_no || prev.form_no,
+              status: prev.status === 'payment_pending' ? 'submitted' : prev.status,
+            }
+          : null
+      );
+      setApplications((prev) =>
+        prev.map((a) =>
+          a.id === selectedApp.id
+            ? {
+                ...a,
+                payment_status: 'completed',
+                form_no: res.form_no || a.form_no,
+                status: a.status === 'payment_pending' ? 'submitted' : a.status,
+              }
+            : a
+        )
+      );
+    } else {
+      onToast?.(res.error || 'Failed to confirm payment.');
     }
   };
 
@@ -316,7 +394,7 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
       </div>
 
       {/* KPI Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
           <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Total Received</span>
           <span className="text-2xl font-black text-[#00183F] mt-1 block">{stats.total}</span>
@@ -336,15 +414,21 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-emerald-100 shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 block">Admitted / Enrolled</span>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 block">Admitted</span>
           <span className="text-2xl font-black text-emerald-700 mt-1 block">{stats.approved}</span>
           <span className="text-[10px] text-emerald-600">Selected Candidates</span>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-amber-100 shadow-xs col-span-2 sm:col-span-1">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 block">Docs Verified</span>
-          <span className="text-2xl font-black text-amber-800 mt-1 block">{stats.verifiedDocs}</span>
-          <span className="text-[10px] text-amber-600">Complete Files</span>
+        <div className="bg-white p-4 rounded-2xl border border-emerald-100 shadow-xs">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 block">Paid & Verified</span>
+          <span className="text-2xl font-black text-emerald-700 mt-1 block">{stats.paidCount}</span>
+          <span className="text-[10px] text-emerald-600">Form No Assigned</span>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-amber-100 shadow-xs">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 block">Pending Fee</span>
+          <span className="text-2xl font-black text-amber-800 mt-1 block">{stats.pendingPaymentCount}</span>
+          <span className="text-[10px] text-amber-600">Awaiting Payment</span>
         </div>
       </div>
 
@@ -369,6 +453,7 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
             className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white text-slate-700 outline-none"
           >
             <option value="all">All Statuses ({applications.length})</option>
+            <option value="payment_pending">Payment Pending</option>
             <option value="submitted">Submitted</option>
             <option value="under_review">Under Review</option>
             <option value="shortlisted">Shortlisted / Test</option>
@@ -378,6 +463,17 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
             <option value="enrolled">Enrolled</option>
             <option value="waitlisted">Waitlisted</option>
             <option value="rejected">Rejected</option>
+          </select>
+
+          <select
+            value={paymentFilter}
+            onChange={(e) => setPaymentFilter(e.target.value as any)}
+            className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white text-slate-700 outline-none"
+          >
+            <option value="all">All Payments</option>
+            <option value="completed">Paid ({stats.paidCount})</option>
+            <option value="pending">Pending Fee ({stats.pendingPaymentCount})</option>
+            <option value="not_required">Fee Waived / Free</option>
           </select>
 
           <select
@@ -422,6 +518,7 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
               <thead className="bg-[#00183F] text-white text-[11px] uppercase tracking-wider">
                 <tr>
                   <th className="px-5 py-4">App ID</th>
+                  <th className="px-5 py-4">Form No & Payment</th>
                   <th className="px-5 py-4">Candidate Information</th>
                   <th className="px-5 py-4">Grade & Year</th>
                   <th className="px-5 py-4">Guardian Contact</th>
@@ -448,6 +545,37 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
                         <span className="block text-[10px] text-slate-400 mt-1">
                           {app.created_at ? new Date(app.created_at).toLocaleDateString() : ''}
                         </span>
+                      </td>
+
+                      {/* Form No & Payment Status */}
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        {app.form_no ? (
+                          <div>
+                            <span className="font-mono font-black text-xs text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-md inline-block">
+                              #{app.form_no}
+                            </span>
+                            <div className="mt-1">
+                              {app.payment_status === 'completed' ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                  Paid {app.payment_amount ? `৳${app.payment_amount}` : ''}
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
+                                  Fee Waived
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                              <Lock className="w-3 h-3 text-amber-600" />
+                              No Form No
+                            </span>
+                            <span className="block text-[10px] text-amber-600 mt-1 font-medium">Payment Pending</span>
+                          </div>
+                        )}
                       </td>
 
                       {/* Candidate Info */}
@@ -905,12 +1033,75 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
               {/* TAB 3: Workflow & Evaluation Decision */}
               {activeModalTab === 'workflow' && (
                 <div className="space-y-6">
+                  {/* Payment Status & Manual Confirmation Section */}
+                  <div className={`p-4 rounded-2xl border transition-all ${
+                    selectedApp.payment_status === 'completed'
+                      ? 'bg-emerald-50/70 border-emerald-200'
+                      : 'bg-amber-50/70 border-amber-200'
+                  }`}>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                          selectedApp.payment_status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                        }`}>
+                          <CreditCard className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h5 className="text-sm font-bold text-slate-800">Application Fee & Form Serial Number</h5>
+                            {selectedApp.payment_status === 'completed' ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                Paid & Form Assigned
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                                Payment Pending (Form Locked)
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-600 mt-0.5">
+                            {selectedApp.payment_status === 'completed' ? (
+                              <span>
+                                Fee Amount: <strong>৳{selectedApp.payment_amount || admSettings?.application_fee || 500}</strong> • Tran ID: <code className="bg-white px-1.5 py-0.5 rounded border border-emerald-200 font-mono text-emerald-900">{selectedApp.payment_transaction_id || 'COUNTER-CASH'}</code> • Assigned Form No: <strong className="text-red-600 font-mono text-sm ml-1">#{selectedApp.form_no}</strong>
+                              </span>
+                            ) : (
+                              <span>
+                                Expected Fee: <strong>৳{selectedApp.payment_amount || admSettings?.application_fee || 500}</strong>. Online payment has not been received. The candidate cannot access or print their Form & Admit card until payment is confirmed.
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+
+                      {selectedApp.payment_status !== 'completed' && (
+                        <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                          <input
+                            type="text"
+                            placeholder="Counter Receipt / Tran ID"
+                            value={manualTranId}
+                            onChange={(e) => setManualTranId(e.target.value)}
+                            className="px-3 py-1.5 rounded-xl border border-amber-300 text-xs font-mono outline-none focus:ring-2 focus:ring-[#00183F] bg-white w-full sm:w-44"
+                          />
+                          <Button
+                            variant="gold"
+                            size="sm"
+                            onClick={handleManualConfirmPayment}
+                            disabled={confirmingPayment}
+                            icon={<CheckCircle2 className="w-4 h-4 text-[#00183F]" />}
+                          >
+                            {confirmingPayment ? 'Confirming...' : 'Confirm Paid & Issue Form #'}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl flex items-start gap-3">
                     <ShieldCheck className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
                     <div>
                       <h5 className="text-xs font-bold text-blue-900">Admission Evaluation Desk</h5>
                       <p className="text-xs text-blue-700 mt-0.5">
-                        Update candidate status across the 4-step admission funnel. When you schedule an exam or mark as approved, the status is immediately reflected on the parent's tracking portal.
+                        Update candidate status across the admission lifecycle. When you assign an interview slot or change status, the change immediately reflects on the parent portal.
                       </p>
                     </div>
                   </div>
@@ -925,6 +1116,7 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
                         onChange={(e) => setWorkflowState({ ...workflowState, status: e.target.value as ApplicationStatus })}
                         className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 bg-white focus:ring-2 focus:ring-[#00183F] outline-none"
                       >
+                        <option value="payment_pending">0. Payment Pending</option>
                         <option value="submitted">1. Submitted (Pending Review)</option>
                         <option value="under_review">2. Under Review by Admissions Officer</option>
                         <option value="documents_required">3. Documents Required / Re-upload</option>
@@ -935,6 +1127,36 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
                         <option value="waitlisted">8. Waitlisted</option>
                         <option value="rejected">9. Not Selected</option>
                         <option value="withdrawn">10. Withdrawn</option>
+                      </select>
+                    </div>
+
+                    {/* Pre-Scheduled Interview Slot Selector */}
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                        Interview / Assessment Slot
+                      </label>
+                      <select
+                        value={selectedSlotId}
+                        onChange={(e) => {
+                          const slotId = e.target.value ? Number(e.target.value) : '';
+                          setSelectedSlotId(slotId);
+                          const slot = availableSlots.find((s) => s.id === slotId);
+                          if (slot) {
+                            setWorkflowState((prev) => ({
+                              ...prev,
+                              entrance_exam_date: slot.date,
+                              entrance_exam_venue: `${slot.venue} (${slot.start_time} - ${slot.end_time})`,
+                            }));
+                          }
+                        }}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 bg-white focus:ring-2 focus:ring-[#00183F] outline-none"
+                      >
+                        <option value="">-- Manual Schedule (No Slot) --</option>
+                        {availableSlots.map((slot) => (
+                          <option key={slot.id} value={slot.id}>
+                            {slot.label} • {slot.date} ({slot.start_time}-{slot.end_time}) [{slot.booked_count}/{slot.capacity} booked] {slot.grade_filter ? `(${slot.grade_filter})` : ''}
+                          </option>
+                        ))}
                       </select>
                     </div>
 
@@ -963,25 +1185,27 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
                       />
                     </div>
 
-                    <div className="flex flex-col justify-end space-y-2">
-                      <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700">
-                        <input
-                          type="checkbox"
-                          checked={workflowState.documents_verified}
-                          onChange={(e) => setWorkflowState({ ...workflowState, documents_verified: e.target.checked })}
-                          className="w-4 h-4 rounded text-[#00183F] cursor-pointer"
-                        />
-                        <span>All Documents Verified & Approved</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700">
-                        <input
-                          type="checkbox"
-                          checked={workflowState.offer_letter_sent}
-                          onChange={(e) => setWorkflowState({ ...workflowState, offer_letter_sent: e.target.checked })}
-                          className="w-4 h-4 rounded text-[#00183F] cursor-pointer"
-                        />
-                        <span>Offer Letter Issued to Parents</span>
-                      </label>
+                    <div className="flex flex-col justify-end space-y-2 col-span-1 sm:col-span-2">
+                      <div className="flex flex-wrap gap-6 pt-1">
+                        <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700">
+                          <input
+                            type="checkbox"
+                            checked={workflowState.documents_verified}
+                            onChange={(e) => setWorkflowState({ ...workflowState, documents_verified: e.target.checked })}
+                            className="w-4 h-4 rounded text-[#00183F] cursor-pointer"
+                          />
+                          <span>All Physical & Uploaded Documents Verified</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700">
+                          <input
+                            type="checkbox"
+                            checked={workflowState.offer_letter_sent}
+                            onChange={(e) => setWorkflowState({ ...workflowState, offer_letter_sent: e.target.checked })}
+                            className="w-4 h-4 rounded text-[#00183F] cursor-pointer"
+                          />
+                          <span>Official Admission Offer Letter Issued</span>
+                        </label>
+                      </div>
                     </div>
 
                     <div className="col-span-2">
@@ -1011,159 +1235,90 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
                 </div>
               )}
 
-              {/* TAB 4: Official Admission Slip / Admit Card */}
+              {/* TAB 4: Official Admission Form & Detachable Admit Card */}
               {activeModalTab === 'slip' && (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h5 className="text-sm font-bold text-[#00183F]">Provisional Admission Admit Slip</h5>
-                      <p className="text-xs text-slate-500">Official document for examination venue verification and entry.</p>
+                  {!selectedApp.form_no && (
+                    <div className="p-3 bg-amber-50 border border-amber-300 rounded-2xl text-amber-900 text-xs flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>
+                          <strong>Note:</strong> Online payment has not been confirmed for this applicant yet. The Form Serial number is currently unassigned. You can confirm payment manually in the "Evaluation & Decision" tab to generate an official form serial.
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveModalTab('workflow')}
+                        className="px-3 py-1 bg-amber-200 hover:bg-amber-300 text-amber-900 font-bold rounded-lg text-xs whitespace-nowrap cursor-pointer"
+                      >
+                        Go to Payment
+                      </button>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => window.print()}
-                      icon={<Printer className="w-4 h-4 text-[#00183F]" />}
-                    >
-                      Print Slip
-                    </Button>
+                  )}
+
+                  <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <div>
+                      <h5 className="text-sm font-black text-[#00183F]">
+                        Official Admission Test Form & Detachable Admit Card
+                      </h5>
+                      <p className="text-slate-600 mt-0.5">
+                        Matches physical school admission form stationery (Form Serial:{' '}
+                        <strong className="font-mono text-red-600">
+                          {selectedApp.form_no ? `#${selectedApp.form_no}` : 'UNASSIGNED (PAYMENT PENDING)'}
+                        </strong>).
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center bg-white rounded-xl p-0.5 border border-amber-200">
+                        <button
+                          type="button"
+                          onClick={() => setPrintPageSize('A4')}
+                          className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                            printPageSize === 'A4' ? 'bg-[#00183F] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          A4 Format
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPrintPageSize('Legal')}
+                          className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                            printPageSize === 'Legal' ? 'bg-[#00183F] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          Legal / F4 Format
+                        </button>
+                      </div>
+
+                      <Button
+                        variant="gold"
+                        size="sm"
+                        onClick={() => printDocumentElement('physical-admission-document', printPageSize)}
+                        icon={<Printer className="w-4 h-4 text-[#00183F]" />}
+                      >
+                        Print Form & Admit Card ({printPageSize})
+                      </Button>
+                    </div>
                   </div>
 
-                  {/* Printable Admit Slip Layout */}
-                  <div className="p-8 bg-white border-2 border-slate-800 rounded-3xl space-y-6 text-slate-900 shadow-sm print:m-0 print:border-none print:shadow-none">
-                    {/* Header */}
-                    <div className="flex items-center justify-between border-b-2 border-slate-800 pb-4">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src="/sjis-crest-logo.png"
-                          alt="SJIS Crest"
-                          className="w-14 h-14 object-contain"
-                        />
-                        <div>
-                          <h3 className="font-serif font-black text-lg text-[#00183F] tracking-tight">
-                            ST. JOSEPH INTERNATIONAL SCHOOL
-                          </h3>
-                          <p className="text-[11px] font-bold text-slate-600 uppercase tracking-widest">
-                            Narinda, Dhaka-1100, Bangladesh • Admissions Office
-                          </p>
-                          <p className="text-[10px] text-slate-500 font-semibold">
-                            Academic Session {selectedApp.academic_year || '2026-2027'} • Cambridge International Curriculum
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="text-right">
-                        <span className="inline-block px-3 py-1 rounded bg-[#00183F] text-amber-300 font-mono text-xs font-black">
-                          {selectedApp.application_id}
-                        </span>
-                        <span className="block text-[10px] font-bold text-slate-500 mt-1 uppercase">
-                          Candidate Admit Card
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Candidate Photo + Details */}
-                    <div className="grid grid-cols-12 gap-6 items-center">
-                      <div className="col-span-9 space-y-2 text-xs">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <span className="text-slate-500 text-[10px] uppercase font-bold block">Candidate Full Name:</span>
-                            <span className="font-bold text-sm text-[#00183F]">
-                              {selectedApp.student_first_name} {selectedApp.student_last_name}
-                            </span>
-                            {selectedApp.student_name_bangla && (
-                              <span className="block text-xs font-serif text-slate-600">{selectedApp.student_name_bangla}</span>
-                            )}
-                          </div>
-                          <div>
-                            <span className="text-slate-500 text-[10px] uppercase font-bold block">Grade Applying For:</span>
-                            <span className="font-bold text-sm text-[#C8102E]">{selectedApp.grade_applying}</span>
-                          </div>
-                          <div>
-                            <span className="text-slate-500 text-[10px] uppercase font-bold block">Date of Birth:</span>
-                            <span className="font-semibold">{selectedApp.date_of_birth}</span>
-                          </div>
-                          <div>
-                            <span className="text-slate-500 text-[10px] uppercase font-bold block">Gender / Blood Group:</span>
-                            <span className="font-semibold capitalize">{selectedApp.gender} • {selectedApp.blood_group}</span>
-                          </div>
-                          <div>
-                            <span className="text-slate-500 text-[10px] uppercase font-bold block">Father's Name:</span>
-                            <span className="font-semibold">{selectedApp.father_name || '—'}</span>
-                          </div>
-                          <div>
-                            <span className="text-slate-500 text-[10px] uppercase font-bold block">Mother's Name:</span>
-                            <span className="font-semibold">{selectedApp.mother_name || '—'}</span>
-                          </div>
-                          <div>
-                            <span className="text-slate-500 text-[10px] uppercase font-bold block">Contact Phone:</span>
-                            <span className="font-semibold">{selectedApp.contact_phone}</span>
-                          </div>
-                          <div>
-                            <span className="text-slate-500 text-[10px] uppercase font-bold block">Application Date:</span>
-                            <span className="font-semibold">
-                              {selectedApp.created_at ? new Date(selectedApp.created_at).toLocaleDateString() : '—'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="col-span-3 flex justify-end">
-                        <div className="w-28 h-32 border-2 border-slate-300 rounded-xl overflow-hidden flex items-center justify-center bg-slate-50 shadow-xs">
-                          {selectedApp.student_photo_url ? (
-                            <img
-                              src={selectedApp.student_photo_url}
-                              alt={selectedApp.student_first_name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <span className="text-[10px] text-slate-400 text-center font-bold px-2">
-                              Affix Passport Photo
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Examination Schedule Box */}
-                    <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-300 grid grid-cols-2 gap-4 text-xs">
-                      <div>
-                        <span className="text-amber-800 text-[10px] uppercase font-bold block">Assessment Date & Time</span>
-                        <span className="font-bold text-slate-900 text-sm">
-                          {selectedApp.entrance_exam_date || 'To be notified by SMS/Portal'}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-amber-800 text-[10px] uppercase font-bold block">Venue & Room</span>
-                        <span className="font-bold text-slate-900 text-sm">
-                          {selectedApp.entrance_exam_venue || 'SJIS Narinda Campus Main Building'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Rules & Instructions */}
-                    <div className="border-t border-slate-200 pt-3 text-[10px] text-slate-600 space-y-1">
-                      <p className="font-bold text-slate-800">Instructions for Applicant & Guardian:</p>
-                      <ul className="list-disc pl-4 space-y-0.5">
-                        <li>Candidate must bring this printed admit card and 2 passport-size photographs to the examination hall.</li>
-                        <li>Please arrive at the campus 20 minutes prior to the scheduled assessment time.</li>
-                        <li>Parents must bring original birth registration certificate and previous academic report card for on-spot verification.</li>
-                      </ul>
-                    </div>
-
-                    {/* Signatures */}
-                    <div className="pt-8 grid grid-cols-2 gap-8 text-center text-xs">
-                      <div>
-                        <div className="border-t border-slate-400 pt-1 font-semibold text-slate-700">
-                          Parent / Guardian Signature
-                        </div>
-                      </div>
-                      <div>
-                        <div className="border-t border-slate-400 pt-1 font-semibold text-slate-700">
-                          Registrar / Admissions In-Charge
-                        </div>
-                      </div>
-                    </div>
+                  {/* High-Fidelity Physical Document Viewer */}
+                  <div className="p-2 sm:p-4 bg-slate-100/70 rounded-2xl border border-slate-200 overflow-x-auto">
+                    <PrintableApplicationForm
+                      form={selectedApp}
+                      applicationId={selectedApp.application_id}
+                      formNo={selectedApp.form_no}
+                      submittedAt={selectedApp.submitted_at || selectedApp.created_at}
+                      documents={selectedApp.documents?.map((d) => ({
+                        doc_type: d.doc_type,
+                        file_url: d.file_url,
+                        original_filename: d.original_filename,
+                        file_size: d.file_size,
+                      }))}
+                      pageSize={printPageSize}
+                      documentChecklist={admSettings?.document_checklist}
+                      reportingInstructions={admSettings?.reporting_instructions}
+                      defaultYellowPaper={false}
+                    />
                   </div>
                 </div>
               )}

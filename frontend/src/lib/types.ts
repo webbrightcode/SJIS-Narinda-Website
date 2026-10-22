@@ -355,6 +355,7 @@ export interface StaffMember {
 
 export type ApplicationStatus =
   | 'draft'
+  | 'payment_pending'
   | 'submitted'
   | 'under_review'
   | 'shortlisted'
@@ -366,8 +367,72 @@ export type ApplicationStatus =
   | 'rejected'
   | 'withdrawn';
 
+export type PaymentStatus =
+  | 'not_required'
+  | 'pending'
+  | 'completed'
+  | 'failed'
+  | 'refunded';
+
+// ── Admission Settings ───────────────────────────────────────────────────────
+
+export interface DocumentChecklistItem {
+  item: string;
+  required: boolean;
+}
+
+export interface AdmissionSettings {
+  id?: number;
+  // Payment
+  payment_required: boolean;
+  payment_gateway: 'manual' | 'sslcommerz' | 'bkash' | 'nagad';
+  application_fee: string;
+  payment_currency: string;
+  // SSLCommerz (safe fields only — no secrets)
+  sslcommerz_store_id?: string;
+  sslcommerz_is_sandbox?: boolean;
+  // bKash
+  bkash_app_key?: string;
+  bkash_is_sandbox?: boolean;
+  // Nagad
+  nagad_merchant_id?: string;
+  nagad_is_sandbox?: boolean;
+  // Print
+  print_page_size: 'A4' | 'Legal';
+  form_header_note: string;
+  // Checklist
+  document_checklist: DocumentChecklistItem[];
+  reporting_instructions: string;
+  // Interview
+  interview_mode: 'slot_based' | 'manual';
+  updated_at?: string;
+}
+
+// ── Interview Slot ───────────────────────────────────────────────────────────
+
+export interface InterviewSlot {
+  id: number;
+  date: string;           // YYYY-MM-DD
+  start_time: string;     // HH:MM:SS
+  end_time: string;
+  label: string;
+  display_label: string;
+  grade_filter: string;
+  venue: string;
+  capacity: number;
+  booked_count: number;
+  available_seats: number;
+  is_full: boolean;
+  is_active: boolean;
+  notes: string;
+  created_at?: string;
+}
+
 export interface OnlineApplicationFormData {
-  // Step 1 – Student Info
+  // Physical Form Serial & Reference
+  form_no?: string;
+
+  // Step 1 – Student Info (Matches Physical Form 1, 2, 8, 9)
   student_first_name: string;
   student_last_name: string;
   student_name_bangla: string;
@@ -379,10 +444,12 @@ export interface OnlineApplicationFormData {
   birth_certificate_no: string;
   passport_no: string;
   student_photo_url: string;
+  student_living_with: 'parents' | 'father' | 'mother' | 'other';
 
-  // Step 2 – Academic Background
+  // Step 2 – Academic Background (Matches Physical Form 7 & 10)
   grade_applying: string;
   section_preference: string;
+  current_school_and_class?: string;
   previous_school_name: string;
   previous_school_city: string;
   previous_school_board: string;
@@ -392,19 +459,23 @@ export interface OnlineApplicationFormData {
   extracurricular_interests: string;
   special_needs_or_conditions: string;
 
-  // Step 3 – Parent / Guardian
+  // Step 3 – Parent / Guardian (Matches Physical Form 3, 4, 5, 6, & Bottom Office Boxes)
   father_name: string;
   father_profession: string;
   father_organization: string;
   father_qualification: string;
   father_phone: string;
   father_nid: string;
+  father_office_address?: string;
+
   mother_name: string;
   mother_profession: string;
   mother_organization: string;
   mother_qualification: string;
   mother_phone: string;
   mother_nid: string;
+  mother_office_address?: string;
+
   guardian_relation: 'father' | 'mother' | 'guardian' | 'other';
   contact_email: string;
   contact_phone: string;
@@ -417,20 +488,39 @@ export interface OnlineApplicationFormData {
   present_district: string;
   present_zip: string;
 
-  // Step 4 – Declaration
+  // Step 4 – Declaration & Sibling (Matches Physical Form 11, Submission & Undertaking)
   parent_declaration_accepted: boolean;
   sibling_at_sjis: boolean;
   sibling_name_class: string;
+  sibling_name?: string;
+  sibling_class?: string;
+  sibling_section?: string;
+  sibling_roll?: string;
+
   how_did_you_hear: string;
   additional_notes: string;
   academic_year: string;
+
+  // Office Use / Physical Form Metadata
+  submission_deadline?: string;
+  interview_date?: string;
+  interview_time?: string;
+  received_by?: string;
 }
 
 export interface OnlineApplication extends OnlineApplicationFormData {
   id: number;
   application_id: string;
+  form_no: string;
   status: ApplicationStatus;
   status_display: string;
+  payment_status: PaymentStatus;
+  payment_status_display?: string;
+  payment_transaction_id?: string;
+  payment_amount?: string;
+  payment_completed_at?: string;
+  interview_slot?: number | null;
+  interview_slot_detail?: InterviewSlot | null;
   student_full_name: string;
   documents_count: number;
   verified_docs_count: number;
@@ -441,6 +531,7 @@ export interface OnlineApplication extends OnlineApplicationFormData {
   entrance_exam_date?: string;
   entrance_exam_venue?: string;
   interview_date?: string;
+  interview_time?: string;
   admin_notes?: string;
   offer_letter_sent?: boolean;
   documents?: ApplicationDocument[];
@@ -461,14 +552,41 @@ export interface ApplicationDocument {
 
 export interface ApplicationStatusResult {
   application_id: string;
+  form_no?: string;
   student_name: string;
+  student_first_name?: string;
+  student_last_name?: string;
+  student_photo_url?: string;
   grade_applying: string;
   academic_year: string;
   status: ApplicationStatus;
   status_display: string;
   status_message: string;
+  payment_status?: PaymentStatus;
+  payment_required?: boolean;
+  payment_gateway?: string;
+  payment_currency?: string;
+  application_fee?: string;
+  payment_transaction_id?: string;
+  payment_amount?: string;
+  payment_completed_at?: string;
+  print_page_size?: 'A4' | 'Legal';
+  document_checklist?: DocumentChecklistItem[];
+  reporting_instructions?: string;
   submitted_at?: string;
   entrance_exam_date?: string;
   entrance_exam_venue?: string;
+  interview_date?: string;
+  interview_time?: string;
+  interview_slot?: {
+    id: number;
+    date: string;
+    start_time: string;
+    end_time: string;
+    label: string;
+    reporting_venue: string;
+  } | null;
+  interview_slot_detail?: InterviewSlot;
   documents_verified: boolean;
+  application?: OnlineApplication;
 }

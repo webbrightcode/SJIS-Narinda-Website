@@ -16,6 +16,8 @@ from .models import (
     Publication,
     OnlineApplication,
     ApplicationDocument,
+    AdmissionSettings,
+    InterviewSlot,
 )
 
 
@@ -173,14 +175,50 @@ class ApplicationDocumentSerializer(serializers.ModelSerializer):
         read_only_fields = ['uploaded_at']
 
 
+class AdmissionSettingsSerializer(serializers.ModelSerializer):
+    """Public-safe serializer that hides raw gateway credentials."""
+    class Meta:
+        model = AdmissionSettings
+        # Expose everything EXCEPT raw credential secrets on the public endpoint
+        exclude = [
+            'sslcommerz_store_pass',
+            'bkash_app_secret',
+            'bkash_password',
+            'nagad_merchant_key',
+        ]
+
+
+class AdmissionSettingsFullSerializer(serializers.ModelSerializer):
+    """Full serializer for admin use (includes credentials)."""
+    class Meta:
+        model = AdmissionSettings
+        fields = '__all__'
+
+
+class InterviewSlotSerializer(serializers.ModelSerializer):
+    display_label = serializers.CharField(read_only=True)
+    is_full = serializers.BooleanField(read_only=True)
+    available_seats = serializers.IntegerField(read_only=True)
+    bookings_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = InterviewSlot
+        fields = '__all__'
+
+    def get_bookings_count(self, obj):
+        return obj.bookings.count()
+
+
 class OnlineApplicationSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     gender_display = serializers.CharField(source='get_gender_display', read_only=True)
     guardian_relation_display = serializers.CharField(source='get_guardian_relation_display', read_only=True)
+    payment_status_display = serializers.CharField(source='get_payment_status_display', read_only=True)
     student_full_name = serializers.CharField(read_only=True)
     documents = ApplicationDocumentSerializer(many=True, read_only=True)
     documents_count = serializers.SerializerMethodField()
     verified_docs_count = serializers.SerializerMethodField()
+    interview_slot_detail = InterviewSlotSerializer(source='interview_slot', read_only=True)
 
     class Meta:
         model = OnlineApplication
@@ -197,18 +235,22 @@ class OnlineApplicationSerializer(serializers.ModelSerializer):
 class OnlineApplicationListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for list views (no nested docs)."""
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+    payment_status_display = serializers.CharField(source='get_payment_status_display', read_only=True)
     student_full_name = serializers.CharField(read_only=True)
     documents_count = serializers.SerializerMethodField()
 
     class Meta:
         model = OnlineApplication
         fields = [
-            'id', 'application_id', 'student_full_name', 'student_first_name',
+            'id', 'application_id', 'form_no', 'student_full_name', 'student_first_name',
             'student_last_name', 'gender', 'grade_applying', 'academic_year',
-            'contact_email', 'contact_phone', 'status', 'status_display',
-            'documents_count', 'documents_verified', 'created_at', 'submitted_at',
+            'contact_email', 'contact_phone', 'student_living_with', 'current_school_and_class',
+            'status', 'status_display', 'payment_status', 'payment_status_display',
+            'payment_transaction_id', 'payment_completed_at',
+            'documents_count', 'documents_verified',
+            'interview_date', 'interview_time', 'interview_slot',
+            'created_at', 'submitted_at',
         ]
 
     def get_documents_count(self, obj):
         return obj.documents.count()
-

@@ -166,3 +166,72 @@ html[data-splash='seen'] #sjis-splash { display: none; }
   }
 }
 
+/* ═════════════════════════════════════════════════════════════════════════════
+   PRINT STYLES FOR ADMISSION DOCUMENTS & ADMIT CARDS
+   ═════════════════════════════════════════════════════════════════════════════ */
+@media print {
+  /* Hide standard website chrome & UI overlays */
+  nav, header, footer, aside, .site-header, .site-footer, [role="navigation"], .no-print {
+    display: none !important;
+  }
+
+  /* Reset document root for physical printer */
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Modal wrapper becomes transparent container during printing */
+  .print-modal-backdrop {
+    position: static !important;
+    inset: auto !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    display: block !important;
+    width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* Target printable document */
+  #physical-admission-document {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    page-break-inside: auto !important;
+  }
+
+  #physical-admission-document * {
+    visibility: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .admit-card-part {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 5mm 5mm 5mm 5mm;
+  }
+}
+

@@ -31,11 +31,22 @@ import {
   ChevronUp,
   Edit3,
   Download,
+  Lock,
+  CreditCard,
+  Clock,
 } from 'lucide-react';
-import { submitOnlineApplication, uploadMediaFile, getAdmissionGuide } from '@/lib/api';
-import type { OnlineApplicationFormData, AdmissionGuide } from '@/lib/types';
+import {
+  submitOnlineApplication,
+  uploadMediaFile,
+  getAdmissionGuide,
+  getAdmissionSettings,
+  initiatePayment,
+  type SubmitApplicationResponse,
+} from '@/lib/api';
+import type { OnlineApplicationFormData, AdmissionGuide, AdmissionSettings } from '@/lib/types';
 import { ScrollReveal } from '@/components/ui/ScrollReveal';
 import { PrintableApplicationForm } from '@/components/admission/PrintableApplicationForm';
+import { printDocumentElement } from '@/lib/printUtils';
 
 const STEPS = [
   { id: 1, title: 'Student Information', icon: User, description: 'Personal details & candidate photograph' },
@@ -102,19 +113,22 @@ interface UploadedDocItem {
 }
 
 const INITIAL_FORM: OnlineApplicationFormData = {
+  form_no: '',
   student_first_name: '',
   student_last_name: '',
   student_name_bangla: '',
   date_of_birth: '',
   gender: 'male',
-  religion: '',
+  religion: 'islam',
   blood_group: 'Unknown',
   nationality: 'Bangladeshi',
   birth_certificate_no: '',
   passport_no: '',
   student_photo_url: '',
-  grade_applying: 'Grade 1',
+  student_living_with: 'parents',
+  grade_applying: 'Nursery',
   section_preference: 'English Medium (Cambridge)',
+  current_school_and_class: '',
   previous_school_name: '',
   previous_school_city: '',
   previous_school_board: '',
@@ -129,12 +143,14 @@ const INITIAL_FORM: OnlineApplicationFormData = {
   father_qualification: '',
   father_phone: '',
   father_nid: '',
+  father_office_address: '',
   mother_name: '',
   mother_profession: '',
   mother_organization: '',
   mother_qualification: '',
   mother_phone: '',
   mother_nid: '',
+  mother_office_address: '',
   guardian_relation: 'father',
   contact_email: '',
   contact_phone: '',
@@ -149,9 +165,14 @@ const INITIAL_FORM: OnlineApplicationFormData = {
   parent_declaration_accepted: false,
   sibling_at_sjis: false,
   sibling_name_class: '',
+  sibling_name: '',
+  sibling_class: '',
+  sibling_section: '',
+  sibling_roll: '',
   how_did_you_hear: '',
   additional_notes: '',
   academic_year: '2026-2027',
+  submission_deadline: '28.06.2026',
 };
 
 function Field({
@@ -190,7 +211,10 @@ export default function OnlineApplicationPage() {
   const [showGuidelines, setShowGuidelines] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<{ success: boolean; application_id?: string; message: string } | null>(null);
+  const [result, setResult] = useState<SubmitApplicationResponse | null>(null);
+  const [admSettings, setAdmSettings] = useState<AdmissionSettings | null>(null);
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
   const [stepError, setStepError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState(false);
 
@@ -205,22 +229,28 @@ export default function OnlineApplicationPage() {
 
   const topRef = useRef<HTMLDivElement>(null);
 
-  // Load backend admission settings dynamically
+  // Load backend admission guide & settings dynamically
   useEffect(() => {
-    async function fetchGuide() {
+    async function loadData() {
       try {
-        const data = await getAdmissionGuide();
-        if (data) {
-          setGuide(data);
-          if (data.academic_year) {
-            setForm((prev) => ({ ...prev, academic_year: data.academic_year }));
+        const [guideData, settingsData] = await Promise.all([
+          getAdmissionGuide().catch(() => null),
+          getAdmissionSettings().catch(() => null),
+        ]);
+        if (guideData) {
+          setGuide(guideData);
+          if (guideData.academic_year) {
+            setForm((prev) => ({ ...prev, academic_year: guideData.academic_year }));
           }
         }
+        if (settingsData) {
+          setAdmSettings(settingsData);
+        }
       } catch (err) {
-        console.warn('Could not load admission guide:', err);
+        console.warn('Could not load admission data:', err);
       }
     }
-    fetchGuide();
+    loadData();
   }, []);
 
   const set = (field: keyof OnlineApplicationFormData, value: string | boolean) => {
@@ -386,36 +416,79 @@ export default function OnlineApplicationPage() {
     }
   };
 
+  const handlePayNow = async () => {
+    if (!result?.application_id) return;
+    setPaying(true);
+    setPayError(null);
+    try {
+      const res = await initiatePayment(result.application_id);
+      if (res.redirect_url) {
+        window.location.href = res.redirect_url;
+      } else if (res.gateway === 'manual') {
+        alert(
+          `Payment Gateway is set to Manual Mode by school administration.\n\nFee Amount: ${result.payment_currency || 'BDT'} ${result.application_fee || '1,000'}\n\nPlease submit payment at the Admissions Accounts Counter (32 Shah Shaheb Lane, Narinda) quoting your Reference ID: ${result.application_id}.`
+        );
+      } else if (res.error) {
+        setPayError(res.error);
+      } else {
+        setPayError('Could not initialize payment gateway. Please try again.');
+      }
+    } catch {
+      setPayError('Network error connecting to payment gateway.');
+    } finally {
+      setPaying(false);
+    }
+  };
+
   // SUCCESS CONFIRMATION VIEW
   if (result?.success) {
+    const isPaymentRequired = result.payment_required === true;
+    const isPaid = !isPaymentRequired || result.payment_status === 'completed';
+    const canDownload = isPaid && Boolean(result.form_no);
+
     return (
       <>
         {/* Hidden Printable Container for Direct Browser Print Command */}
-        <div className="hidden print:block print:w-full print:m-0 print:p-0">
-          <PrintableApplicationForm
-            form={form}
-            applicationId={result.application_id}
-            documents={documents}
-          />
-        </div>
+        {canDownload && (
+          <div className="hidden print:block print:w-full print:m-0 print:p-0">
+            <PrintableApplicationForm
+              form={form}
+              applicationId={result.application_id}
+              formNo={result.form_no || undefined}
+              documents={documents}
+              pageSize={admSettings?.print_page_size || 'A4'}
+              documentChecklist={admSettings?.document_checklist || []}
+              reportingInstructions={admSettings?.reporting_instructions || ''}
+            />
+          </div>
+        )}
 
         {/* Screen View */}
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-slate-50 flex items-center justify-center p-4 py-12 print:hidden">
           <div className="max-w-2xl w-full bg-white rounded-3xl shadow-2xl border border-emerald-100 p-6 sm:p-12 text-center space-y-6">
-            <div className="w-20 h-20 rounded-full bg-emerald-50 border-4 border-emerald-200 flex items-center justify-center mx-auto shadow-md">
-              <CheckCircle2 className="w-10 h-10 text-emerald-500" />
+            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto shadow-md ${
+              isPaid ? 'bg-emerald-50 border-4 border-emerald-200' : 'bg-amber-50 border-4 border-amber-200'
+            }`}>
+              {isPaid ? (
+                <CheckCircle2 className="w-10 h-10 text-emerald-500" />
+              ) : (
+                <CreditCard className="w-10 h-10 text-amber-600" />
+              )}
             </div>
 
             <div>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold uppercase tracking-wider mb-2">
-                <Sparkles className="w-3.5 h-3.5" /> Application Received
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-2 ${
+                isPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900 border border-amber-200'
+              }`}>
+                {isPaid ? <Sparkles className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
+                {isPaid ? 'Application Received & Verified' : 'Step 2: Complete Online Payment'}
               </span>
               <h1 className="text-2xl sm:text-3xl font-black text-[#00183F]">
-                Online Application Submitted Successfully!
+                {isPaid ? 'Online Application Submitted Successfully!' : 'Application Registered — Payment Required'}
               </h1>
               <p className="text-slate-600 text-xs sm:text-sm mt-2 max-w-lg mx-auto leading-relaxed">
                 Thank you for applying to <strong>St. Joseph International School, Narinda</strong> (Session{' '}
-                {form.academic_year}). Your candidate file has been recorded in our admissions registry.
+                {form.academic_year}). Your candidate particulars have been saved in our admissions registry.
               </p>
             </div>
 
@@ -443,9 +516,64 @@ export default function OnlineApplicationPage() {
                     Reference ID copied to clipboard!
                   </p>
                 )}
-                <p className="text-[11px] text-slate-400">
-                  Please save this ID. You will need it along with your contact phone to check admission milestones and download your entrance admit slip.
-                </p>
+                <div className="pt-1 text-[11px] text-slate-300 border-t border-white/10 mt-2 flex items-center justify-center gap-2">
+                  <span>Physical Form Serial:</span>
+                  {result.form_no ? (
+                    <strong className="text-white font-mono font-bold">{result.form_no}</strong>
+                  ) : (
+                    <span className="text-amber-300 font-semibold italic">Assigned upon fee payment</span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Payment Banner when fee is required */}
+            {!isPaid && (
+              <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/20 to-amber-500/10 border-2 border-amber-400 rounded-2xl p-5 text-center space-y-3">
+                <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-amber-100 text-amber-800">
+                  <Lock className="w-5 h-5 text-amber-700" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-[#00183F]">
+                    Complete Application Fee Payment
+                  </h3>
+                  <p className="text-xs text-slate-700 mt-1 max-w-lg mx-auto leading-relaxed">
+                    Per admissions board regulations, an official physical form serial number and printable Candidate Admit Card are issued immediately after paying the application processing fee of{' '}
+                    <strong className="text-amber-900 font-bold">
+                      {result.payment_currency || 'BDT'} {result.application_fee || '1,000'}
+                    </strong>.
+                  </p>
+                </div>
+
+                {payError && (
+                  <p className="text-xs text-rose-700 font-bold bg-rose-50 border border-rose-200 rounded-lg p-2 max-w-md mx-auto">
+                    {payError}
+                  </p>
+                )}
+
+                <div>
+                  <button
+                    type="button"
+                    disabled={paying}
+                    onClick={handlePayNow}
+                    className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-black text-sm shadow-lg shadow-emerald-700/25 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {paying ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Opening Payment Gateway...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="w-4 h-4" />
+                        <span>
+                          Pay Fee Online Now ({result.payment_currency || 'BDT'} {result.application_fee || '1,000'})
+                        </span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             )}
 
@@ -470,21 +598,36 @@ export default function OnlineApplicationPage() {
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                   <span>
-                    <strong>Entrance Admit Card:</strong> You can download and print your official Candidate Admit Card directly from the tracking portal.
+                    <strong>Entrance Admit Card:</strong>{' '}
+                    {canDownload
+                      ? 'You can download and print your official Candidate Admit Card immediately.'
+                      : 'Candidate Admit Card will unlock once application fee is completed.'}
                   </span>
                 </li>
               </ul>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowPrintModal(true)}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold text-sm shadow-lg shadow-emerald-700/25 active:scale-[0.98] transition-all cursor-pointer"
-              >
-                <Download className="w-4 h-4" />
-                <span>Download / Print Completed Form (PDF)</span>
-              </button>
+              {canDownload ? (
+                <button
+                  type="button"
+                  onClick={() => setShowPrintModal(true)}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold text-sm shadow-lg shadow-emerald-700/25 active:scale-[0.98] transition-all cursor-pointer"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download / Print Completed Form (PDF)</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-slate-100 border border-slate-300 text-slate-400 font-bold text-sm cursor-not-allowed opacity-75"
+                  title="Form & Admit Card downloads unlock upon fee payment"
+                >
+                  <Lock className="w-4 h-4" />
+                  <span>Download Form (Locked Until Payment)</span>
+                </button>
+              )}
 
               <a
                 href={`/admission/status?id=${result.application_id}&phone=${encodeURIComponent(form.contact_phone)}`}
@@ -499,10 +642,10 @@ export default function OnlineApplicationPage() {
         </div>
 
         {/* Print & PDF Interactive Modal (Screen Only) */}
-        {showPrintModal && (
-          <div className="fixed inset-0 z-50 bg-slate-900/85 backdrop-blur-sm overflow-y-auto p-3 sm:p-6 flex flex-col items-center print:hidden">
+        {showPrintModal && canDownload && (
+          <div className="fixed inset-0 z-50 bg-slate-900/85 backdrop-blur-sm overflow-y-auto p-3 sm:p-6 flex flex-col items-center print-modal-backdrop print:static print:inset-auto print:z-auto print:bg-transparent print:p-0 print:m-0 print:overflow-visible print:block print:w-full">
             {/* Action Bar */}
-            <div className="sticky top-2 z-10 w-full max-w-[210mm] bg-[#00183F] text-white rounded-2xl p-4 shadow-2xl flex flex-wrap items-center justify-between gap-3 border border-amber-400/30 mb-4">
+            <div className="print:hidden sticky top-2 z-10 w-full max-w-[210mm] bg-[#00183F] text-white rounded-2xl p-4 shadow-2xl flex flex-wrap items-center justify-between gap-3 border border-amber-400/30 mb-4">
               <div className="flex items-center gap-3">
                 <Printer className="w-5 h-5 text-[#D4AF37] shrink-0" />
                 <div>
@@ -515,11 +658,17 @@ export default function OnlineApplicationPage() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => window.print()}
+                  onClick={() =>
+                    printDocumentElement(
+                      'physical-admission-document',
+                      'St. Joseph International School - Official Document',
+                      admSettings?.print_page_size || 'A4'
+                    )
+                  }
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#D4AF37] hover:bg-[#c59f2e] text-[#00183F] font-black text-xs sm:text-sm shadow-md transition-all cursor-pointer"
                 >
                   <Download className="w-4 h-4" />
-                  <span>Print / Save as PDF</span>
+                  <span>Print / Save as PDF ({admSettings?.print_page_size || 'A4'})</span>
                 </button>
                 <button
                   type="button"
@@ -531,12 +680,16 @@ export default function OnlineApplicationPage() {
               </div>
             </div>
 
-            {/* A4 Sheet Container */}
-            <div className="w-full max-w-[210mm] bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-300 mb-8">
+            {/* Sheet Container */}
+            <div className="w-full max-w-[210mm] bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-300 mb-8 print:max-w-none print:w-full print:border-none print:shadow-none print:m-0 print:p-0 print:rounded-none">
               <PrintableApplicationForm
                 form={form}
                 applicationId={result.application_id}
+                formNo={result.form_no || undefined}
                 documents={documents}
+                pageSize={admSettings?.print_page_size || 'A4'}
+                documentChecklist={admSettings?.document_checklist || []}
+                reportingInstructions={admSettings?.reporting_instructions || ''}
               />
             </div>
           </div>
@@ -837,22 +990,30 @@ export default function OnlineApplicationPage() {
 
                   {/* ── Student Names ─────────────────────────────────────── */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <Field label="First Name (as in Birth Certificate)" required>
+                    <Field
+                      label="Candidate First & Middle Name (English Block Letters)"
+                      required
+                      hint="1. Full name of candidate (cannot be changed once registered)"
+                    >
                       <input
                         type="text"
-                        className={inputClass}
+                        className={inputClass + ' uppercase tracking-wide font-medium'}
                         value={form.student_first_name}
-                        placeholder="e.g. Rayan"
-                        onChange={(e) => set('student_first_name', e.target.value)}
+                        placeholder="e.g. MOLIERE RAHMAN"
+                        onChange={(e) => set('student_first_name', e.target.value.toUpperCase())}
                       />
                     </Field>
-                    <Field label="Last Name / Surname" required>
+                    <Field
+                      label="Candidate Last Name / Surname (English Block Letters)"
+                      required
+                      hint="As per Govt/Church Birth Certificate"
+                    >
                       <input
                         type="text"
-                        className={inputClass}
+                        className={inputClass + ' uppercase tracking-wide font-medium'}
                         value={form.student_last_name}
-                        placeholder="e.g. Ahmed"
-                        onChange={(e) => set('student_last_name', e.target.value)}
+                        placeholder="e.g. GRAMSCI"
+                        onChange={(e) => set('student_last_name', e.target.value.toUpperCase())}
                       />
                     </Field>
                   </div>
@@ -862,14 +1023,18 @@ export default function OnlineApplicationPage() {
                       type="text"
                       className={inputClass}
                       value={form.student_name_bangla}
-                      placeholder="e.g. রায়ান আহমেদ"
+                      placeholder="e.g. মলিয়ের রহমান গ্রামসি"
                       onChange={(e) => set('student_name_bangla', e.target.value)}
                     />
                   </Field>
 
-                  {/* ── DOB, Gender, Blood Group ───────────────────────────── */}
+                  {/* ── DOB, Gender, Living With, Blood Group ───────────────── */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                    <Field label="Date of Birth" required hint="According to birth registration">
+                    <Field
+                      label="Authentic Date of Birth"
+                      required
+                      hint="2. Cannot be changed (As per Govt/Church birth certificate)"
+                    >
                       <input
                         type="date"
                         className={inputClass}
@@ -878,7 +1043,7 @@ export default function OnlineApplicationPage() {
                       />
                     </Field>
 
-                    <Field label="Gender" required>
+                    <Field label="8. Gender" required>
                       <select
                         className={selectClass}
                         value={form.gender}
@@ -905,9 +1070,42 @@ export default function OnlineApplicationPage() {
                     </Field>
                   </div>
 
+                  {/* ── Field 9: Student Living With ────────────────────────── */}
+                  <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-800 mb-2">
+                      9. Student Living With <span className="text-[#C8102E]">*</span>
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {[
+                        { id: 'parents', label: 'Parents' },
+                        { id: 'father', label: 'Father' },
+                        { id: 'mother', label: 'Mother' },
+                        { id: 'other', label: 'Other' },
+                      ].map((item) => (
+                        <label
+                          key={item.id}
+                          className={`flex items-center gap-2 p-3 rounded-xl border cursor-pointer text-xs font-bold transition-all ${
+                            form.student_living_with === item.id
+                              ? 'bg-[#00183F] text-[#D4AF37] border-[#00183F] shadow-sm'
+                              : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="student_living_with"
+                            checked={form.student_living_with === item.id}
+                            onChange={() => set('student_living_with', item.id as any)}
+                            className="w-4 h-4 accent-[#D4AF37]"
+                          />
+                          <span>{item.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
                   {/* ── Religion, Nationality ─────────────────────────────── */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <Field label="Religion">
+                    <Field label="Religion" required hint="As written on physical form">
                       <select
                         className={selectClass}
                         value={form.religion}
@@ -966,7 +1164,7 @@ export default function OnlineApplicationPage() {
                 <div className="space-y-6">
                   {/* Grade Applying & Exclusive English Medium */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <Field label="Grade Applying For" required>
+                    <Field label="7. Class/Grade for which application is being made" required>
                       <select
                         className={selectClass}
                         value={form.grade_applying}
@@ -996,16 +1194,37 @@ export default function OnlineApplicationPage() {
                     </Field>
                   </div>
 
+                  {/* Field 10 of Physical Form */}
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                    <Field
+                      label="10. School & Class in which the candidate is studying this year"
+                      hint="e.g. Shamrock South Park Intl. School - Nursery (or write 'None / First Admission')"
+                    >
+                      <input
+                        type="text"
+                        className={inputClass}
+                        value={form.current_school_and_class || ''}
+                        placeholder="e.g. Shamrock South park Intl. School, Nursery"
+                        onChange={(e) => {
+                          set('current_school_and_class', e.target.value);
+                          if (!form.previous_school_name) {
+                            set('previous_school_name', e.target.value);
+                          }
+                        }}
+                      />
+                    </Field>
+                  </div>
+
                   {/* Previous School Info */}
                   <div className="border-t border-slate-100 pt-5 space-y-5">
                     <h3 className="text-sm font-bold text-[#00183F] flex items-center gap-2">
-                      <BookOpen className="w-4 h-4 text-[#C8102E]" /> Previous School Information
+                      <BookOpen className="w-4 h-4 text-[#C8102E]" /> Detailed Previous Academic History (if applicable)
                     </h3>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                       <Field
                         label="Previous School Name"
-                        hint="Leave blank if this is the student's first admission (Playgroup/Nursery)"
+                        hint="Leave blank if this is the student's first admission"
                       >
                         <input
                           type="text"
@@ -1105,141 +1324,156 @@ export default function OnlineApplicationPage() {
                 <div className="space-y-6">
                   {/* Father Details */}
                   <div className="bg-blue-50/40 border border-blue-100 rounded-2xl p-5 sm:p-6 space-y-4">
-                    <h3 className="text-sm font-black text-[#00183F] uppercase tracking-wide flex items-center gap-2">
-                      <Users className="w-4 h-4 text-[#00183F]" /> Father's Particulars
+                    <h3 className="text-sm font-black text-[#00183F] uppercase tracking-wide flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-[#00183F]" /> 3. Father's Particulars & Contact
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-bold">Physical Form #3 & #6</span>
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <Field label="Father Full Name">
+                      <Field label="3. Father's Name" required>
                         <input
                           type="text"
                           className={inputClass}
                           value={form.father_name}
-                          placeholder="e.g. Dr. Mahmudul Hasan"
+                          placeholder="e.g. Monjurur Rahman prince"
                           onChange={(e) => set('father_name', e.target.value)}
                         />
                       </Field>
-                      <Field label="Profession / Occupation">
+                      <Field label="Occupation" required hint="e.g. Banking, Business, Service, Physician">
                         <input
                           type="text"
                           className={inputClass}
                           value={form.father_profession}
-                          placeholder="e.g. Physician, Engineer, Business"
+                          placeholder="e.g. Banking"
                           onChange={(e) => set('father_profession', e.target.value)}
                         />
                       </Field>
-                      <Field label="Organization / Employer">
-                        <input
-                          type="text"
-                          className={inputClass}
-                          value={form.father_organization}
-                          placeholder="e.g. BEXIMCO, Dhaka Medical..."
-                          onChange={(e) => set('father_organization', e.target.value)}
-                        />
-                      </Field>
-                      <Field label="Educational Qualification">
-                        <input
-                          type="text"
-                          className={inputClass}
-                          value={form.father_qualification}
-                          placeholder="e.g. M.Sc., Ph.D., B.Sc."
-                          onChange={(e) => set('father_qualification', e.target.value)}
-                        />
-                      </Field>
-                      <Field label="Mobile Number">
+                      <Field label="6. Contact Number (Father)" required>
                         <div className="relative">
                           <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                           <input
                             type="tel"
                             className={inputClass + ' pl-9'}
                             value={form.father_phone}
-                            placeholder="+880 17XX-XXXXXX"
+                            placeholder="01969284214"
                             onChange={(e) => set('father_phone', e.target.value)}
                           />
                         </div>
                       </Field>
-                      <Field label="NID / Smart Card Number">
+                      <Field label="Organization / Employer (Optional)">
                         <input
                           type="text"
                           className={inputClass}
-                          value={form.father_nid}
-                          placeholder="e.g. 1980123456789"
-                          onChange={(e) => set('father_nid', e.target.value)}
+                          value={form.father_organization}
+                          placeholder="e.g. Dutch-Bangla Bank, Private Firm..."
+                          onChange={(e) => set('father_organization', e.target.value)}
                         />
                       </Field>
+                      <div className="col-span-1 sm:col-span-2">
+                        <Field
+                          label="Office address & Tel No (Father)"
+                          hint="Matches bottom box of physical form [Attach Business Card / Office Contact]"
+                        >
+                          <textarea
+                            rows={2}
+                            className={inputClass}
+                            value={form.father_office_address || ''}
+                            placeholder="e.g. Head Office, Motijheel C/A, Dhaka. Tel: +880 2-9568421"
+                            onChange={(e) => set('father_office_address', e.target.value)}
+                          />
+                        </Field>
+                      </div>
                     </div>
                   </div>
 
                   {/* Mother Details */}
                   <div className="bg-rose-50/40 border border-rose-100 rounded-2xl p-5 sm:p-6 space-y-4">
-                    <h3 className="text-sm font-black text-[#00183F] uppercase tracking-wide flex items-center gap-2">
-                      <Users className="w-4 h-4 text-[#C8102E]" /> Mother's Particulars
+                    <h3 className="text-sm font-black text-[#00183F] uppercase tracking-wide flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-[#C8102E]" /> 4. Mother's Particulars & Contact
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-bold">Physical Form #4 & #6</span>
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <Field label="Mother Full Name">
+                      <Field label="4. Mother's Name" required>
                         <input
                           type="text"
                           className={inputClass}
                           value={form.mother_name}
-                          placeholder="e.g. Mrs. Nasima Begum"
+                          placeholder="e.g. Shamima Sultana"
                           onChange={(e) => set('mother_name', e.target.value)}
                         />
                       </Field>
-                      <Field label="Profession / Occupation">
+                      <Field label="Occupation" required hint="e.g. Housewife, Teacher, Banker, Physician">
                         <input
                           type="text"
                           className={inputClass}
                           value={form.mother_profession}
-                          placeholder="e.g. Teacher, Banker, Homemaker"
+                          placeholder="e.g. Housewife"
                           onChange={(e) => set('mother_profession', e.target.value)}
                         />
                       </Field>
-                      <Field label="Organization / Employer">
-                        <input
-                          type="text"
-                          className={inputClass}
-                          value={form.mother_organization}
-                          placeholder="e.g. Standard Chartered Bank"
-                          onChange={(e) => set('mother_organization', e.target.value)}
-                        />
-                      </Field>
-                      <Field label="Educational Qualification">
-                        <input
-                          type="text"
-                          className={inputClass}
-                          value={form.mother_qualification}
-                          placeholder="e.g. M.A., B.A., M.B.A."
-                          onChange={(e) => set('mother_qualification', e.target.value)}
-                        />
-                      </Field>
-                      <Field label="Mobile Number">
+                      <Field label="6. Contact Number (Mother)" required>
                         <div className="relative">
                           <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                           <input
                             type="tel"
                             className={inputClass + ' pl-9'}
                             value={form.mother_phone}
-                            placeholder="+880 18XX-XXXXXX"
+                            placeholder="01782109162"
                             onChange={(e) => set('mother_phone', e.target.value)}
                           />
                         </div>
                       </Field>
-                      <Field label="NID / Smart Card Number">
+                      <Field label="Organization / Employer (Optional)">
                         <input
                           type="text"
                           className={inputClass}
-                          value={form.mother_nid}
-                          placeholder="e.g. 1985123456789"
-                          onChange={(e) => set('mother_nid', e.target.value)}
+                          value={form.mother_organization}
+                          placeholder="e.g. Institution / Organization Name..."
+                          onChange={(e) => set('mother_organization', e.target.value)}
                         />
                       </Field>
+                      <div className="col-span-1 sm:col-span-2">
+                        <Field
+                          label="Office address & Tel No (Mother)"
+                          hint="Matches bottom box of physical form [Attach Business Card / Office Contact]"
+                        >
+                          <textarea
+                            rows={2}
+                            className={inputClass}
+                            value={form.mother_office_address || ''}
+                            placeholder="Office address & telephone number if employed (or leave blank if homemaker)..."
+                            onChange={(e) => set('mother_office_address', e.target.value)}
+                          />
+                        </Field>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Primary Guardian & Contact */}
+                  {/* Primary Guardian & Address */}
                   <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 sm:p-6 space-y-4">
-                    <h3 className="text-sm font-black text-[#00183F] uppercase tracking-wide flex items-center gap-2">
-                      <Home className="w-4 h-4 text-[#00183F]" /> Primary Communication & Address
+                    <h3 className="text-sm font-black text-[#00183F] uppercase tracking-wide flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Home className="w-4 h-4 text-[#00183F]" /> 5. Present Address & Primary Communication
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-bold">Physical Form #5</span>
                     </h3>
+
+                    <Field
+                      label="5. Present Address"
+                      required
+                      hint="House/Road/Lane, Area, Post Office, Dhaka (e.g. 23/2/B, K.M. Das Lane, Tikatuli, Dhaka)"
+                    >
+                      <textarea
+                        rows={2}
+                        className={inputClass}
+                        value={form.present_address}
+                        placeholder="23/2/B, K.M. Das Lane, Tikatuli, Dhaka"
+                        onChange={(e) => set('present_address', e.target.value)}
+                      />
+                    </Field>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <Field label="Primary Guardian" required>
@@ -1532,18 +1766,78 @@ export default function OnlineApplicationPage() {
                           className="w-4 h-4 rounded accent-[#00183F] cursor-pointer"
                         />
                         <div>
-                          <div className="text-xs font-bold text-slate-800">Sibling Currently Enrolled at SJIS</div>
-                          <div className="text-[11px] text-slate-500">Qualifies for sibling admission consideration</div>
+                          <div className="text-xs font-bold text-slate-800">
+                            11. Sibling studying in this school?
+                          </div>
+                          <div className="text-[11px] text-slate-500">
+                            If any brother or sister is currently enrolled at St. Joseph Narinda
+                          </div>
                         </div>
                       </label>
                       {form.sibling_at_sjis && (
-                        <input
-                          type="text"
-                          className={inputClass}
-                          value={form.sibling_name_class}
-                          placeholder="Sibling name and current grade (e.g. Zarif Ahmed - Grade 4)"
-                          onChange={(e) => set('sibling_name_class', e.target.value)}
-                        />
+                        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+                          <p className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">
+                            11. Sibling School Information (Matches Physical Form)
+                          </p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-600 block mb-1">Sibling Name</label>
+                              <input
+                                type="text"
+                                className={inputClass}
+                                value={form.sibling_name || ''}
+                                placeholder="Sibling full name"
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  set('sibling_name', val);
+                                  set('sibling_name_class', `${val} (Class: ${form.sibling_class || ''}, Sec: ${form.sibling_section || ''}, Roll: ${form.sibling_roll || ''})`);
+                                }}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-600 block mb-1">Class / Grade</label>
+                              <input
+                                type="text"
+                                className={inputClass}
+                                value={form.sibling_class || ''}
+                                placeholder="e.g. Grade 4"
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  set('sibling_class', val);
+                                  set('sibling_name_class', `${form.sibling_name || ''} (Class: ${val}, Sec: ${form.sibling_section || ''}, Roll: ${form.sibling_roll || ''})`);
+                                }}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-600 block mb-1">Section</label>
+                              <input
+                                type="text"
+                                className={inputClass}
+                                value={form.sibling_section || ''}
+                                placeholder="e.g. A / Lily"
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  set('sibling_section', val);
+                                  set('sibling_name_class', `${form.sibling_name || ''} (Class: ${form.sibling_class || ''}, Sec: ${val}, Roll: ${form.sibling_roll || ''})`);
+                                }}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-600 block mb-1">Roll / ID</label>
+                              <input
+                                type="text"
+                                className={inputClass}
+                                value={form.sibling_roll || ''}
+                                placeholder="e.g. 14"
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  set('sibling_roll', val);
+                                  set('sibling_name_class', `${form.sibling_name || ''} (Class: ${form.sibling_class || ''}, Sec: ${form.sibling_section || ''}, Roll: ${val})`);
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
                       )}
                     </div>
 
@@ -1862,20 +2156,17 @@ export default function OnlineApplicationPage() {
                       </div>
                     </div>
 
-                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-5 text-xs text-slate-200 leading-relaxed space-y-2">
-                      <p>
-                        I/We, the parent(s) / legal guardian(s) of <strong>{form.student_first_name} {form.student_last_name}</strong>, hereby solemnly affirm, declare, and certify that:
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-5 text-xs text-slate-200 leading-relaxed space-y-3">
+                      <div className="p-3 rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-200 font-bold text-xs">
+                        The candidate must submit this form on: <span className="text-[#D4AF37] font-black">{form.submission_deadline || '28.06.2026'}</span>
+                      </div>
+                      <p className="font-semibold text-white italic text-xs sm:text-sm border-l-2 border-[#D4AF37] pl-3 py-1">
+                        "I hereby declare that all of the above information is correct and authentic. I will not request for any change of these information in future."
                       </p>
-                      <ul className="list-disc pl-5 space-y-1.5 text-slate-300 text-[11px] sm:text-xs">
-                        <li>
-                          All statements, particulars, academic records, and personal information provided in this application are <strong>100% genuine, authentic, correct, and complete</strong> to the best of my/our knowledge and belief.
-                        </li>
-                        <li>
-                          I/We understand that <strong>willful concealment, alteration, or submission of forged / incorrect documents</strong> will lead to the immediate cancellation of this application and summary termination of admission without any refund.
-                        </li>
-                        <li>
-                          I/We agree to abide by the rules, code of discipline, fees policies, and Cambridge Assessment International Education (CAIE) curriculum regulations of <strong>St. Joseph International School, Narinda</strong>.
-                        </li>
+                      <ul className="list-disc pl-5 space-y-1 text-slate-300 text-[11px]">
+                        <li>All candidate and parental details match official Church / Government records.</li>
+                        <li>Willful concealment or misrepresentation will result in immediate cancellation.</li>
+                        <li>Candidate will abide by St. Joseph International School (Narinda Campus) code of conduct.</li>
                       </ul>
                     </div>
 
@@ -1889,7 +2180,7 @@ export default function OnlineApplicationPage() {
                       />
                       <div className="space-y-0.5">
                         <span className="text-xs sm:text-sm font-black text-[#D4AF37] block">
-                          I certify and declare that all information provided is authentic and correct. *
+                          I hereby declare that all of the above information is correct and authentic. I will not request for any change of these information in future. *
                         </span>
                         <span className="text-[11px] text-slate-300 block">
                           By checking this box, I electronically sign this admission application on behalf of the applicant family.
@@ -1961,6 +2252,11 @@ export default function OnlineApplicationPage() {
                       <Loader2 className="w-4 h-4 animate-spin text-white" />
                       <span>Submitting Application...</span>
                     </>
+                  ) : admSettings?.payment_required ? (
+                    <>
+                      <CreditCard className="w-4 h-4 text-emerald-200" />
+                      <span>Confirm & Proceed to Payment ({admSettings.payment_currency || 'BDT'} {admSettings.application_fee || '1,000'})</span>
+                    </>
                   ) : (
                     <>
                       <CheckCircle2 className="w-4 h-4 text-emerald-200" />
@@ -1994,9 +2290,9 @@ export default function OnlineApplicationPage() {
 
       {/* Print & PDF Interactive Modal (When Viewing on Screen) */}
       {showPrintModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/85 backdrop-blur-sm overflow-y-auto p-3 sm:p-6 flex flex-col items-center print:hidden">
+        <div className="fixed inset-0 z-50 bg-slate-900/85 backdrop-blur-sm overflow-y-auto p-3 sm:p-6 flex flex-col items-center print-modal-backdrop print:static print:inset-auto print:z-auto print:bg-transparent print:p-0 print:m-0 print:overflow-visible print:block print:w-full">
           {/* Top Control Bar */}
-          <div className="sticky top-2 z-10 w-full max-w-[210mm] bg-[#00183F] text-white rounded-2xl p-4 shadow-2xl flex flex-wrap items-center justify-between gap-3 border border-amber-400/30 mb-4">
+          <div className="print:hidden sticky top-2 z-10 w-full max-w-[210mm] bg-[#00183F] text-white rounded-2xl p-4 shadow-2xl flex flex-wrap items-center justify-between gap-3 border border-amber-400/30 mb-4">
             <div className="flex items-center gap-3">
               <Printer className="w-5 h-5 text-[#D4AF37] shrink-0" />
               <div>
@@ -2009,7 +2305,7 @@ export default function OnlineApplicationPage() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => window.print()}
+                onClick={() => printDocumentElement('physical-admission-document')}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#D4AF37] hover:bg-[#c59f2e] text-[#00183F] font-black text-xs sm:text-sm shadow-md transition-all cursor-pointer"
               >
                 <Download className="w-4 h-4" />
@@ -2026,7 +2322,7 @@ export default function OnlineApplicationPage() {
           </div>
 
           {/* A4 Sheet Container */}
-          <div className="w-full max-w-[210mm] bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-300 mb-8">
+          <div className="w-full max-w-[210mm] bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-300 mb-8 print:max-w-none print:w-full print:border-none print:shadow-none print:m-0 print:p-0 print:rounded-none">
             <PrintableApplicationForm
               form={form}
               applicationId={result?.application_id}

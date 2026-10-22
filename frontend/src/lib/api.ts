@@ -19,6 +19,8 @@ import {
   OnlineApplicationFormData,
   OnlineApplication,
   ApplicationStatusResult,
+  AdmissionSettings,
+  InterviewSlot,
 } from './types';
 import {
   FALLBACK_BUNDLE,
@@ -1019,6 +1021,19 @@ export const deletePublication = (id: number, token?: string) => removeResource(
 // Online Admission Application API
 // ═══════════════════════════════════════════════════════════════════════════════
 
+export interface SubmitApplicationResponse {
+  success: boolean;
+  application_id?: string;
+  id?: number;
+  message: string;
+  payment_required?: boolean;
+  payment_status?: string;
+  form_no?: string | null;
+  application_fee?: string;
+  payment_currency?: string;
+  payment_gateway?: string;
+}
+
 /**
  * Public: Submit a full online admission application.
  */
@@ -1031,7 +1046,7 @@ export async function submitOnlineApplication(
       file_size?: string;
     }>;
   }
-): Promise<{ success: boolean; application_id?: string; id?: number; message: string }> {
+): Promise<SubmitApplicationResponse> {
   try {
     const res = await fetchWithTimeout(apiUrl('/applications/'), {
       method: 'POST',
@@ -1040,7 +1055,18 @@ export async function submitOnlineApplication(
     }, 15000);
     const json = await res.json();
     if (res.ok) {
-      return { success: true, application_id: json.application_id, id: json.id, message: json.message || 'Application submitted.' };
+      return {
+        success: true,
+        application_id: json.application_id,
+        id: json.id,
+        message: json.message || 'Application submitted.',
+        payment_required: json.payment_required,
+        payment_status: json.payment_status,
+        form_no: json.form_no,
+        application_fee: json.application_fee,
+        payment_currency: json.payment_currency,
+        payment_gateway: json.payment_gateway,
+      };
     }
     const errMsg = Object.entries(json as Record<string, unknown>)
       .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : String(v)}`)
@@ -1055,11 +1081,13 @@ export async function submitOnlineApplication(
  * Public: Look up application status by application_id.
  */
 export async function trackApplicationStatus(
-  applicationId: string
+  applicationId: string,
+  full = false
 ): Promise<{ success: boolean; data?: ApplicationStatusResult; error?: string }> {
   try {
+    const url = `/applications/track/?id=${encodeURIComponent(applicationId)}${full ? '&full=1' : ''}`;
     const res = await fetchWithTimeout(
-      apiUrl(`/applications/track/?id=${encodeURIComponent(applicationId)}`),
+      apiUrl(url),
       { headers: { Accept: 'application/json' } },
       8000
     );
@@ -1191,3 +1219,226 @@ export async function deleteApplication(
   }
 }
 
+// ────────────────────────────────────────────────────────────────────────────
+// Admission Settings
+// ────────────────────────────────────────────────────────────────────────────
+
+/** Public: Get current admission settings (payment toggle, page size, checklist, etc.). */
+export async function getAdmissionSettings(token?: string): Promise<AdmissionSettings | null> {
+  try {
+    const res = await fetchWithTimeout(apiUrl('/admission-settings/'), {
+      headers: token ? getAuthHeaders(token) : { Accept: 'application/json' },
+    });
+    if (!res.ok) return null;
+    return res.json() as Promise<AdmissionSettings>;
+  } catch {
+    return null;
+  }
+}
+
+/** Admin: Update admission settings (partial patch). Supports (token, payload) or (payload, token). */
+export async function updateAdmissionSettings(
+  arg1: string | (Partial<AdmissionSettings> & Record<string, unknown>),
+  arg2?: string | (Partial<AdmissionSettings> & Record<string, unknown>)
+): Promise<{ success: boolean; data?: AdmissionSettings; error?: string }> {
+  try {
+    const token = typeof arg1 === 'string' ? arg1 : (typeof arg2 === 'string' ? arg2 : undefined);
+    const payload = typeof arg1 === 'object' ? arg1 : (typeof arg2 === 'object' ? arg2 : {});
+    const res = await fetchWithTimeout(apiUrl('/admission-settings/'), {
+      method: 'PATCH',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (res.ok) return { success: true, data: json as AdmissionSettings };
+    return { success: false, error: 'Failed to save settings.' };
+  } catch {
+    return { success: false, error: 'Network error.' };
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Interview Slots
+// ────────────────────────────────────────────────────────────────────────────
+
+/** Public + Admin: List interview slots. */
+export async function listInterviewSlots(
+  params: { date?: string; grade?: string; active?: '0' | '1' } = {},
+  token?: string
+): Promise<InterviewSlot[]> {
+  try {
+    const query = new URLSearchParams();
+    if (params.date) query.set('date', params.date);
+    if (params.grade) query.set('grade', params.grade);
+    if (params.active) query.set('active', params.active);
+    const res = await fetchWithTimeout(
+      apiUrl(`/interview-slots/?${query.toString()}`),
+      { headers: token ? getAuthHeaders(token) : { Accept: 'application/json' } }
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data) ? data : ((data as { results?: InterviewSlot[] }).results ?? []);
+  } catch {
+    return [];
+  }
+}
+
+/** Admin: Create a single interview slot. Supports (payload, token) or (token, payload). */
+export async function createInterviewSlot(
+  arg1: string | Partial<InterviewSlot>,
+  arg2?: string | Partial<InterviewSlot>
+): Promise<{ success: boolean; data?: InterviewSlot; error?: string }> {
+  try {
+    const token = typeof arg1 === 'string' ? arg1 : (typeof arg2 === 'string' ? arg2 : undefined);
+    const payload = typeof arg1 === 'object' ? arg1 : (typeof arg2 === 'object' ? arg2 : {});
+    const res = await fetchWithTimeout(apiUrl('/interview-slots/'), {
+      method: 'POST',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (res.ok) return { success: true, data: json as InterviewSlot };
+    return { success: false, error: JSON.stringify(json) };
+  } catch {
+    return { success: false, error: 'Network error.' };
+  }
+}
+
+/** Admin: Bulk create interview slots from list or bulk config. */
+export async function bulkCreateInterviewSlots(
+  arg1: string | Partial<InterviewSlot>[] | Record<string, unknown>,
+  arg2?: string | Partial<InterviewSlot>[]
+): Promise<{ success: boolean; created?: number; slots?: InterviewSlot[]; error?: string }> {
+  try {
+    const token = typeof arg1 === 'string' ? arg1 : (typeof arg2 === 'string' ? arg2 : undefined);
+    let slotsPayload: Partial<InterviewSlot>[] = [];
+
+    const rawSlots = typeof arg1 === 'object' ? arg1 : arg2;
+    if (Array.isArray(rawSlots)) {
+      slotsPayload = rawSlots;
+    } else if (rawSlots && typeof rawSlots === 'object' && 'slots' in rawSlots && Array.isArray((rawSlots as any).slots)) {
+      slotsPayload = (rawSlots as any).slots;
+    } else if (rawSlots && typeof rawSlots === 'object' && 'start_date' in rawSlots && 'end_date' in rawSlots) {
+      const cfg = rawSlots as {
+        start_date: string;
+        end_date: string;
+        times: Array<{ start_time: string; end_time: string; label: string }>;
+        capacity: number;
+        grade_filter: string;
+        venue: string;
+      };
+      const start = new Date(cfg.start_date);
+      const end = new Date(cfg.end_date);
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const dateStr = d.toISOString().split('T')[0];
+        for (const t of cfg.times || []) {
+          slotsPayload.push({
+            date: dateStr,
+            start_time: t.start_time,
+            end_time: t.end_time,
+            label: t.label || `Slot ${dateStr}`,
+            venue: cfg.venue,
+            capacity: Number(cfg.capacity) || 30,
+            grade_filter: cfg.grade_filter,
+            is_active: true,
+          });
+        }
+      }
+    }
+
+    const res = await fetchWithTimeout(apiUrl('/interview-slots/bulk-create/'), {
+      method: 'POST',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify({ slots: slotsPayload }),
+    });
+    const json = (await res.json()) as { created?: number; slots?: InterviewSlot[] };
+    if (res.ok) return { success: true, created: json.created ?? slotsPayload.length, slots: json.slots };
+    return { success: false, error: JSON.stringify(json) };
+  } catch {
+    return { success: false, error: 'Network error.' };
+  }
+}
+
+/** Admin: Update an interview slot. */
+export async function updateInterviewSlot(
+  id: number,
+  token: string,
+  payload: Partial<InterviewSlot>
+): Promise<{ success: boolean; data?: InterviewSlot; error?: string }> {
+  try {
+    const res = await fetchWithTimeout(apiUrl(`/interview-slots/${id}/`), {
+      method: 'PATCH',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (res.ok) return { success: true, data: json as InterviewSlot };
+    return { success: false, error: JSON.stringify(json) };
+  } catch {
+    return { success: false, error: 'Network error.' };
+  }
+}
+
+/** Admin: Delete an interview slot. */
+export async function deleteInterviewSlot(id: number, token: string): Promise<boolean> {
+  try {
+    const res = await fetchWithTimeout(apiUrl(`/interview-slots/${id}/`), {
+      method: 'DELETE',
+      headers: getAuthHeaders(token),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Payment
+// ────────────────────────────────────────────────────────────────────────────
+
+export interface PaymentInitiateResult {
+  gateway: 'sslcommerz' | 'bkash' | 'nagad' | 'manual';
+  redirect_url?: string;
+  tran_id?: string;
+  session_key?: string;
+  amount?: number;
+  message?: string;
+  error?: string;
+}
+
+/** Public: Initiate payment for an application. */
+export async function initiatePayment(
+  applicationId: string
+): Promise<PaymentInitiateResult> {
+  try {
+    const res = await fetchWithTimeout(apiUrl('/payment/initiate/'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ application_id: applicationId }),
+    }, 15000);
+    return res.json() as Promise<PaymentInitiateResult>;
+  } catch {
+    return { gateway: 'manual', error: 'Network error. Could not connect to payment gateway.' };
+  }
+}
+
+/** Admin: Manually confirm/mark payment as complete. */
+export async function manualConfirmPayment(
+  token: string,
+  applicationId: string,
+  transactionId = 'MANUAL',
+  amount?: number
+): Promise<{ success: boolean; form_no?: string; error?: string }> {
+  try {
+    const res = await fetchWithTimeout(apiUrl('/payment/manual-confirm/'), {
+      method: 'POST',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify({ application_id: applicationId, transaction_id: transactionId, amount }),
+    });
+    const json = await res.json() as { success: boolean; form_no?: string };
+    if (res.ok) return { success: true, form_no: json.form_no };
+    return { success: false, error: 'Manual payment confirmation failed.' };
+  } catch {
+    return { success: false, error: 'Network error.' };
+  }
+}

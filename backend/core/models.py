@@ -484,11 +484,169 @@ class Publication(models.Model):
 import uuid as _uuid
 
 
+# ── Admission Settings (Singleton) ───────────────────────────────────────────
+
+class AdmissionSettings(models.Model):
+    """Singleton model: all admission-cycle operational switches."""
+
+    GATEWAY_CHOICES = [
+        ('manual', 'Manual / Cash Payment'),
+        ('sslcommerz', 'SSLCommerz'),
+        ('bkash', 'bKash'),
+        ('nagad', 'Nagad'),
+    ]
+    PAGE_SIZE_CHOICES = [
+        ('A4', 'A4 (210 × 297 mm)'),
+        ('Legal', 'Legal / F4 (216 × 356 mm)'),
+    ]
+    INTERVIEW_MODE_CHOICES = [
+        ('slot_based', 'Slot-Based (auto-assign on submit/payment)'),
+        ('manual', 'Manual (admin assigns per application)'),
+    ]
+
+    # ── Payment ────────────────────────────────────────────────────────────────
+    payment_required = models.BooleanField(
+        default=False,
+        help_text="Master toggle. If OFF, applicants can submit and download form without any payment."
+    )
+    payment_gateway = models.CharField(
+        max_length=30, choices=GATEWAY_CHOICES, default='manual',
+        help_text="Payment gateway to use when payment is required."
+    )
+    application_fee = models.DecimalField(
+        max_digits=10, decimal_places=2, default=500.00,
+        help_text="Application fee amount in BDT."
+    )
+    payment_currency = models.CharField(max_length=10, default='BDT')
+
+    # SSLCommerz credentials
+    sslcommerz_store_id = models.CharField(max_length=200, blank=True, default='')
+    sslcommerz_store_pass = models.CharField(max_length=200, blank=True, default='')
+    sslcommerz_is_sandbox = models.BooleanField(default=True, help_text="Use SSLCommerz sandbox (test) mode.")
+
+    # bKash credentials
+    bkash_app_key = models.CharField(max_length=200, blank=True, default='')
+    bkash_app_secret = models.CharField(max_length=200, blank=True, default='')
+    bkash_username = models.CharField(max_length=200, blank=True, default='')
+    bkash_password = models.CharField(max_length=200, blank=True, default='')
+    bkash_is_sandbox = models.BooleanField(default=True)
+
+    # Nagad credentials
+    nagad_merchant_id = models.CharField(max_length=200, blank=True, default='')
+    nagad_merchant_key = models.CharField(max_length=200, blank=True, default='')
+    nagad_is_sandbox = models.BooleanField(default=True)
+
+    # ── Print / Form ──────────────────────────────────────────────────────────
+    print_page_size = models.CharField(
+        max_length=10, choices=PAGE_SIZE_CHOICES, default='A4',
+        help_text="Paper size for the printed admission form and admit card."
+    )
+    form_header_note = models.TextField(
+        blank=True, default='',
+        help_text="Optional note printed at the top of the form (e.g. special instructions, session notice)."
+    )
+
+    # ── Document Checklist ────────────────────────────────────────────────────
+    document_checklist = models.JSONField(
+        default=list, blank=True,
+        help_text=(
+            'List of items parents must bring on interview day. '
+            'Format: [{"item": "Birth Certificate (Original)", "required": true}, ...]'
+        )
+    )
+    reporting_instructions = models.TextField(
+        blank=True, default='',
+        help_text="Special instructions printed at the bottom of the admit card (e.g. reporting time, dress code, what to bring)."
+    )
+
+    # ── Interview Scheduling ──────────────────────────────────────────────────
+    interview_mode = models.CharField(
+        max_length=20, choices=INTERVIEW_MODE_CHOICES, default='manual',
+        help_text="How interview slots are assigned to applicants."
+    )
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Admission Settings"
+        verbose_name_plural = "Admission Settings"
+
+    def save(self, *args, **kwargs):
+        # Enforce singleton pattern
+        self.__class__.objects.exclude(pk=self.pk).delete()
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_settings(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    def __str__(self):
+        return "Admission Settings"
+
+
+# ── Interview Slot ───────────────────────────────────────────────────────────
+
+class InterviewSlot(models.Model):
+    """A schedulable interview/assessment slot with a fixed capacity."""
+
+    date = models.DateField(help_text="Date of interview / assessment.")
+    start_time = models.TimeField(help_text="Slot start time.")
+    end_time = models.TimeField(help_text="Slot end time.")
+    label = models.CharField(
+        max_length=150, blank=True, default='',
+        help_text="e.g. Morning Batch – 9:00 AM. Auto-generated if blank."
+    )
+    grade_filter = models.CharField(
+        max_length=200, blank=True, default='',
+        help_text="Restrict slot to a specific grade (e.g. 'Nursery'). Leave blank for all grades."
+    )
+    venue = models.CharField(
+        max_length=300, blank=True,
+        default='32 Shah Shaheb Lane, Narinda, Dhaka-1100',
+        help_text="Venue / room for this slot."
+    )
+    capacity = models.PositiveIntegerField(
+        default=30,
+        help_text="Maximum number of applicants allowed in this slot."
+    )
+    booked_count = models.PositiveIntegerField(
+        default=0, help_text="Number of applicants assigned to this slot."
+    )
+    is_active = models.BooleanField(default=True)
+    notes = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['date', 'start_time']
+        verbose_name = "Interview Slot"
+        verbose_name_plural = "Interview Slots"
+
+    @property
+    def is_full(self):
+        return self.booked_count >= self.capacity
+
+    @property
+    def available_seats(self):
+        return max(0, self.capacity - self.booked_count)
+
+    @property
+    def display_label(self):
+        if self.label:
+            return self.label
+        time_str = self.start_time.strftime('%I:%M %p').lstrip('0') if self.start_time else ''
+        return f"{self.date.strftime('%d %b %Y')} – {time_str}"
+
+    def __str__(self):
+        return self.display_label
+
+
 class OnlineApplication(models.Model):
     """Full online admission application (multi-step form)."""
 
     STATUS_CHOICES = [
         ('draft', 'Draft (Incomplete)'),
+        ('payment_pending', 'Payment Pending'),
         ('submitted', 'Submitted – Pending Review'),
         ('under_review', 'Under Review'),
         ('shortlisted', 'Shortlisted – Entrance Exam Scheduled'),
@@ -499,6 +657,14 @@ class OnlineApplication(models.Model):
         ('waitlisted', 'Waitlisted'),
         ('rejected', 'Not Selected'),
         ('withdrawn', 'Withdrawn by Applicant'),
+    ]
+
+    PAYMENT_STATUS_CHOICES = [
+        ('not_required', 'Not Required'),
+        ('pending', 'Payment Pending'),
+        ('completed', 'Payment Completed'),
+        ('failed', 'Payment Failed'),
+        ('refunded', 'Refunded'),
     ]
 
     GENDER_CHOICES = [
@@ -530,14 +696,56 @@ class OnlineApplication(models.Model):
         ('other', 'Other Relative'),
     ]
 
+    LIVING_WITH_CHOICES = [
+        ('parents', 'Parents'),
+        ('father', 'Father'),
+        ('mother', 'Mother'),
+        ('other', 'Other'),
+    ]
+
     # ── Unique Application Reference ──────────────────────────────────────────
     application_id = models.CharField(
         max_length=20, unique=True, blank=True,
         help_text="Auto-generated e.g. SJIS-2026-00042"
     )
+    form_no = models.CharField(
+        max_length=30, blank=True, default="",
+        help_text="Physical form serial number e.g. 026110. Only assigned after payment (or if payment not required)."
+    )
     academic_year = models.CharField(max_length=20, default="2026-2027")
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='submitted')
     current_step = models.PositiveSmallIntegerField(default=4, help_text="Last completed step (1-4)")
+
+    # ── Payment Tracking ──────────────────────────────────────────────────────
+    payment_status = models.CharField(
+        max_length=20, choices=PAYMENT_STATUS_CHOICES, default='not_required',
+        help_text="Payment status for this application."
+    )
+    payment_transaction_id = models.CharField(
+        max_length=255, blank=True, default='',
+        help_text="Gateway transaction / tran_id reference."
+    )
+    payment_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        help_text="Amount paid in BDT."
+    )
+    payment_gateway_ref = models.CharField(
+        max_length=500, blank=True, default='',
+        help_text="Full gateway response reference string."
+    )
+    payment_completed_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Timestamp when payment was confirmed."
+    )
+
+    # ── Interview Slot ────────────────────────────────────────────────────────
+    interview_slot = models.ForeignKey(
+        'InterviewSlot',
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='bookings',
+        help_text="Assigned interview slot."
+    )
 
     # ── STEP 1 · Student Information ─────────────────────────────────────────
     student_first_name = models.CharField(max_length=100)
@@ -551,11 +759,19 @@ class OnlineApplication(models.Model):
     birth_certificate_no = models.CharField(max_length=100, blank=True, default="")
     passport_no = models.CharField(max_length=50, blank=True, default="")
     student_photo_url = models.TextField(blank=True, default="")
+    student_living_with = models.CharField(
+        max_length=20, choices=LIVING_WITH_CHOICES, default='parents',
+        help_text="Student living with: Parents, Father, Mother, Other (Field 9 of physical form)"
+    )
 
     # ── STEP 2 · Academic Background ─────────────────────────────────────────
     grade_applying = models.CharField(max_length=80)
     section_preference = models.CharField(max_length=60, blank=True, default="English Medium (Cambridge)",
         help_text="Exclusively English Medium (Cambridge Curriculum)")
+    current_school_and_class = models.CharField(
+        max_length=255, blank=True, default="",
+        help_text="School & Class in which candidate is studying this year (Field 10 of physical form)"
+    )
     previous_school_name = models.CharField(max_length=255, blank=True, default="")
     previous_school_city = models.CharField(max_length=120, blank=True, default="")
     previous_school_board = models.CharField(max_length=120, blank=True, default="",
@@ -573,19 +789,27 @@ class OnlineApplication(models.Model):
     # ── STEP 3 · Parent / Guardian Information ───────────────────────────────
     # Father
     father_name = models.CharField(max_length=200, blank=True, default="")
-    father_profession = models.CharField(max_length=150, blank=True, default="")
+    father_profession = models.CharField(max_length=150, blank=True, default="", help_text="Occupation")
     father_organization = models.CharField(max_length=200, blank=True, default="")
     father_qualification = models.CharField(max_length=150, blank=True, default="")
-    father_phone = models.CharField(max_length=30, blank=True, default="")
+    father_phone = models.CharField(max_length=30, blank=True, default="", help_text="Contact Number (Father)")
     father_nid = models.CharField(max_length=50, blank=True, default="")
+    father_office_address = models.TextField(
+        blank=True, default="",
+        help_text="Office address & Tel No (Father) [Attach Business Card]"
+    )
 
     # Mother
     mother_name = models.CharField(max_length=200, blank=True, default="")
-    mother_profession = models.CharField(max_length=150, blank=True, default="")
+    mother_profession = models.CharField(max_length=150, blank=True, default="", help_text="Occupation")
     mother_organization = models.CharField(max_length=200, blank=True, default="")
     mother_qualification = models.CharField(max_length=150, blank=True, default="")
-    mother_phone = models.CharField(max_length=30, blank=True, default="")
+    mother_phone = models.CharField(max_length=30, blank=True, default="", help_text="Contact Number (Mother)")
     mother_nid = models.CharField(max_length=50, blank=True, default="")
+    mother_office_address = models.TextField(
+        blank=True, default="",
+        help_text="Office address & Tel No (Mother) [Attach Business Card]"
+    )
 
     # Primary Guardian / Contact
     guardian_relation = models.CharField(max_length=20, choices=GUARDIAN_RELATION_CHOICES, default='father')
@@ -602,14 +826,29 @@ class OnlineApplication(models.Model):
     present_district = models.CharField(max_length=100, blank=True, default="")
     present_zip = models.CharField(max_length=20, blank=True, default="")
 
-    # ── STEP 4 · Declaration & Submission ────────────────────────────────────
+    # ── STEP 4 · Declaration & Sibling ───────────────────────────────────────
     parent_declaration_accepted = models.BooleanField(default=False)
     sibling_at_sjis = models.BooleanField(default=False,
         help_text="Does the student have a sibling currently enrolled at SJIS?")
     sibling_name_class = models.CharField(max_length=200, blank=True, default="")
+    # Field 11 Sibling Structured Breakdown
+    sibling_name = models.CharField(max_length=150, blank=True, default="", help_text="Sibling Name")
+    sibling_class = models.CharField(max_length=50, blank=True, default="", help_text="Sibling Class")
+    sibling_section = models.CharField(max_length=50, blank=True, default="", help_text="Sibling Section")
+    sibling_roll = models.CharField(max_length=50, blank=True, default="", help_text="Sibling Roll")
+
     how_did_you_hear = models.CharField(max_length=150, blank=True, default="",
         help_text="e.g. Facebook, Friend, Newspaper, Alumni")
     additional_notes = models.TextField(blank=True, default="")
+
+    # ── Physical Form & Office Use Metadata ──────────────────────────────────
+    submission_deadline = models.CharField(
+        max_length=50, blank=True, default="",
+        help_text="The candidate must submit this form on (e.g. 28.06.2026)"
+    )
+    received_by = models.CharField(max_length=100, blank=True, default="", help_text="Staff: Received by")
+    received_date = models.CharField(max_length=50, blank=True, default="")
+    interview_time = models.CharField(max_length=50, blank=True, default="", help_text="Interview time e.g. 09:30 AM")
 
     # ── Admin / Internal ─────────────────────────────────────────────────────
     admin_notes = models.TextField(blank=True, default="")
@@ -630,14 +869,64 @@ class OnlineApplication(models.Model):
         verbose_name_plural = "Online Admission Applications"
 
     def save(self, *args, **kwargs):
+        import datetime
+
         if not self.application_id:
             # Generate SJIS-YYYY-NNNNN format
-            import datetime
             year = datetime.date.today().year
             last = OnlineApplication.objects.order_by('-id').first()
             seq = (last.id + 1) if last else 1
             self.application_id = f"SJIS-{year}-{seq:05d}"
+
+        # form_no is ONLY assigned when payment is not required OR payment is completed
+        # This enforces the payment gate — no form_no = no downloadable form
+        if not self.form_no and self.payment_status in ('not_required', 'completed'):
+            try:
+                seq = int(self.application_id.split('-')[-1])
+                self.form_no = f"{seq:06d}"
+            except Exception:
+                self.form_no = self.application_id
+
+        # Auto-assign interview slot if slot-based mode and slot is not yet set
+        if not self.interview_slot_id and self.payment_status in ('not_required', 'completed'):
+            try:
+                settings = AdmissionSettings.get_settings()
+                if settings.interview_mode == 'slot_based':
+                    grade = (self.grade_applying or '').strip()
+                    slot_qs = InterviewSlot.objects.filter(
+                        is_active=True,
+                        booked_count__lt=models.F('capacity')
+                    ).order_by('date', 'start_time')
+                    if grade:
+                        # Prefer grade-specific slot, fall back to universal
+                        grade_slots = slot_qs.filter(grade_filter__icontains=grade.split('(')[0].strip())
+                        slot = grade_slots.first() or slot_qs.filter(grade_filter='').first()
+                    else:
+                        slot = slot_qs.first()
+                    if slot:
+                        self.interview_slot = slot
+            except Exception:
+                pass
+
         super().save(*args, **kwargs)
+
+        # Increment slot booked_count after save (only when newly assigned)
+        if self.interview_slot_id:
+            InterviewSlot.objects.filter(
+                pk=self.interview_slot_id
+            ).update(booked_count=models.F('booked_count') + 0)  # refresh only; increment handled below
+
+    def confirm_payment(self, transaction_id='', gateway_ref='', amount=None):
+        """Call this when payment gateway confirms success."""
+        import django.utils.timezone as tz
+        self.payment_status = 'completed'
+        self.payment_transaction_id = transaction_id or ''
+        self.payment_gateway_ref = gateway_ref or ''
+        if amount:
+            self.payment_amount = amount
+        self.payment_completed_at = tz.now()
+        self.status = 'submitted'
+        self.save()
 
     @property
     def student_full_name(self):

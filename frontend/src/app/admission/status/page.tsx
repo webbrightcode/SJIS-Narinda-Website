@@ -5,13 +5,17 @@ import { useSearchParams } from 'next/navigation';
 import {
   Search, CheckCircle2, Clock, XCircle, AlertCircle, FileCheck2,
   GraduationCap, CalendarDays, Shield, RefreshCw, ArrowRight, Loader2, Printer,
+  Lock, CreditCard, ExternalLink,
 } from 'lucide-react';
-import { trackApplicationStatus } from '@/lib/api';
+import { trackApplicationStatus, initiatePayment } from '@/lib/api';
 import type { ApplicationStatusResult, ApplicationStatus } from '@/lib/types';
+import { PrintableApplicationForm } from '@/components/admission/PrintableApplicationForm';
+import { printDocumentElement } from '@/lib/printUtils';
 
 const STATUS_CONFIG: Record<ApplicationStatus, {
   color: string; bg: string; border: string; icon: React.ReactNode; label: string; step: number;
 }> = {
+  payment_pending:    { color: 'text-amber-800',  bg: 'bg-amber-50',   border: 'border-amber-300',  icon: <Clock className="w-5 h-5 text-amber-600" />,        label: 'Payment Pending',    step: 0 },
   draft:              { color: 'text-slate-600',  bg: 'bg-slate-50',   border: 'border-slate-200',  icon: <Clock className="w-5 h-5" />,        label: 'Draft',              step: 0 },
   submitted:          { color: 'text-blue-700',   bg: 'bg-blue-50',    border: 'border-blue-200',   icon: <FileCheck2 className="w-5 h-5" />,    label: 'Submitted',          step: 1 },
   under_review:       { color: 'text-indigo-700', bg: 'bg-indigo-50',  border: 'border-indigo-200', icon: <Search className="w-5 h-5" />,        label: 'Under Review',       step: 2 },
@@ -36,21 +40,141 @@ const PIPELINE_STEPS = [
 function StatusResult({ data }: { data: ApplicationStatusResult }) {
   const cfg = STATUS_CONFIG[data.status] ?? STATUS_CONFIG['submitted'];
   const currentStep = cfg.step;
+  const [printModalMode, setPrintModalMode] = useState<'admit_card' | 'full_form' | null>(null);
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
+
+  // Payment gating checks
+  const isPaymentRequired = data.payment_required !== false;
+  const isPaid = data.payment_status === 'completed' || data.payment_status === 'not_required' || !isPaymentRequired;
+  const canDownload = isPaid && Boolean(data.form_no);
+
+  const handlePayNow = async () => {
+    setPaying(true);
+    setPayError(null);
+    try {
+      const res = await initiatePayment(data.application_id);
+      if (res.redirect_url) {
+        window.location.href = res.redirect_url;
+      } else if (res.gateway === 'manual') {
+        alert(
+          `Payment Gateway is set to Manual Mode by school administration.\n\nFee Amount: ${data.payment_currency || 'BDT'} ${data.payment_amount || data.application_fee || '1,000'}\n\nPlease submit payment at the Admissions Accounts Counter (32 Shah Shaheb Lane, Narinda) with reference ID: ${data.application_id}.`
+        );
+      } else if (res.error) {
+        setPayError(res.error);
+      } else {
+        setPayError('Unable to initialize payment gateway. Please try again.');
+      }
+    } catch {
+      setPayError('Network error connecting to payment gateway.');
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  // Fallback form data if full object not attached
+  const formData: any = data.application || {
+    student_first_name: data.student_first_name || data.student_name.split(' ')[0] || '',
+    student_last_name: data.student_last_name || data.student_name.split(' ').slice(1).join(' ') || '',
+    student_photo_url: data.student_photo_url || '',
+    grade_applying: data.grade_applying,
+    academic_year: data.academic_year,
+    date_of_birth: '',
+    gender: 'male',
+    religion: 'Islam',
+    nationality: 'Bangladeshi',
+    present_address: '32 Shah Shaheb Lane, Narinda, Dhaka 1100',
+    contact_phone: '',
+    father_phone: '',
+    mother_phone: '',
+    student_living_with: 'parents',
+    form_no: data.form_no,
+    interview_date: data.interview_date,
+    interview_time: data.interview_time,
+  };
 
   return (
-    <div className="space-y-5 animate-fade-in">
-      {/* Application ID Header */}
-      <div className="bg-[#00183F] rounded-2xl p-5 text-center">
-        <p className="text-[10px] text-slate-400 uppercase tracking-widest mb-1">Application Reference</p>
+    <>
+      <div className={`space-y-5 animate-fade-in ${printModalMode ? 'print:hidden' : ''}`}>
+        {/* Application ID Header */}
+      <div className="bg-[#00183F] rounded-2xl p-5 text-center relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-[#D4AF37]/10 rounded-full blur-2xl pointer-events-none" />
+        <p className="text-[10px] text-slate-400 uppercase tracking-widest mb-1">
+          Official Registration Reference
+        </p>
         <p className="text-xl font-black text-[#D4AF37] tracking-wider">{data.application_id}</p>
-        <p className="text-xs text-slate-400 mt-1">Academic Year: {data.academic_year}</p>
+        <div className="flex items-center justify-center gap-2 mt-1">
+          <span className="text-xs text-slate-300">
+            Physical Form Serial:{' '}
+            {canDownload && data.form_no ? (
+              <strong className="text-white font-mono">{data.form_no}</strong>
+            ) : (
+              <span className="text-amber-400 font-semibold italic text-[11px]">
+                Pending Online Payment
+              </span>
+            )}
+          </span>
+          <span className="text-slate-500">•</span>
+          <span className="text-xs text-slate-400">Session: {data.academic_year}</span>
+        </div>
       </div>
+
+      {/* Payment Required Warning Banner if not completed */}
+      {!isPaid && (
+        <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/20 to-amber-500/10 border-2 border-amber-400/80 rounded-2xl p-5 text-center space-y-3 shadow-sm">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-100 text-amber-800 shadow-xs">
+            <Lock className="w-6 h-6 text-amber-700" />
+          </div>
+          <div>
+            <h3 className="text-base font-black text-[#00183F]">
+              Admission Form & Admit Card Locked
+            </h3>
+            <p className="text-xs text-slate-700 mt-1 max-w-lg mx-auto leading-relaxed">
+              In accordance with admissions policy, an official Form Serial Number and Candidate Admit Card will only be generated once the application processing fee of{' '}
+              <strong className="text-amber-900 font-bold">
+                {data.payment_currency || 'BDT'} {data.payment_amount || data.application_fee || '1,000'}
+              </strong>{' '}
+              has been completed online.
+            </p>
+          </div>
+
+          {payError && (
+            <p className="text-xs text-rose-700 font-bold bg-rose-50 border border-rose-200 rounded-lg p-2 max-w-md mx-auto">
+              {payError}
+            </p>
+          )}
+
+          <div>
+            <button
+              type="button"
+              disabled={paying}
+              onClick={handlePayNow}
+              className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-black text-sm shadow-lg shadow-emerald-700/25 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
+            >
+              {paying ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Connecting to Gateway...</span>
+                </>
+              ) : (
+                <>
+                  <CreditCard className="w-4 h-4" />
+                  <span>
+                    Pay Fee Online Now ({data.payment_currency || 'BDT'} {data.payment_amount || data.application_fee || '1,000'})
+                  </span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Student Info */}
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-white border border-slate-100 rounded-xl p-3">
           <div className="text-[10px] text-slate-400 uppercase tracking-wide font-semibold mb-0.5">Student Name</div>
-          <div className="text-sm font-bold text-[#00183F]">{data.student_name}</div>
+          <div className="text-sm font-bold text-[#00183F] uppercase">{data.student_name}</div>
         </div>
         <div className="bg-white border border-slate-100 rounded-xl p-3">
           <div className="text-[10px] text-slate-400 uppercase tracking-wide font-semibold mb-0.5">Grade Applying</div>
@@ -73,7 +197,7 @@ function StatusResult({ data }: { data: ApplicationStatusResult }) {
       </div>
 
       {/* Status Pipeline */}
-      {!['rejected', 'withdrawn', 'draft'].includes(data.status) && (
+      {!['rejected', 'withdrawn', 'draft', 'payment_pending'].includes(data.status) && (
         <div className="bg-white border border-slate-100 rounded-2xl p-5">
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">Application Progress</p>
           <div className="flex items-start justify-between gap-1">
@@ -112,57 +236,145 @@ function StatusResult({ data }: { data: ApplicationStatusResult }) {
       </div>
 
       {/* Exam / Interview Details */}
-      {(data.entrance_exam_date || data.documents_verified) && (
+      {(data.entrance_exam_date || data.interview_date || data.interview_slot || data.documents_verified) && isPaid && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 space-y-3">
           <p className="text-xs font-bold text-amber-900 uppercase tracking-wide flex items-center gap-2">
-            <CalendarDays className="w-4 h-4" /> Examination Details
+            <CalendarDays className="w-4 h-4 text-amber-700" /> Entrance Examination & Interview Details
           </p>
-          {data.entrance_exam_date && (
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div>
-                <div className="text-amber-700 font-semibold mb-0.5">Exam Date</div>
-                <div className="font-black text-amber-900">
-                  {new Date(data.entrance_exam_date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div>
+              <div className="text-amber-700 font-semibold mb-0.5">Date of Interview / Assessment</div>
+              <div className="font-black text-amber-900">
+                {data.interview_slot?.date
+                  ? new Date(data.interview_slot.date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+                  : data.interview_date
+                  ? new Date(data.interview_date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+                  : data.entrance_exam_date
+                  ? new Date(data.entrance_exam_date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+                  : "Scheduled (See Admit Card)"}
               </div>
-              {data.entrance_exam_venue && (
-                <div>
-                  <div className="text-amber-700 font-semibold mb-0.5">Venue</div>
-                  <div className="font-black text-amber-900">{data.entrance_exam_venue}</div>
-                </div>
-              )}
             </div>
-          )}
+            <div>
+              <div className="text-amber-700 font-semibold mb-0.5">Reporting Time & Venue</div>
+              <div className="font-black text-amber-900">
+                {(data.interview_slot?.start_time ? data.interview_slot.start_time.slice(0, 5) : null) || data.interview_time || '09:30 AM'} • {data.interview_slot?.reporting_venue || data.entrance_exam_venue || '32 Shah Shaheb Lane, Narinda, Dhaka 1100'}
+              </div>
+            </div>
+          </div>
           {data.documents_verified && (
-            <div className="flex items-center gap-2 text-xs text-emerald-700 font-semibold">
-              <CheckCircle2 className="w-4 h-4" /> Documents have been verified by the admissions office.
+            <div className="flex items-center gap-2 text-xs text-emerald-700 font-semibold pt-1 border-t border-amber-200">
+              <CheckCircle2 className="w-4 h-4" /> Documents verified by admissions board.
             </div>
           )}
         </div>
       )}
 
-      {/* CTA */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <button
-          type="button"
-          onClick={() => window.print()}
-          className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors cursor-pointer"
+      {/* Primary Action Buttons: Admit Card & Full Form */}
+      {canDownload ? (
+        <div className="flex flex-col sm:flex-row gap-3 pt-1 print:hidden">
+          <button
+            type="button"
+            onClick={() => setPrintModalMode('admit_card')}
+            className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-[#00183F] hover:bg-[#002257] text-[#D4AF37] font-bold text-xs sm:text-sm shadow-md transition-all cursor-pointer"
+          >
+            <Printer className="w-4 h-4" />
+            <span>Print Candidate Admit Card</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPrintModalMode('full_form')}
+            className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 font-bold text-xs sm:text-sm shadow-xs transition-all cursor-pointer"
+          >
+            <Printer className="w-4 h-4 text-slate-500" />
+            <span>Print Full Form + Tear-Off Admit Card</span>
+          </button>
+        </div>
+      ) : (
+        <div className="print:hidden">
+          <div className="p-3 rounded-xl bg-slate-100 border border-slate-200 text-center text-xs text-slate-500 font-semibold flex items-center justify-center gap-2">
+            <Lock className="w-4 h-4 text-slate-400" />
+            <span>Form & Admit Card downloads are disabled until payment is confirmed.</span>
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-col sm:flex-row gap-3 print:hidden">
+        <a
+          href="/admission"
+          className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition-colors"
         >
-          <Printer className="w-4 h-4 text-slate-500" />
-          <span>Print Status Slip</span>
-        </button>
-        <a href="/admission"
-          className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors">
           Back to Admissions
         </a>
-        {data.status === 'submitted' || data.status === 'under_review' ? (
-          <a href="tel:+8801746866393"
-            className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#00183F] text-white text-sm font-bold hover:bg-[#C8102E] transition-colors">
-            Contact Admissions Office <ArrowRight className="w-4 h-4" />
-          </a>
-        ) : null}
+        <a
+          href="tel:+8801746866393"
+          className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition-colors"
+        >
+          Contact Admissions Desk <ArrowRight className="w-3.5 h-3.5" />
+        </a>
       </div>
-    </div>
+      </div>
+
+      {/* Print & PDF Modal */}
+      {printModalMode && (
+        <div className="fixed inset-0 z-50 bg-slate-900/85 backdrop-blur-sm overflow-y-auto p-3 sm:p-6 flex flex-col items-center print-modal-backdrop print:static print:inset-auto print:z-auto print:bg-transparent print:p-0 print:m-0 print:overflow-visible print:block print:w-full">
+          {/* Action Toolbar (Screen Only) */}
+          <div className="print:hidden sticky top-2 z-10 w-full max-w-[210mm] bg-[#00183F] text-white rounded-2xl p-4 shadow-2xl flex flex-wrap items-center justify-between gap-3 border border-amber-400/30 mb-4">
+            <div className="flex items-center gap-3">
+              <Printer className="w-5 h-5 text-[#D4AF37] shrink-0" />
+              <div>
+                <h3 className="text-sm font-bold text-white">
+                  {printModalMode === 'admit_card' ? 'Official Candidate Admit Card' : 'Official Admission Form with Tear-Off Admit Card'}
+                </h3>
+                <p className="text-[11px] text-slate-300">
+                  Select <strong>"Save as PDF"</strong> or print directly on {data.print_page_size || 'A4'} paper.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  printDocumentElement(
+                    'physical-admission-document',
+                    'St. Joseph International School - Official Document',
+                    data.print_page_size || 'A4'
+                  )
+                }
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#D4AF37] hover:bg-[#c59f2e] text-[#00183F] font-black text-xs sm:text-sm shadow-md transition-all cursor-pointer"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Print / Save PDF</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPrintModalMode(null)}
+                className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs sm:text-sm transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+
+          <div className="w-full max-w-[210mm] bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-300 mb-8 print:max-w-none print:w-full print:border-none print:shadow-none print:m-0 print:p-0 print:rounded-none">
+            <PrintableApplicationForm
+              form={formData}
+              applicationId={data.application_id}
+              formNo={data.form_no}
+              submittedAt={data.submitted_at}
+              admitCardOnly={printModalMode === 'admit_card'}
+              defaultYellowPaper={false}
+              pageSize={data.print_page_size || 'A4'}
+              documentChecklist={data.document_checklist || []}
+              reportingInstructions={data.reporting_instructions || ''}
+              paymentStatus={data.payment_status}
+              paymentTransactionId={data.payment_transaction_id}
+              interviewSlot={data.interview_slot}
+            />
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -180,7 +392,7 @@ function StatusCheckerInner() {
     setLoading(true);
     setError(null);
     setStatusData(null);
-    const res = await trackApplicationStatus(trimmed);
+    const res = await trackApplicationStatus(trimmed, true);
     setLoading(false);
     if (res.success && res.data) {
       setStatusData(res.data);
@@ -200,9 +412,9 @@ function StatusCheckerInner() {
   }, []);
 
   return (
-    <div className="max-w-lg w-full">
+    <div className="max-w-lg w-full print:max-w-none print:w-full">
       {/* Search Bar */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-lg p-6 mb-5">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-lg p-6 mb-5 print:hidden">
         <h2 className="text-base font-black text-[#00183F] mb-4">Enter Your Application ID</h2>
         <div className="flex gap-2">
           <div className="relative flex-1">
@@ -234,7 +446,7 @@ function StatusCheckerInner() {
 
       {/* Error */}
       {error && (
-        <div className="flex items-start gap-3 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm mb-5">
+        <div className="flex items-start gap-3 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm mb-5 print:hidden">
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
           <div>
             <p className="font-bold">Application Not Found</p>
@@ -250,7 +462,7 @@ function StatusCheckerInner() {
       {statusData && (
         <button
           onClick={() => handleCheck(appId)}
-          className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 text-xs text-slate-500 hover:text-[#00183F] transition-colors font-semibold"
+          className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 text-xs text-slate-500 hover:text-[#00183F] transition-colors font-semibold print:hidden"
         >
           <RefreshCw className="w-3.5 h-3.5" /> Refresh Status
         </button>
@@ -261,8 +473,8 @@ function StatusCheckerInner() {
 
 export default function ApplicationStatusPage() {
   return (
-    <div className="bg-slate-50 min-h-screen">
-      <section className="relative py-16 bg-[#00183F] text-white">
+    <div className="bg-slate-50 min-h-screen print:bg-white print:min-h-0">
+      <section className="relative py-16 bg-[#00183F] text-white print:hidden">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
           <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#D4AF37]/20 text-[#D4AF37] text-xs font-bold tracking-widest uppercase mb-3 border border-[#D4AF37]/30">
             <Search className="w-3.5 h-3.5" /> Application Status Tracker
@@ -274,9 +486,9 @@ export default function ApplicationStatusPage() {
         </div>
       </section>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 flex flex-col lg:flex-row gap-8 items-start">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 flex flex-col lg:flex-row gap-8 items-start print:p-0 print:m-0 print:max-w-none print:w-full print:block">
         <Suspense fallback={
-          <div className="flex-1 flex items-center justify-center py-16">
+          <div className="flex-1 flex items-center justify-center py-16 print:hidden">
             <Loader2 className="w-8 h-8 animate-spin text-[#00183F]" />
           </div>
         }>
@@ -284,7 +496,7 @@ export default function ApplicationStatusPage() {
         </Suspense>
 
         {/* Side Info Panel */}
-        <div className="lg:w-80 space-y-4 flex-shrink-0">
+        <div className="lg:w-80 space-y-4 flex-shrink-0 print:hidden">
           <div className="bg-white rounded-2xl border border-slate-200 p-5">
             <h3 className="text-sm font-black text-[#00183F] mb-4">Admission Process Overview</h3>
             <div className="space-y-3">

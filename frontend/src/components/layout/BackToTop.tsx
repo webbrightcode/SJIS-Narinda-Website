@@ -37,7 +37,7 @@ export const BackToTop: React.FC = () => {
     <button
       onClick={scrollToTop}
       aria-label="Scroll to top of page"
-      className="fixed bottom-20 lg:bottom-6 right-4 sm:right-6 z-30 p-2.5 rounded-full bg-[#00183F] text-white shadow-xl hover:bg-[#C8102E] transition-all duration-300 transform hover:scale-110 active:scale-95 group border border-white/20 flex items-center justify-center cursor-pointer"
+      className="print:hidden fixed bottom-20 lg:bottom-6 right-4 sm:right-6 z-30 p-2.5 rounded-full bg-[#00183F] text-white shadow-xl hover:bg-[#C8102E] transition-all duration-300 transform hover:scale-110 active:scale-95 group border border-white/20 flex items-center justify-center cursor-pointer"
     >
       {/* Circular SVG Progress */}
       <svg className="w-10 h-10 -rotate-90 transform" viewBox="0 0 36 36">

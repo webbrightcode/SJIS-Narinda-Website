@@ -62,6 +62,7 @@ import {
   Loader2,
   Upload,
   Newspaper,
+  CreditCard,
 } from 'lucide-react';
 import {
   SliderSlide,
@@ -120,6 +121,8 @@ import { AboutPageManager } from '@/components/admin/AboutPageManager';
 import { NewsManager } from '@/components/admin/NewsManager';
 import { PublicationManager } from '@/components/admin/PublicationManager';
 import { OnlineApplicationsManager } from '@/components/admin/OnlineApplicationsManager';
+import { AdmissionSettingsManager } from '@/components/admin/AdmissionSettingsManager';
+import { InterviewSlotsManager } from '@/components/admin/InterviewSlotsManager';
 
 export default function AdminDashboardPage() {
   // Authentication State
@@ -166,7 +169,7 @@ export default function AdminDashboardPage() {
 
   const [inquirySearch, setInquirySearch] = useState('');
   const [inquiryStatusFilter, setInquiryStatusFilter] = useState('all');
-  const [admissionPipelineSubTab, setAdmissionPipelineSubTab] = useState<'applications' | 'inquiries'>('applications');
+  const [admissionPipelineSubTab, setAdmissionPipelineSubTab] = useState<'applications' | 'settings' | 'slots' | 'inquiries'>('applications');
 
   // Activity Audit Log
   const [activityLogs, setActivityLogs] = useState<Array<{ id: string; action: string; time: string; type: string }>>([
@@ -2273,25 +2276,49 @@ export default function AdminDashboardPage() {
           {activeTab === 'inquiries' && (
             <div className="space-y-6">
               {/* Admissions Sub-tabs Toggle */}
-              <div className="flex border-b border-slate-200 bg-white p-2 rounded-2xl shadow-xs gap-2">
+              <div className="flex flex-wrap border-b border-slate-200 bg-white p-2 rounded-2xl shadow-xs gap-2">
                 <button
                   onClick={() => setAdmissionPipelineSubTab('applications')}
-                  className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  className={`flex-1 min-w-[200px] py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                     admissionPipelineSubTab === 'applications'
                       ? 'bg-[#00183F] text-amber-300 shadow-md'
                       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                   }`}
                 >
                   <GraduationCap className="w-4 h-4" />
-                  <span>Full Online Applications (Form & Documents)</span>
+                  <span>Online Applications</span>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400/20 text-amber-300 border border-amber-400/30">
-                    Live Portal
+                    Live Forms
                   </span>
                 </button>
 
                 <button
+                  onClick={() => setAdmissionPipelineSubTab('settings')}
+                  className={`flex-1 min-w-[180px] py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                    admissionPipelineSubTab === 'settings'
+                      ? 'bg-[#00183F] text-amber-300 shadow-md'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  }`}
+                >
+                  <CreditCard className="w-4 h-4" />
+                  <span>Payment & Gateway Config</span>
+                </button>
+
+                <button
+                  onClick={() => setAdmissionPipelineSubTab('slots')}
+                  className={`flex-1 min-w-[180px] py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                    admissionPipelineSubTab === 'slots'
+                      ? 'bg-[#00183F] text-amber-300 shadow-md'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  }`}
+                >
+                  <Calendar className="w-4 h-4" />
+                  <span>Interview & Exam Slots</span>
+                </button>
+
+                <button
                   onClick={() => setAdmissionPipelineSubTab('inquiries')}
-                  className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  className={`flex-1 min-w-[160px] py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                     admissionPipelineSubTab === 'inquiries'
                       ? 'bg-[#00183F] text-amber-300 shadow-md'
                       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -2302,9 +2329,19 @@ export default function AdminDashboardPage() {
                 </button>
               </div>
 
-              {admissionPipelineSubTab === 'applications' ? (
+              {admissionPipelineSubTab === 'applications' && (
                 <OnlineApplicationsManager token={token!} onToast={showToast} />
-              ) : (
+              )}
+
+              {admissionPipelineSubTab === 'settings' && (
+                <AdmissionSettingsManager token={token!} onToast={showToast} />
+              )}
+
+              {admissionPipelineSubTab === 'slots' && (
+                <InterviewSlotsManager token={token!} onToast={showToast} />
+              )}
+
+              {admissionPipelineSubTab === 'inquiries' && (
                 <div className="space-y-6">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>

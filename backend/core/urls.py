@@ -26,6 +26,11 @@ from .views import (
     OnlineApplicationViewSet,
     ApplicationDocumentViewSet,
     ApplicationStatusLookupView,
+    AdmissionSettingsView,
+    InterviewSlotViewSet,
+    PaymentInitiateView,
+    PaymentCallbackView,
+    PaymentManualConfirmView,
 )
 
 router = DefaultRouter()
@@ -43,13 +48,16 @@ router.register(r'staff-members', StaffMemberViewSet, basename='staff-member')
 router.register(r'inquiries', AdmissionInquiryViewSet, basename='inquiry')
 router.register(r'applications', OnlineApplicationViewSet, basename='application')
 router.register(r'app-documents', ApplicationDocumentViewSet, basename='app-document')
+router.register(r'interview-slots', InterviewSlotViewSet, basename='interview-slot')
 
 urlpatterns = [
+    path('applications/track/', ApplicationStatusLookupView.as_view(), name='application-track'),
     path('', include(router.urls)),
     path('upload/', FileUploadView.as_view(), name='file-upload'),
     path('site-settings/', SiteSettingsView.as_view(), name='site-settings'),
     path('about/', AboutInfoView.as_view(), name='about-info'),
     path('admission-guide/', AdmissionGuideView.as_view(), name='admission-guide'),
+    path('admission-settings/', AdmissionSettingsView.as_view(), name='admission-settings'),
     path('landing-bundle/', LandingPageBundleView.as_view(), name='landing-bundle'),
     path('dashboard-stats/', DashboardStatsView.as_view(), name='dashboard-stats'),
     path('system-diagnostics/', SystemDiagnosticsView.as_view(), name='system-diagnostics'),
@@ -57,5 +65,9 @@ urlpatterns = [
     path('data-restore/', DataRestoreView.as_view(), name='data-restore'),
     path('auth/login/', AdminLoginView.as_view(), name='admin-login'),
     path('auth/me/', AdminVerifyView.as_view(), name='admin-verify'),
-    path('applications/track/', ApplicationStatusLookupView.as_view(), name='application-track'),
+    # Payment Gateway
+    path('payment/initiate/', PaymentInitiateView.as_view(), name='payment-initiate'),
+    path('payment/callback/', PaymentCallbackView.as_view(), name='payment-callback'),
+    path('payment/ipn/', PaymentCallbackView.as_view(), name='payment-ipn'),
+    path('payment/manual-confirm/', PaymentManualConfirmView.as_view(), name='payment-manual-confirm'),
 ]
