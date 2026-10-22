@@ -180,7 +180,10 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
         app.mother_name?.toLowerCase().includes(q);
 
       const matchStatus = statusFilter === 'all' || app.status === statusFilter;
-      const matchGrade = gradeFilter === 'all' || app.grade_applying === gradeFilter;
+      const matchGrade =
+        gradeFilter === 'all' ||
+        app.grade_applying === gradeFilter ||
+        (Boolean(app.grade_applying) && app.grade_applying.toLowerCase().includes(gradeFilter.toLowerCase()));
       const matchPayment = paymentFilter === 'all' || app.payment_status === paymentFilter;
       const matchSlot =
         slotFilter === 'all' ||
@@ -486,19 +489,28 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
             className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white text-slate-700 outline-none"
           >
             <option value="all">All Grades</option>
-            <option value="Playgroup">Playgroup</option>
-            <option value="Nursery">Nursery</option>
-            <option value="KG">Kindergarten</option>
-            <option value="Grade 1">Grade 1</option>
-            <option value="Grade 2">Grade 2</option>
-            <option value="Grade 3">Grade 3</option>
-            <option value="Grade 4">Grade 4</option>
-            <option value="Grade 5">Grade 5</option>
-            <option value="Grade 6">Grade 6</option>
-            <option value="Grade 7">Grade 7</option>
-            <option value="Grade 8">Grade 8</option>
-            <option value="Grade 9">Grade 9 (Cambridge O Level)</option>
-            <option value="Grade 11">Grade 11 (Cambridge A Level)</option>
+            {((admSettings?.available_grades && admSettings.available_grades.length > 0)
+              ? admSettings.available_grades
+              : [
+                  'Playgroup (Age 3.5+)',
+                  'Nursery (Age 4.5+)',
+                  'Kindergarten (Age 5.5+)',
+                  'Grade 1',
+                  'Grade 2',
+                  'Grade 3',
+                  'Grade 4',
+                  'Grade 5',
+                  'Grade 6 (Junior)',
+                  'Grade 7',
+                  'Grade 8',
+                  'Grade 9 (Cambridge IGCSE)',
+                  'Grade 11 (Cambridge A-Level)',
+                ]
+            ).map((g) => (
+              <option key={g} value={g}>
+                {g}
+              </option>
+            ))}
           </select>
 
           <select

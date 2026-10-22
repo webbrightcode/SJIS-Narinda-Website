@@ -2301,7 +2301,7 @@ export default function AdminDashboardPage() {
                   }`}
                 >
                   <CreditCard className="w-4 h-4" />
-                  <span>Payment & Gateway Config</span>
+                  <span>Admission Settings & Grades</span>
                 </button>
 
                 <button

@@ -486,6 +486,23 @@ import uuid as _uuid
 
 # ── Admission Settings (Singleton) ───────────────────────────────────────────
 
+DEFAULT_ADMISSION_GRADES = [
+    'Playgroup (Age 3.5+)',
+    'Nursery (Age 4.5+)',
+    'Kindergarten (Age 5.5+)',
+    'Grade 1',
+    'Grade 2',
+    'Grade 3',
+    'Grade 4',
+    'Grade 5',
+    'Grade 6 (Junior)',
+    'Grade 7',
+    'Grade 8',
+    'Grade 9 (Cambridge IGCSE)',
+    'Grade 11 (Cambridge A-Level)',
+]
+
+
 class AdmissionSettings(models.Model):
     """Singleton model: all admission-cycle operational switches."""
 
@@ -503,6 +520,12 @@ class AdmissionSettings(models.Model):
         ('slot_based', 'Slot-Based (auto-assign on submit/payment)'),
         ('manual', 'Manual (admin assigns per application)'),
     ]
+
+    # ── Classes & Grades (Field 7 on Apply Form) ──────────────────────────────
+    available_grades = models.JSONField(
+        default=list, blank=True,
+        help_text="List of class/grade names open for admission applications (Field 7 on apply form)."
+    )
 
     # ── Payment ────────────────────────────────────────────────────────────────
     payment_required = models.BooleanField(
@@ -579,6 +602,9 @@ class AdmissionSettings(models.Model):
     @classmethod
     def get_settings(cls):
         obj, _ = cls.objects.get_or_create(pk=1)
+        if not obj.available_grades:
+            obj.available_grades = list(DEFAULT_ADMISSION_GRADES)
+            obj.save(update_fields=['available_grades'])
         return obj
 
     def __str__(self):

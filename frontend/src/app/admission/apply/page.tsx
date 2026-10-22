@@ -249,6 +249,12 @@ export default function OnlineApplicationPage() {
         }
         if (settingsData) {
           setAdmSettings(settingsData);
+          if (settingsData.available_grades && settingsData.available_grades.length > 0) {
+            setForm((prev) => {
+              const list = settingsData.available_grades!;
+              return list.includes(prev.grade_applying) ? prev : { ...prev, grade_applying: list[0] };
+            });
+          }
         }
       } catch (err) {
         console.warn('Could not load admission data:', err);
@@ -1178,7 +1184,10 @@ export default function OnlineApplicationPage() {
                         value={form.grade_applying}
                         onChange={(e) => set('grade_applying', e.target.value)}
                       >
-                        {GRADES.map((g) => (
+                        {((admSettings?.available_grades && admSettings.available_grades.length > 0)
+                          ? admSettings.available_grades
+                          : GRADES
+                        ).map((g) => (
                           <option key={g} value={g}>
                             {g}
                           </option>

@@ -238,6 +238,10 @@ class AdmissionSettingsAdmin(admin.ModelAdmin):
             'fields': ('nagad_merchant_id', 'nagad_merchant_key', 'nagad_is_sandbox'),
             'classes': ('collapse',),
         }),
+        ('Admissible Classes & Grades (Online Form Option 7)', {
+            'fields': ('available_grades',),
+            'description': 'Classes/grades open for admission applications on the public website.',
+        }),
         ('Print & Form Settings', {
             'fields': ('print_page_size', 'form_header_note'),
         }),

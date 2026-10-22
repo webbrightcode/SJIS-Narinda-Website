@@ -403,6 +403,8 @@ export interface AdmissionSettings {
   // Checklist
   document_checklist: DocumentChecklistItem[];
   reporting_instructions: string;
+  // Classes & Grades (Option 7 on application form)
+  available_grades?: string[];
   // Interview
   interview_mode: 'slot_based' | 'manual';
   updated_at?: string;

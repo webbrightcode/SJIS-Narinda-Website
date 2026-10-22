@@ -18,6 +18,9 @@ import {
   EyeOff,
   Sliders,
   Sparkles,
+  GraduationCap,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import {
   getAdmissionSettings,
@@ -38,6 +41,7 @@ export const AdmissionSettingsManager: React.FC<Props> = ({ token, onToast }) =>
   const [showSecrets, setShowSecrets] = useState(false);
   const [newDocItem, setNewDocItem] = useState('');
   const [newDocRequired, setNewDocRequired] = useState(true);
+  const [newGradeInput, setNewGradeInput] = useState('');
 
   // Form state
   const [formData, setFormData] = useState<{
@@ -55,6 +59,7 @@ export const AdmissionSettingsManager: React.FC<Props> = ({ token, onToast }) =>
     nagad_is_sandbox: boolean;
     print_page_size: 'A4' | 'Legal';
     form_header_note: string;
+    available_grades: string[];
     document_checklist: DocumentChecklistItem[];
     reporting_instructions: string;
     interview_mode: 'slot_based' | 'manual';
@@ -73,6 +78,7 @@ export const AdmissionSettingsManager: React.FC<Props> = ({ token, onToast }) =>
     nagad_is_sandbox: true,
     print_page_size: 'A4',
     form_header_note: '',
+    available_grades: [],
     document_checklist: [],
     reporting_instructions: '',
     interview_mode: 'slot_based',
@@ -99,6 +105,7 @@ export const AdmissionSettingsManager: React.FC<Props> = ({ token, onToast }) =>
           nagad_is_sandbox: data.nagad_is_sandbox !== false,
           print_page_size: data.print_page_size || 'A4',
           form_header_note: data.form_header_note || '',
+          available_grades: Array.isArray(data.available_grades) ? data.available_grades : [],
           document_checklist: Array.isArray(data.document_checklist) ? data.document_checklist : [],
           reporting_instructions: data.reporting_instructions || '',
           interview_mode: data.interview_mode || 'slot_based',
@@ -130,6 +137,59 @@ export const AdmissionSettingsManager: React.FC<Props> = ({ token, onToast }) =>
     } finally {
       setSaving(false);
     }
+  };
+
+  // Grade management functions
+  const addGradeItem = () => {
+    const trimmed = newGradeInput.trim();
+    if (!trimmed) return;
+    if (formData.available_grades.includes(trimmed)) {
+      onToast?.('This class/grade is already in the list.');
+      return;
+    }
+    setFormData((prev) => ({
+      ...prev,
+      available_grades: [...prev.available_grades, trimmed],
+    }));
+    setNewGradeInput('');
+  };
+
+  const removeGradeItem = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      available_grades: prev.available_grades.filter((_, i) => i !== index),
+    }));
+  };
+
+  const moveGradeItem = (index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= formData.available_grades.length) return;
+    const list = [...formData.available_grades];
+    const [moved] = list.splice(index, 1);
+    list.splice(targetIndex, 0, moved);
+    setFormData((prev) => ({ ...prev, available_grades: list }));
+  };
+
+  const resetGradesToDefault = () => {
+    setFormData((prev) => ({
+      ...prev,
+      available_grades: [
+        'Playgroup (Age 3.5+)',
+        'Nursery (Age 4.5+)',
+        'Kindergarten (Age 5.5+)',
+        'Grade 1',
+        'Grade 2',
+        'Grade 3',
+        'Grade 4',
+        'Grade 5',
+        'Grade 6 (Junior)',
+        'Grade 7',
+        'Grade 8',
+        'Grade 9 (Cambridge IGCSE)',
+        'Grade 11 (Cambridge A-Level)',
+      ],
+    }));
+    onToast?.('Classes/Grades reset to SJIS Cambridge standard.');
   };
 
   const addChecklistItem = () => {
@@ -215,6 +275,132 @@ export const AdmissionSettingsManager: React.FC<Props> = ({ token, onToast }) =>
 
       {/* Grid of Settings Panels */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* PANEL: Field 7 - Classes & Grades for Online Application */}
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center">
+                <GraduationCap className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-black text-[#00183F]">
+                    7. Class/Grade for which application is being made
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-800">
+                    {formData.available_grades.length} Active Grades
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Configure the exact dropdown choices displayed to parents on Step 2 (Academic Background) of the online application form.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={resetGradesToDefault}
+                className="px-3 py-1.5 rounded-xl border border-slate-200 text-[11px] font-bold text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-1.5 cursor-pointer"
+                title="Reset to SJIS Cambridge standard grades"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                Reset SJIS Standard
+              </button>
+            </div>
+          </div>
+
+          {/* Add New Grade Input */}
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder="Type new grade / class name (e.g. Playgroup Morning, Grade 10 IGCSE, Grade 12 A-Level)..."
+                value={newGradeInput}
+                onChange={(e) => setNewGradeInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addGradeItem();
+                  }
+                }}
+                className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-200 focus:border-indigo-600 outline-none font-medium text-slate-800"
+              />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addGradeItem}
+              icon={<Plus className="w-3.5 h-3.5" />}
+              className="bg-indigo-50 text-indigo-900 border-indigo-200 hover:bg-indigo-100 font-bold shrink-0"
+            >
+              Add Class / Grade
+            </Button>
+          </div>
+
+          {/* List of active grades with reordering & remove */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 px-1">
+              <span>ACTIVE ADMISSION GRADES (IN DISPLAY ORDER)</span>
+              <span>Use arrows to reorder in dropdown</span>
+            </div>
+
+            {formData.available_grades.length === 0 ? (
+              <div className="p-8 text-center bg-slate-50 border border-dashed border-slate-200 rounded-xl text-xs text-slate-400">
+                No classes/grades configured yet. Click &quot;Reset SJIS Standard&quot; or add a custom grade above.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                {formData.available_grades.map((grade, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-indigo-300 transition-all text-xs group shadow-2xs"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-5 h-5 rounded-md bg-indigo-100 text-indigo-800 text-[10px] font-black flex items-center justify-center shrink-0">
+                        {index + 1}
+                      </span>
+                      <span className="font-bold text-slate-800 truncate" title={grade}>
+                        {grade}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0 ml-2">
+                      <button
+                        type="button"
+                        onClick={() => moveGradeItem(index, 'up')}
+                        disabled={index === 0}
+                        className="p-1 rounded text-slate-400 hover:text-indigo-700 hover:bg-indigo-50 disabled:opacity-30 disabled:hover:bg-transparent transition-colors cursor-pointer"
+                        title="Move Up"
+                      >
+                        <ArrowUp className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveGradeItem(index, 'down')}
+                        disabled={index === formData.available_grades.length - 1}
+                        className="p-1 rounded text-slate-400 hover:text-indigo-700 hover:bg-indigo-50 disabled:opacity-30 disabled:hover:bg-transparent transition-colors cursor-pointer"
+                        title="Move Down"
+                      >
+                        <ArrowDown className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeGradeItem(index)}
+                        className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                        title="Remove Grade"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* PANEL 1: Online Payment Gate & Gateway */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-5">
           <div className="flex items-center justify-between border-b border-slate-100 pb-4">
