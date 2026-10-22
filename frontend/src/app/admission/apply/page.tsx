@@ -218,6 +218,10 @@ export default function OnlineApplicationPage() {
   const [stepError, setStepError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState(false);
 
+  // District Custom Input State
+  const [isOtherDistrict, setIsOtherDistrict] = useState(false);
+  const [otherDistrictText, setOtherDistrictText] = useState('');
+
   // Student Photo Upload State
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -359,6 +363,10 @@ export default function OnlineApplicationPage() {
       }
       if (!form.present_address.trim()) {
         setStepError('Please enter candidate present residential address.');
+        return false;
+      }
+      if (isOtherDistrict && (!form.present_district.trim() || form.present_district === 'Other')) {
+        setStepError('Please type the name of your District.');
         return false;
       }
     } else if (s === 5) {
@@ -1542,8 +1550,17 @@ export default function OnlineApplicationPage() {
                       <Field label="District">
                         <select
                           className={selectClass}
-                          value={form.present_district}
-                          onChange={(e) => set('present_district', e.target.value)}
+                          value={isOtherDistrict ? 'Other' : (DISTRICTS.includes(form.present_district) ? form.present_district : 'Other')}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === 'Other') {
+                              setIsOtherDistrict(true);
+                              set('present_district', otherDistrictText.trim());
+                            } else {
+                              setIsOtherDistrict(false);
+                              set('present_district', val);
+                            }
+                          }}
                         >
                           {DISTRICTS.map((d) => (
                             <option key={d} value={d}>
@@ -1563,6 +1580,33 @@ export default function OnlineApplicationPage() {
                         />
                       </Field>
                     </div>
+
+                    {isOtherDistrict && (
+                      <div className="p-4 bg-amber-50/80 border border-amber-200/90 rounded-2xl animate-in fade-in slide-in-from-top-1 duration-200 shadow-sm">
+                        <Field
+                          label="Specify District Name *"
+                          hint="Type the name of your district (e.g. Bogura, Cox's Bazar, Jessore, Dinajpur, etc.)"
+                        >
+                          <div className="relative">
+                            <input
+                              type="text"
+                              className={`${inputClass} bg-white font-medium text-slate-900 border-amber-300 focus:border-amber-500 focus:ring-amber-200`}
+                              value={otherDistrictText}
+                              placeholder="Write/type your district name..."
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setOtherDistrictText(val);
+                                set('present_district', val);
+                              }}
+                              autoFocus
+                            />
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-xs font-semibold px-2 py-0.5 bg-amber-100 text-amber-800 rounded-md">
+                              Custom District
+                            </div>
+                          </div>
+                        </Field>
+                      </div>
+                    )}
 
                     <Field label="Permanent Address" hint="Leave blank if identical to present address">
                       <textarea
