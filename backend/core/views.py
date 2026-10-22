@@ -1044,6 +1044,25 @@ class InterviewSlotViewSet(viewsets.ModelViewSet):
         count, _ = InterviewSlot.objects.filter(date=date_val).delete()
         return Response({'deleted': count})
 
+    @action(detail=True, methods=['get'], url_path='candidates',
+            permission_classes=[permissions.IsAuthenticated])
+    def candidates(self, request, pk=None):
+        """Admin: list all student applications assigned to this interview slot."""
+        slot = self.get_object()
+        applicants = slot.bookings.all().order_by('form_no', 'id')
+        ser = OnlineApplicationListSerializer(applicants, many=True)
+        return Response({
+            'slot_id': slot.id,
+            'slot_label': slot.label or slot.display_label,
+            'date': slot.date,
+            'start_time': slot.start_time,
+            'end_time': slot.end_time,
+            'venue': slot.venue,
+            'capacity': slot.capacity,
+            'booked_count': slot.booked_count,
+            'candidates': ser.data,
+        })
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Payment Gateway

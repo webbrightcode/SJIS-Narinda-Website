@@ -1392,6 +1392,32 @@ export async function deleteInterviewSlot(id: number, token: string): Promise<bo
   }
 }
 
+/** Admin: Get list of candidate applications assigned to a slot. */
+export async function getInterviewSlotCandidates(
+  slotId: number,
+  token: string
+): Promise<{
+  slot_id: number;
+  slot_label: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  venue: string;
+  capacity: number;
+  booked_count: number;
+  candidates: OnlineApplication[];
+} | null> {
+  try {
+    const res = await fetchWithTimeout(apiUrl(`/interview-slots/${slotId}/candidates/`), {
+      headers: getAuthHeaders(token),
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as any;
+  } catch {
+    return null;
+  }
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // Payment
 // ────────────────────────────────────────────────────────────────────────────

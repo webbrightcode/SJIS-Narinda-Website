@@ -103,6 +103,7 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
   const [manualTranId, setManualTranId] = useState('');
   const [admSettings, setAdmSettings] = useState<AdmissionSettings | null>(null);
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'completed' | 'pending' | 'not_required'>('all');
+  const [slotFilter, setSlotFilter] = useState('all');
   const [printPageSize, setPrintPageSize] = useState<'A4' | 'Legal'>('A4');
 
   // Workflow update form state
@@ -181,10 +182,13 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
       const matchStatus = statusFilter === 'all' || app.status === statusFilter;
       const matchGrade = gradeFilter === 'all' || app.grade_applying === gradeFilter;
       const matchPayment = paymentFilter === 'all' || app.payment_status === paymentFilter;
+      const matchSlot =
+        slotFilter === 'all' ||
+        (slotFilter === 'unassigned' ? !app.interview_slot : String(app.interview_slot) === slotFilter);
 
-      return matchSearch && matchStatus && matchGrade && matchPayment;
+      return matchSearch && matchStatus && matchGrade && matchPayment && matchSlot;
     });
-  }, [applications, search, statusFilter, gradeFilter, paymentFilter]);
+  }, [applications, search, statusFilter, gradeFilter, paymentFilter, slotFilter]);
 
   // Summary counts
   const stats = useMemo(() => {
@@ -495,6 +499,21 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
             <option value="Grade 8">Grade 8</option>
             <option value="Grade 9">Grade 9 (Cambridge O Level)</option>
             <option value="Grade 11">Grade 11 (Cambridge A Level)</option>
+          </select>
+
+          <select
+            value={slotFilter}
+            onChange={(e) => setSlotFilter(e.target.value)}
+            className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white text-slate-700 outline-none max-w-[190px] truncate"
+            title="Filter by Assigned Interview Slot"
+          >
+            <option value="all">All Interview Slots</option>
+            <option value="unassigned">No Slot Assigned</option>
+            {availableSlots.map((s) => (
+              <option key={s.id} value={String(s.id)}>
+                {s.label || s.display_label || `${s.date} ${s.start_time.slice(0, 5)}`}
+              </option>
+            ))}
           </select>
         </div>
       </div>

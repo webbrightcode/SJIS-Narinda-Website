@@ -15,14 +15,16 @@ import {
   Filter,
   AlertCircle,
   HelpCircle,
+  Printer,
 } from 'lucide-react';
 import {
   listInterviewSlots,
   createInterviewSlot,
   bulkCreateInterviewSlots,
   deleteInterviewSlot,
+  getInterviewSlotCandidates,
 } from '@/lib/api';
-import type { InterviewSlot } from '@/lib/types';
+import type { InterviewSlot, OnlineApplication } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 
@@ -40,6 +42,27 @@ export const InterviewSlotsManager: React.FC<Props> = ({ token, onToast }) => {
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+
+  // Roster view state
+  const [selectedRosterSlot, setSelectedRosterSlot] = useState<InterviewSlot | null>(null);
+  const [rosterCandidates, setRosterCandidates] = useState<OnlineApplication[]>([]);
+  const [loadingRoster, setLoadingRoster] = useState(false);
+
+  const handleOpenRoster = async (slot: InterviewSlot) => {
+    setSelectedRosterSlot(slot);
+    setLoadingRoster(true);
+    setRosterCandidates([]);
+    try {
+      const data = await getInterviewSlotCandidates(slot.id, token);
+      if (data && data.candidates) {
+        setRosterCandidates(data.candidates);
+      }
+    } catch {
+      onToast?.('Failed to load slot candidates.');
+    } finally {
+      setLoadingRoster(false);
+    }
+  };
 
   // Single slot form state
   const [singleSlot, setSingleSlot] = useState<{
@@ -353,14 +376,25 @@ export const InterviewSlotsManager: React.FC<Props> = ({ token, onToast }) => {
                         </div>
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <button
-                          type="button"
-                          onClick={() => setDeleteConfirmId(slot.id)}
-                          className="p-1 text-slate-400 hover:text-rose-600 transition-colors"
-                          title="Delete Slot"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenRoster(slot)}
+                            className="px-2.5 py-1.5 bg-blue-50 text-blue-800 hover:bg-blue-100 font-bold rounded-xl text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer border border-blue-200"
+                            title="View Enrolled Students"
+                          >
+                            <Users className="w-3.5 h-3.5 text-blue-600" />
+                            <span>Roster ({slot.booked_count})</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteConfirmId(slot.id)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                            title="Delete Slot"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -700,6 +734,135 @@ export const InterviewSlotsManager: React.FC<Props> = ({ token, onToast }) => {
                 Delete Slot
               </Button>
             </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Slot Candidates / Attendance Roster Modal */}
+      {selectedRosterSlot && (
+        <Modal
+          isOpen={Boolean(selectedRosterSlot)}
+          onClose={() => setSelectedRosterSlot(null)}
+          title={`Slot Roster: ${selectedRosterSlot.label || selectedRosterSlot.display_label}`}
+          maxWidth="4xl"
+        >
+          <div className="p-6 space-y-5">
+            {/* Slot Summary Banner */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-slate-900 text-sm">
+                    {new Date(selectedRosterSlot.date).toLocaleDateString('en-GB', {
+                      weekday: 'long',
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })}
+                  </span>
+                  <span className="font-mono px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-bold">
+                    {selectedRosterSlot.start_time.slice(0, 5)} - {selectedRosterSlot.end_time.slice(0, 5)}
+                  </span>
+                </div>
+                <p className="text-slate-600 flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                  <span>{selectedRosterSlot.venue}</span>
+                  {selectedRosterSlot.grade_filter && (
+                    <span className="ml-2 font-bold text-blue-700">({selectedRosterSlot.grade_filter})</span>
+                  )}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Enrolled Candidates</span>
+                  <span className="text-base font-black text-[#00183F]">
+                    {selectedRosterSlot.booked_count} / {selectedRosterSlot.capacity}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="px-3 py-1.5 rounded-xl bg-[#00183F] text-amber-300 font-bold text-xs hover:bg-[#002257] transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Print Attendance Sheet</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Candidates Table */}
+            {loadingRoster ? (
+              <div className="py-12 text-center text-slate-400 text-xs">
+                <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-[#00183F]" />
+                Loading slot candidate roster...
+              </div>
+            ) : rosterCandidates.length === 0 ? (
+              <div className="py-12 text-center text-slate-400 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                <Users className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                <p className="font-bold text-sm text-slate-600">No students assigned to this slot yet.</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  You can assign candidates from the &quot;Online Applications&quot; desk under the candidate&apos;s Evaluation tab.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-2xl border border-slate-200">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-[#00183F] text-white text-[11px] uppercase tracking-wider">
+                    <tr>
+                      <th className="py-3 px-3">SL</th>
+                      <th className="py-3 px-3">Form Serial</th>
+                      <th className="py-3 px-4">Candidate Information</th>
+                      <th className="py-3 px-3">Grade</th>
+                      <th className="py-3 px-3">Guardian Contact</th>
+                      <th className="py-3 px-3">Payment</th>
+                      <th className="py-3 px-3 text-center">Invigilator Sign</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {rosterCandidates.map((c, idx) => (
+                      <tr key={c.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="py-3 px-3 font-mono text-slate-400">{idx + 1}</td>
+                        <td className="py-3 px-3 whitespace-nowrap">
+                          {c.form_no ? (
+                            <span className="font-mono font-black text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded">
+                              #{c.form_no}
+                            </span>
+                          ) : (
+                            <span className="font-mono text-slate-400 text-[11px]">{c.application_id}</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="font-bold text-slate-900">{c.student_first_name} {c.student_last_name}</div>
+                          {c.student_name_bangla && (
+                            <div className="text-[11px] text-slate-500 font-serif">{c.student_name_bangla}</div>
+                          )}
+                          <div className="text-[10px] text-slate-400">DOB: {c.date_of_birth} • {c.gender}</div>
+                        </td>
+                        <td className="py-3 px-3 font-semibold text-slate-800 whitespace-nowrap">{c.grade_applying}</td>
+                        <td className="py-3 px-3 whitespace-nowrap">
+                          <div className="text-slate-800 font-semibold">{c.contact_phone}</div>
+                          <div className="text-slate-400 text-[10px]">{c.contact_email}</div>
+                        </td>
+                        <td className="py-3 px-3 whitespace-nowrap">
+                          {c.payment_status === 'completed' ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              Paid
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                              {c.payment_status}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 text-center border-l border-slate-100">
+                          <div className="w-20 h-6 border-b border-dashed border-slate-300 mx-auto" />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </Modal>
       )}
