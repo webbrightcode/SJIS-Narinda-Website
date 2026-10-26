@@ -625,6 +625,14 @@ export default function OnlineApplicationPage() {
     }
   };
 
+  const openResumeModal = () => {
+    setResumeError(null);
+    const phonePrefill = cloudDraftPhone || form.contact_phone || form.father_phone || form.mother_phone || '';
+    if (phonePrefill && !resumePhone) setResumePhone(phonePrefill);
+    if (cloudDraftKey && !resumeCode) setResumeCode(cloudDraftKey);
+    setShowResumeModal(true);
+  };
+
   // Resume draft from any other device using mobile number + 6-digit draft code
   const handleResumeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1240,10 +1248,7 @@ export default function OnlineApplicationPage() {
             <span>•</span>
             <button
               type="button"
-              onClick={() => {
-                setResumeError(null);
-                setShowResumeModal(true);
-              }}
+              onClick={openResumeModal}
               className="inline-flex items-center gap-1.5 text-amber-200 hover:text-white font-bold bg-amber-400/15 hover:bg-amber-400/25 px-3 py-1 rounded-full border border-amber-400/40 transition-all cursor-pointer shadow-xs"
             >
               <KeyRound className="w-3.5 h-3.5 text-amber-300" />
@@ -1364,10 +1369,7 @@ export default function OnlineApplicationPage() {
             )}
             <button
               type="button"
-              onClick={() => {
-                setResumeError(null);
-                setShowResumeModal(true);
-              }}
+              onClick={openResumeModal}
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold text-[11px] transition-colors shadow-2xs cursor-pointer"
               title="Resume an application started on another device with your Draft Code"
             >
@@ -3297,6 +3299,26 @@ export default function OnlineApplicationPage() {
 
             {/* Modal Body */}
             <form onSubmit={handleResumeSubmit} className="p-6 space-y-4">
+              {form.student_first_name && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="font-bold text-emerald-900 block truncate">
+                      Draft is already active on this device!
+                    </span>
+                    <span className="text-emerald-700 text-[11px] block truncate">
+                      {form.student_first_name} {form.student_last_name} ({form.grade_applying || 'Draft'})
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowResumeModal(false)}
+                    className="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shrink-0 cursor-pointer shadow-xs"
+                  >
+                    Continue
+                  </button>
+                </div>
+              )}
+
               {resumeError && (
                 <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-start gap-2">
                   <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
@@ -3320,7 +3342,7 @@ export default function OnlineApplicationPage() {
                   />
                 </div>
                 <p className="text-[11px] text-slate-400 mt-1">
-                  Enter the mobile number (Father, Mother, or Guardian) used when saving your application.
+                  The mobile number entered in your application form (Primary Contact or Father/Mother), or typed when saving.
                 </p>
               </div>
 
@@ -3341,7 +3363,7 @@ export default function OnlineApplicationPage() {
                   />
                 </div>
                 <p className="text-[11px] text-slate-400 mt-1">
-                  The 6-character code (e.g. SJ4729) provided when you clicked "Save & Continue Later".
+                  The 6-character code (e.g. SJ4829) displayed on screen when you saved your draft.
                 </p>
               </div>
 
