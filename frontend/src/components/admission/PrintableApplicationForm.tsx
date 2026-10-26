@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import type { OnlineApplicationFormData } from '@/lib/types';
-import { Scissors, Printer, FileText, AlertTriangle, Info } from 'lucide-react';
+import { Printer, FileText, AlertTriangle, Info } from 'lucide-react';
 import { printDocumentElement } from '@/lib/printUtils';
 
 export interface PrintableApplicationFormProps {
@@ -618,14 +618,10 @@ export function PrintableApplicationForm({
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
-            PERFORATED CUT LINE (With Scissors Icon)
+            PERFORATED DOTTED CUT LINE
            ══════════════════════════════════════════════════════════════════ */}
         {!admitCardOnly && (
-          <div className="relative my-3 sm:my-3.5 print:my-2.5 border-t border-dotted border-black">
-            <div className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 bg-white text-black flex items-center">
-              <Scissors className="w-3.5 h-3.5 text-black" />
-            </div>
-          </div>
+          <div className="w-full my-3 sm:my-3.5 print:my-2.5 border-t border-dotted border-black" />
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
