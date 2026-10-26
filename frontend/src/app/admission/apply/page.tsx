@@ -1106,15 +1106,6 @@ export default function OnlineApplicationPage() {
                     </Field>
                   </div>
 
-                  <Field label="Full Name in Bengali (বাংলায় পূর্ণ নাম)" hint="Optional - recorded in school bilingual registers">
-                    <input
-                      type="text"
-                      className={inputClass}
-                      value={form.student_name_bangla}
-                      placeholder="e.g. মলিয়ের রহমান গ্রামসি"
-                      onChange={(e) => set('student_name_bangla', e.target.value)}
-                    />
-                  </Field>
 
                   {/* ── DOB, Gender, Living With, Blood Group ───────────────── */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
@@ -2070,9 +2061,6 @@ export default function OnlineApplicationPage() {
                       <h3 className="text-xl sm:text-2xl font-black text-white">
                         {form.student_first_name} {form.student_last_name}
                       </h3>
-                      {form.student_name_bangla && (
-                        <p className="text-xs text-slate-300 font-serif">{form.student_name_bangla}</p>
-                      )}
                       <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1 text-xs text-slate-300">
                         <span><strong>Applying For:</strong> <span className="text-[#D4AF37] font-bold">{form.grade_applying}</span></span>
                         <span>•</span>
