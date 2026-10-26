@@ -48,7 +48,7 @@ export const AdmissionCTA: React.FC = () => {
 
             <div className="lg:col-span-4 flex flex-col gap-4">
               <Button
-                href="/admission"
+                href="/admission/apply"
                 variant="secondary"
                 size="lg"
                 className="w-full text-center py-4"

@@ -37,6 +37,7 @@ import {
 } from '@/lib/types';
 import {
   listApplications,
+  getApplication,
   changeApplicationStatus,
   verifyApplicationDocument,
   deleteApplication,
@@ -88,6 +89,7 @@ const STATUS_LABELS: Record<string, string> = {
 export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) => {
   const [applications, setApplications] = useState<OnlineApplication[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingDetail, setLoadingDetail] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [gradeFilter, setGradeFilter] = useState('all');
@@ -256,6 +258,23 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
       );
     } else {
       onToast?.(res.error || 'Failed to confirm payment.');
+    }
+  };
+
+  // Open application and load full dossier including documents & parent details
+  const handleSelectApp = async (app: OnlineApplication) => {
+    setSelectedApp(app);
+    setActiveModalTab('profile');
+    setLoadingDetail(true);
+    try {
+      const fullApp = await getApplication(app.id, token);
+      if (fullApp) {
+        setSelectedApp(fullApp);
+      }
+    } catch (e) {
+      console.warn('Could not load full application:', e);
+    } finally {
+      setLoadingDetail(false);
     }
   };
 
@@ -704,10 +723,7 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
                       <td className="px-5 py-4 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
-                            onClick={() => {
-                              setSelectedApp(app);
-                              setActiveModalTab('profile');
-                            }}
+                            onClick={() => handleSelectApp(app)}
                             className="px-3 py-1.5 rounded-xl bg-[#00183F] text-amber-300 hover:bg-[#002257] text-xs font-bold transition-colors inline-flex items-center gap-1 cursor-pointer"
                           >
                             <Eye className="w-3.5 h-3.5" />

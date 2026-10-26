@@ -217,6 +217,7 @@ export default function OnlineApplicationPage() {
   const [payError, setPayError] = useState<string | null>(null);
   const [stepError, setStepError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState(false);
+  const [draftRestored, setDraftRestored] = useState(false);
 
   // District Custom Input State
   const [isOtherDistrict, setIsOtherDistrict] = useState(false);
@@ -232,6 +233,57 @@ export default function OnlineApplicationPage() {
   const [uploadingDocKey, setUploadingDocKey] = useState<string | null>(null);
 
   const topRef = useRef<HTMLDivElement>(null);
+
+  // Restore saved draft from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedDraft = localStorage.getItem('sjis_apply_draft');
+      const savedDocs = localStorage.getItem('sjis_apply_draft_docs');
+      if (savedDraft) {
+        const parsed = JSON.parse(savedDraft);
+        if (parsed && typeof parsed === 'object') {
+          setForm((prev) => ({ ...prev, ...parsed }));
+          if (parsed.student_first_name || parsed.contact_phone) {
+            setDraftRestored(true);
+          }
+        }
+      }
+      if (savedDocs) {
+        const parsedDocs = JSON.parse(savedDocs);
+        if (Array.isArray(parsedDocs) && parsedDocs.length > 0) {
+          setDocuments(parsedDocs);
+        }
+      }
+    } catch (e) {
+      console.warn('Could not restore draft:', e);
+    }
+  }, []);
+
+  // Auto-save draft changes to localStorage
+  useEffect(() => {
+    if (result?.success) return;
+    try {
+      if (form.student_first_name || form.contact_phone || form.present_address || documents.length > 0) {
+        localStorage.setItem('sjis_apply_draft', JSON.stringify(form));
+        localStorage.setItem('sjis_apply_draft_docs', JSON.stringify(documents));
+      }
+    } catch {
+      // ignore localStorage quota errors
+    }
+  }, [form, documents, result]);
+
+  const clearDraft = () => {
+    try {
+      localStorage.removeItem('sjis_apply_draft');
+      localStorage.removeItem('sjis_apply_draft_docs');
+      setForm(INITIAL_FORM);
+      setDocuments([]);
+      setDraftRestored(false);
+      setStep(1);
+    } catch {
+      // ignore
+    }
+  };
 
   // Load backend admission guide & settings dynamically
   useEffect(() => {
@@ -419,7 +471,15 @@ export default function OnlineApplicationPage() {
     const res = await submitOnlineApplication(payload);
     setResult(res);
     setSubmitting(false);
-    if (res.success) scrollTop();
+    if (res.success) {
+      try {
+        localStorage.removeItem('sjis_apply_draft');
+        localStorage.removeItem('sjis_apply_draft_docs');
+      } catch {
+        // ignore
+      }
+      scrollTop();
+    }
   };
 
   const copyAppId = () => {
@@ -441,6 +501,10 @@ export default function OnlineApplicationPage() {
       } else if (res.gateway === 'manual') {
         alert(
           `Payment Gateway is set to Manual Mode by school administration.\n\nFee Amount: ${result.payment_currency || 'BDT'} ${result.application_fee || '1,000'}\n\nPlease submit payment at the Admissions Accounts Counter (32 Shah Shaheb Lane, Narinda) quoting your Reference ID: ${result.application_id}.`
+        );
+      } else if (res.message) {
+        alert(
+          `${res.message}\n\nPlease present Reference ID: ${result.application_id} to the Accounts Counter for verification.`
         );
       } else if (res.error) {
         setPayError(res.error);
@@ -714,18 +778,9 @@ export default function OnlineApplicationPage() {
 
   return (
     <>
-      {/* Hidden Printable Container for Direct Browser Print Command */}
-      <div className="hidden print:block print:w-full print:m-0 print:p-0">
-        <PrintableApplicationForm
-          form={form}
-          applicationId={result?.application_id}
-          documents={documents}
-        />
-      </div>
-
       <div className="bg-slate-50 min-h-screen print:hidden" ref={topRef}>
-        {/* Top Hero Banner */}
-        <section className="relative py-14 sm:py-20 bg-[#00183F] text-white overflow-hidden">
+      {/* Top Hero Banner */}
+      <section className="relative py-14 sm:py-20 bg-[#00183F] text-white overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-[#D4AF37]/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 text-center space-y-3">
           <div className="flex flex-wrap items-center justify-center gap-2">
@@ -811,6 +866,25 @@ export default function OnlineApplicationPage() {
 
       {/* Main Form Container */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        {/* Draft Restored Banner */}
+        {draftRestored && (
+          <div className="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200/80 flex items-center justify-between gap-3 text-xs text-amber-900 shadow-sm animate-in fade-in">
+            <div className="flex items-center gap-2.5">
+              <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>
+                <strong>Draft Restored:</strong> We found an unfinished application in your browser and restored your progress.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={clearDraft}
+              className="px-3 py-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-[11px] transition-colors shrink-0 cursor-pointer"
+            >
+              Start Over / Clear
+            </button>
+          </div>
+        )}
+
         {/* Responsive Step Progress Bar */}
         <div className="w-full mb-8">
           <div className="flex items-center justify-between gap-1 sm:gap-2">
@@ -1535,15 +1609,6 @@ export default function OnlineApplicationPage() {
                       </Field>
                     </div>
 
-                    <Field label="Present Residential Address" required hint="House/Flat, Road, Area, Dhaka">
-                      <textarea
-                        rows={2}
-                        className={inputClass}
-                        value={form.present_address}
-                        placeholder="House 12, Road 4, Narinda, Dhaka-1100..."
-                        onChange={(e) => set('present_address', e.target.value)}
-                      />
-                    </Field>
 
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                       <Field label="Thana / Police Station">

@@ -1,8 +1,11 @@
 import re
+import uuid
 from django.conf import settings
 from django.contrib.auth import authenticate
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.db import models
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from rest_framework import viewsets, generics, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -733,7 +736,7 @@ class FileUploadView(APIView):
             return Response({'error': 'No file uploaded'}, status=status.HTTP_400_BAD_REQUEST)
 
         ext = os.path.splitext(file_obj.name)[1].lower()
-        allowed_extensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg', '.pdf']
+        allowed_extensions = ['.jpg', '.jpeg', '.png', '.webp', '.pdf']
         if ext not in allowed_extensions:
             return Response(
                 {'error': f'Unsupported file type {ext}. Allowed: {", ".join(allowed_extensions)}'},
@@ -1099,13 +1102,12 @@ class PaymentInitiateView(APIView):
         if gateway == 'sslcommerz':
             return self._initiate_sslcommerz(request, app, adm_settings, amount)
         elif gateway in ('bkash', 'nagad'):
-            # Placeholder: manual instruction when gateway not yet wired
             return Response({
                 'gateway': gateway,
                 'amount': amount,
                 'currency': adm_settings.payment_currency,
                 'application_id': app_id,
-                'message': f'{gateway.upper()} integration pending. Contact office for payment.',
+                'message': f'{gateway.upper()} direct gateway processing is being prepared. Please complete payment at the accounts counter quoting your Application ID.',
             })
         else:  # manual
             return Response({
@@ -1113,27 +1115,31 @@ class PaymentInitiateView(APIView):
                 'amount': amount,
                 'currency': adm_settings.payment_currency,
                 'application_id': app_id,
-                'message': 'Please visit the school office to complete your application fee payment.',
+                'message': 'Please visit the school admissions office to complete your application fee payment.',
             })
 
     def _initiate_sslcommerz(self, request, app, adm_settings, amount):
         """Build SSLCommerz payment session."""
         try:
-            # Build frontend base URL
-            scheme = request.scheme
-            host = request.get_host()
-            base_url = f"{scheme}://{host}"
+            import os
+            frontend_url = os.getenv('FRONTEND_URL', '').rstrip('/')
+            if not frontend_url:
+                scheme = request.scheme
+                host = request.get_host()
+                frontend_url = f"{scheme}://{host}"
+
+            tran_id = f"{app.application_id}-{uuid.uuid4().hex[:8].upper()}"
 
             post_data = {
                 'store_id': adm_settings.sslcommerz_store_id,
                 'store_passwd': adm_settings.sslcommerz_store_pass,
                 'total_amount': amount,
                 'currency': adm_settings.payment_currency,
-                'tran_id': f"{app.application_id}-{_uuid.uuid4().hex[:8].upper()}",
-                'success_url': f"{base_url}/api/payment/callback/?status=success&app_id={app.application_id}",
-                'fail_url': f"{base_url}/api/payment/callback/?status=fail&app_id={app.application_id}",
-                'cancel_url': f"{base_url}/api/payment/callback/?status=cancel&app_id={app.application_id}",
-                'ipn_url': f"{base_url}/api/payment/ipn/",
+                'tran_id': tran_id,
+                'success_url': f"{frontend_url}/api/payment/callback/?status=success&app_id={app.application_id}",
+                'fail_url': f"{frontend_url}/api/payment/callback/?status=fail&app_id={app.application_id}",
+                'cancel_url': f"{frontend_url}/api/payment/callback/?status=cancel&app_id={app.application_id}",
+                'ipn_url': f"{frontend_url}/api/payment/ipn/",
                 'cus_name': app.student_full_name,
                 'cus_email': app.contact_email or 'noreply@sjisnarinda.edu.bd',
                 'cus_phone': app.contact_phone or '01700000000',
@@ -1160,93 +1166,119 @@ class PaymentInitiateView(APIView):
             req = urllib.request.Request(ssl_url, data=encoded, method='POST')
             req.add_header('Content-Type', 'application/x-www-form-urlencoded')
             with urllib.request.urlopen(req, timeout=15) as resp:
-                result = _json.loads(resp.read())
+                result = _json.loads(resp.read().decode('utf-8'))
 
             if result.get('status') == 'SUCCESS':
-                # Store tran_id reference
-                app.payment_transaction_id = post_data['tran_id']
+                app.payment_transaction_id = tran_id
                 app.payment_gateway_ref = result.get('sessionkey', '')
                 app.save(update_fields=['payment_transaction_id', 'payment_gateway_ref'])
                 return Response({
                     'gateway': 'sslcommerz',
                     'redirect_url': result.get('GatewayPageURL'),
                     'session_key': result.get('sessionkey'),
-                    'tran_id': post_data['tran_id'],
+                    'tran_id': tran_id,
                     'amount': amount,
                 })
             else:
                 return Response({
-                    'error': result.get('failedreason', 'SSLCommerz session creation failed.'),
+                    'error': result.get('failedreason', 'SSLCommerz session creation failed. Check gateway credentials.'),
                 }, status=502)
         except Exception as exc:
             return Response({'error': f'Payment gateway error: {str(exc)}'}, status=502)
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class PaymentCallbackView(APIView):
     """
-    GET  /api/payment/callback/  — browser redirect from SSLCommerz after payment.
-    POST /api/payment/ipn/       — server-to-server IPN from SSLCommerz.
-    Both confirm or fail the payment on the application.
+    Handles both browser redirects (GET / POST) and IPN notifications (POST)
+    from SSLCommerz.
     """
+    authentication_classes = []
     permission_classes = [permissions.AllowAny]
 
-    def get(self, request):
-        """Browser redirect after gateway (success / fail / cancel)."""
-        pay_status = request.query_params.get('status', 'fail')
-        app_id = request.query_params.get('app_id', '').upper()
-        tran_id = request.query_params.get('tran_id', '')
-        val_id = request.query_params.get('val_id', '')
+    def _process_payment(self, request, is_ipn=False):
+        params = {}
+        if request.query_params:
+            params.update(request.query_params.dict())
+        if hasattr(request, 'data') and isinstance(request.data, dict):
+            params.update(request.data)
+        if hasattr(request, 'POST') and request.POST:
+            params.update(request.POST.dict())
+
+        pay_status = (params.get('status') or '').lower()
+        tran_id = params.get('tran_id', '')
+        val_id = params.get('val_id', '')
+        amount = params.get('amount', 0)
+        app_id = (params.get('app_id') or '').upper()
+
+        if not app_id and tran_id:
+            app_id = '-'.join(tran_id.split('-')[:3]).upper()
 
         try:
             app = OnlineApplication.objects.get(application_id=app_id)
         except OnlineApplication.DoesNotExist:
-            from django.shortcuts import redirect
-            return redirect(f'/admission/payment/result?status=error&reason=notfound')
+            if is_ipn:
+                return Response({'status': 'INVALID', 'reason': 'Application not found.'}, status=200)
+            return redirect('/admission/payment/result?status=error&reason=notfound')
 
-        from django.shortcuts import redirect
+        adm_settings = AdmissionSettings.get_settings()
 
-        if pay_status == 'success':
-            # Verify with SSLCommerz (optional but recommended)
+        # Validate with SSLCommerz API if val_id is provided and credentials exist
+        verified = False
+        if val_id and adm_settings.sslcommerz_store_id and adm_settings.sslcommerz_store_pass:
+            try:
+                import urllib.request, json as _json
+                ssl_domain = (
+                    'sandbox.sslcommerz.com'
+                    if adm_settings.sslcommerz_is_sandbox
+                    else 'securepay.sslcommerz.com'
+                )
+                val_url = (
+                    f"https://{ssl_domain}/validator/api/validationserverAPI.php?"
+                    f"val_id={val_id}&store_id={adm_settings.sslcommerz_store_id}&"
+                    f"store_passwd={adm_settings.sslcommerz_store_pass}&v=1&format=json"
+                )
+                req = urllib.request.Request(val_url)
+                with urllib.request.urlopen(req, timeout=10) as resp:
+                    val_res = _json.loads(resp.read().decode('utf-8'))
+                    if val_res.get('status') in ('VALID', 'VALIDATED'):
+                        verified = True
+                        if not amount:
+                            amount = val_res.get('amount', 0)
+            except Exception:
+                if adm_settings.sslcommerz_is_sandbox:
+                    verified = (pay_status in ('valid', 'validated', 'success'))
+        else:
+            verified = (pay_status in ('valid', 'validated', 'success'))
+
+        if verified:
             app.confirm_payment(
-                transaction_id=tran_id or app.payment_transaction_id,
-                gateway_ref=val_id,
+                transaction_id=tran_id or app.payment_transaction_id or 'SSL-CONFIRMED',
+                gateway_ref=val_id or '',
+                amount=amount if amount else None,
             )
-            return redirect(f'/admission/payment/result?status=success&id={app_id}')
-        elif pay_status == 'cancel':
-            app.payment_status = 'pending'  # Allow retry
+            if is_ipn:
+                return Response({'status': 'VALID', 'message': 'Payment confirmed.'}, status=200)
+            return redirect(f'/admission/payment/result?status=success&id={app.application_id}&tran_id={tran_id or app.payment_transaction_id}')
+        elif pay_status in ('cancel', 'cancelled'):
+            app.payment_status = 'pending'
             app.save(update_fields=['payment_status'])
-            return redirect(f'/admission/payment/result?status=cancelled&id={app_id}')
+            if is_ipn:
+                return Response({'status': 'CANCELLED'}, status=200)
+            return redirect(f'/admission/payment/result?status=cancelled&id={app.application_id}')
         else:
             app.payment_status = 'failed'
             app.save(update_fields=['payment_status'])
-            return redirect(f'/admission/payment/result?status=failed&id={app_id}')
+            if is_ipn:
+                return Response({'status': 'FAILED'}, status=200)
+            return redirect(f'/admission/payment/result?status=failed&id={app.application_id}')
+
+    def get(self, request):
+        return self._process_payment(request, is_ipn=False)
 
     def post(self, request):
-        """SSLCommerz IPN — server-to-server payment confirmation."""
-        tran_id = request.data.get('tran_id', '')
-        val_id = request.data.get('val_id', '')
-        status_val = request.data.get('status', '')
-        amount = request.data.get('amount', 0)
-
-        # Extract application_id from tran_id (format: SJIS-YYYY-NNNNN-XXXXXXXX)
-        app_id = '-'.join(tran_id.split('-')[:3]) if tran_id else ''
-
-        try:
-            app = OnlineApplication.objects.get(application_id=app_id)
-        except OnlineApplication.DoesNotExist:
-            return Response({'status': 'INVALID', 'reason': 'Application not found.'}, status=200)
-
-        if status_val == 'VALID':
-            app.confirm_payment(
-                transaction_id=tran_id,
-                gateway_ref=val_id,
-                amount=amount,
-            )
-        elif status_val == 'FAILED':
-            app.payment_status = 'failed'
-            app.save(update_fields=['payment_status'])
-
-        return Response({'status': 'received'}, status=200)
+        is_ipn = request.path.rstrip('/').endswith('/ipn')
+        return self._process_payment(request, is_ipn=is_ipn)
 
 
 class PaymentManualConfirmView(APIView):
@@ -1278,13 +1310,15 @@ class PaymentManualConfirmView(APIView):
 
 class ApplicationStatusLookupView(APIView):
     """
-    Public: GET /api/applications/track/?id=SJIS-2026-00001
+    Public: GET /api/applications/track/?id=SJIS-2026-00001&phone=01711XXXXXX
     Lets applicants check their status without login.
+    Confidential dossier requires phone number verification.
     """
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
         app_id = request.query_params.get('id', '').strip().upper()
+        phone_param = (request.query_params.get('phone') or '').strip()
         if not app_id:
             return Response({'error': 'Please provide an application ID (e.g. ?id=SJIS-2026-00001)'}, status=400)
 
@@ -1297,8 +1331,8 @@ class ApplicationStatusLookupView(APIView):
             'payment_pending': 'Application details recorded. Online payment is pending. Please complete your fee payment to generate your official form number and download your admit card.',
             'submitted': 'Your application has been received and is awaiting review by our admissions team.',
             'under_review': 'Our admissions team is currently reviewing your application.',
-            'shortlisted': 'Congratulations! You have been shortlisted. Please check your email for the entrance exam details.',
-            'interview_scheduled': 'An interview has been scheduled. Please check your email for the date and venue.',
+            'shortlisted': 'Congratulations! You have been shortlisted. Please check with admissions for entrance exam details.',
+            'interview_scheduled': 'An interview has been scheduled. Please check below for the scheduled date, time, and venue.',
             'documents_required': 'Additional documents are required. Please contact the admissions office.',
             'approved': 'Congratulations! Your child has been offered admission. Please contact us to confirm enrollment.',
             'enrolled': 'Enrollment confirmed. Welcome to St. Joseph International School, Narinda!',
@@ -1351,8 +1385,26 @@ class ApplicationStatusLookupView(APIView):
             'reporting_instructions': adm_settings.reporting_instructions,
             'interview_slot': slot_data,
         }
-        if full_requested:
+
+        # Secondary phone authentication to protect private parent and student PII
+        clean_input = re.sub(r'\D', '', phone_param)
+        applicant_phones = [
+            re.sub(r'\D', '', getattr(app, f) or '')
+            for f in ('contact_phone', 'father_phone', 'mother_phone')
+        ]
+        phone_matches = False
+        if clean_input and len(clean_input) >= 6:
+            for ap in applicant_phones:
+                if ap and (clean_input.endswith(ap[-8:]) or ap.endswith(clean_input[-8:])):
+                    phone_matches = True
+                    break
+
+        if full_requested and (phone_matches or request.user.is_authenticated):
             res_data['application'] = OnlineApplicationSerializer(app).data
+            res_data['verified_session'] = True
+        elif full_requested:
+            res_data['verified_session'] = False
+
         return Response(res_data)
 
 
@@ -1360,16 +1412,19 @@ class ApplicationDocumentViewSet(viewsets.ModelViewSet):
     serializer_class = ApplicationDocumentSerializer
 
     def get_permissions(self):
-        if self.action in ('create', 'list'):
+        if self.action in ('create',):
             return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
-        app_id = self.request.query_params.get('application')
-        qs = ApplicationDocument.objects.all()
-        if app_id:
-            qs = qs.filter(application_id=app_id)
-        return qs
+        # Only authenticated staff can browse all applicant documents
+        if self.request.user and self.request.user.is_authenticated:
+            app_id = self.request.query_params.get('application')
+            qs = ApplicationDocument.objects.all()
+            if app_id:
+                qs = qs.filter(application_id=app_id)
+            return qs
+        return ApplicationDocument.objects.none()
 
     @action(detail=True, methods=['patch'], url_path='verify', permission_classes=[permissions.IsAuthenticated])
     def verify_document(self, request, pk=None):
@@ -1379,3 +1434,4 @@ class ApplicationDocumentViewSet(viewsets.ModelViewSet):
         doc.verified_by = request.user.username
         doc.save()
         return Response(ApplicationDocumentSerializer(doc).data)
+

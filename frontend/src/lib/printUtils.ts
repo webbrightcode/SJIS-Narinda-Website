@@ -136,8 +136,8 @@ export function printDocumentElement(
   `);
   frameDoc.close();
 
-  // Give fonts, images (crest & candidate photo), and styles a moment to resolve
-  setTimeout(() => {
+  // Ensure fonts, styles, and candidate photograph / crest images are fully loaded and decoded
+  const triggerPrint = () => {
     try {
       iframe.contentWindow?.focus();
       iframe.contentWindow?.print();
@@ -148,7 +148,49 @@ export function printDocumentElement(
       // Clean up iframe after print dialog completes
       setTimeout(() => {
         iframe.remove();
-      }, 3000);
+      }, 4000);
     }
-  }, 350);
+  };
+
+  const images = Array.from(frameDoc.images);
+  const imagePromises = images.map((img) => {
+    if (img.complete && img.naturalHeight !== 0) {
+      return Promise.resolve();
+    }
+    if (typeof img.decode === 'function') {
+      return img.decode().catch(() => {});
+    }
+    return new Promise<void>((resolve) => {
+      img.onload = () => resolve();
+      img.onerror = () => resolve();
+    });
+  });
+
+  const fontPromise = frameDoc.fonts?.ready ?? Promise.resolve();
+
+  // Wait for all assets with a safety timeout fallback
+  let triggered = false;
+  const timeoutId = setTimeout(() => {
+    if (!triggered) {
+      triggered = true;
+      triggerPrint();
+    }
+  }, 1200);
+
+  Promise.all([...imagePromises, fontPromise])
+    .then(() => {
+      if (!triggered) {
+        clearTimeout(timeoutId);
+        triggered = true;
+        // Brief 80ms tick to allow final reflow
+        setTimeout(triggerPrint, 80);
+      }
+    })
+    .catch(() => {
+      if (!triggered) {
+        clearTimeout(timeoutId);
+        triggered = true;
+        triggerPrint();
+      }
+    });
 }

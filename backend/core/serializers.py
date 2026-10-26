@@ -172,7 +172,7 @@ class ApplicationDocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = ApplicationDocument
         fields = '__all__'
-        read_only_fields = ['uploaded_at']
+        read_only_fields = ['uploaded_at', 'verified', 'verified_by']
 
 
 class AdmissionSettingsSerializer(serializers.ModelSerializer):
@@ -223,7 +223,12 @@ class OnlineApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = OnlineApplication
         fields = '__all__'
-        read_only_fields = ['application_id', 'created_at', 'updated_at']
+        read_only_fields = [
+            'application_id', 'form_no', 'status', 'payment_status',
+            'payment_transaction_id', 'payment_amount', 'payment_gateway_ref',
+            'payment_completed_at', 'documents_verified', 'offer_letter_sent',
+            'entrance_exam_score', 'admin_notes', 'created_at', 'updated_at',
+        ]
 
     def get_documents_count(self, obj):
         return obj.documents.count()
@@ -233,7 +238,7 @@ class OnlineApplicationSerializer(serializers.ModelSerializer):
 
 
 class OnlineApplicationListSerializer(serializers.ModelSerializer):
-    """Lightweight serializer for list views (no nested docs)."""
+    """Serializer for admin list views with essential preview, filter & export fields."""
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     payment_status_display = serializers.CharField(source='get_payment_status_display', read_only=True)
     student_full_name = serializers.CharField(read_only=True)
@@ -243,10 +248,13 @@ class OnlineApplicationListSerializer(serializers.ModelSerializer):
         model = OnlineApplication
         fields = [
             'id', 'application_id', 'form_no', 'student_full_name', 'student_first_name',
-            'student_last_name', 'gender', 'grade_applying', 'academic_year',
-            'contact_email', 'contact_phone', 'student_living_with', 'current_school_and_class',
+            'student_last_name', 'student_name_bangla', 'student_photo_url', 'date_of_birth',
+            'gender', 'religion', 'blood_group', 'grade_applying', 'academic_year',
+            'father_name', 'father_phone', 'mother_name', 'mother_phone',
+            'contact_email', 'contact_phone', 'present_address', 'student_living_with',
+            'previous_school_name', 'current_school_and_class', 'last_grade_result',
             'status', 'status_display', 'payment_status', 'payment_status_display',
-            'payment_transaction_id', 'payment_completed_at',
+            'payment_amount', 'payment_transaction_id', 'payment_completed_at',
             'documents_count', 'documents_verified',
             'interview_date', 'interview_time', 'interview_slot',
             'created_at', 'submitted_at',
@@ -254,3 +262,4 @@ class OnlineApplicationListSerializer(serializers.ModelSerializer):
 
     def get_documents_count(self, obj):
         return obj.documents.count()
+

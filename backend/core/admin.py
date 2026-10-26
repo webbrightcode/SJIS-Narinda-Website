@@ -135,13 +135,13 @@ class ApplicationDocumentInline(admin.TabularInline):
 @admin.register(OnlineApplication)
 class OnlineApplicationAdmin(admin.ModelAdmin):
     list_display = (
-        'application_id', 'student_full_name_display', 'gender', 'grade_applying',
-        'academic_year', 'status', 'documents_verified', 'created_at',
+        'application_id', 'form_no', 'student_full_name_display', 'gender', 'grade_applying',
+        'academic_year', 'payment_status', 'status', 'interview_slot', 'documents_verified', 'created_at',
     )
-    list_filter = ('status', 'grade_applying', 'academic_year', 'gender', 'documents_verified')
+    list_filter = ('status', 'payment_status', 'grade_applying', 'academic_year', 'gender', 'documents_verified', 'interview_slot')
     search_fields = (
-        'application_id', 'student_first_name', 'student_last_name',
-        'contact_email', 'contact_phone', 'father_name', 'mother_name',
+        'application_id', 'form_no', 'student_first_name', 'student_last_name',
+        'contact_email', 'contact_phone', 'father_name', 'mother_name', 'payment_transaction_id',
     )
     readonly_fields = ('application_id', 'created_at', 'updated_at', 'submitted_at')
     inlines = [ApplicationDocumentInline]
@@ -150,19 +150,24 @@ class OnlineApplicationAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ('Application Reference', {
-            'fields': ('application_id', 'academic_year', 'status', 'current_step',
+            'fields': ('application_id', 'form_no', 'academic_year', 'status', 'current_step',
                        'submitted_at', 'created_at', 'updated_at')
+        }),
+        ('Payment Details', {
+            'fields': ('payment_status', 'payment_amount', 'payment_transaction_id',
+                       'payment_gateway_ref', 'payment_completed_at')
         }),
         ('Student Information', {
             'fields': (
                 'student_first_name', 'student_last_name', 'student_name_bangla',
                 'date_of_birth', 'gender', 'religion', 'blood_group',
                 'nationality', 'birth_certificate_no', 'passport_no', 'student_photo_url',
+                'student_living_with',
             )
         }),
         ('Academic Background', {
             'fields': (
-                'grade_applying', 'section_preference',
+                'grade_applying', 'section_preference', 'current_school_and_class',
                 'previous_school_name', 'previous_school_city', 'previous_school_board',
                 'last_grade_result', 'last_grade_year', 'previous_curriculum',
                 'extracurricular_interests', 'special_needs_or_conditions',
@@ -171,14 +176,14 @@ class OnlineApplicationAdmin(admin.ModelAdmin):
         ("Father Information", {
             'fields': (
                 'father_name', 'father_profession', 'father_organization',
-                'father_qualification', 'father_phone', 'father_nid',
+                'father_qualification', 'father_phone', 'father_nid', 'father_office_address',
             ),
             'classes': ('collapse',),
         }),
         ("Mother Information", {
             'fields': (
                 'mother_name', 'mother_profession', 'mother_organization',
-                'mother_qualification', 'mother_phone', 'mother_nid',
+                'mother_qualification', 'mother_phone', 'mother_nid', 'mother_office_address',
             ),
             'classes': ('collapse',),
         }),
@@ -193,14 +198,15 @@ class OnlineApplicationAdmin(admin.ModelAdmin):
         ('Declaration and Extras', {
             'fields': (
                 'parent_declaration_accepted', 'sibling_at_sjis', 'sibling_name_class',
+                'sibling_name', 'sibling_class', 'sibling_section', 'sibling_roll',
                 'how_did_you_hear', 'additional_notes',
             )
         }),
         ('Admin and Evaluation', {
             'fields': (
-                'admin_notes', 'entrance_exam_date', 'entrance_exam_venue',
-                'entrance_exam_score', 'interview_date',
-                'offer_letter_sent', 'documents_verified',
+                'interview_slot', 'interview_date', 'interview_time',
+                'entrance_exam_date', 'entrance_exam_venue', 'entrance_exam_score',
+                'offer_letter_sent', 'documents_verified', 'admin_notes',
             )
         }),
     )

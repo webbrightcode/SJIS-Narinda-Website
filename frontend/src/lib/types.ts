@@ -388,14 +388,19 @@ export interface AdmissionSettings {
   payment_gateway: 'manual' | 'sslcommerz' | 'bkash' | 'nagad';
   application_fee: string;
   payment_currency: string;
-  // SSLCommerz (safe fields only — no secrets)
+  // SSLCommerz
   sslcommerz_store_id?: string;
+  sslcommerz_store_pass?: string;
   sslcommerz_is_sandbox?: boolean;
   // bKash
   bkash_app_key?: string;
+  bkash_app_secret?: string;
+  bkash_username?: string;
+  bkash_password?: string;
   bkash_is_sandbox?: boolean;
   // Nagad
   nagad_merchant_id?: string;
+  nagad_merchant_key?: string;
   nagad_is_sandbox?: boolean;
   // Print
   print_page_size: 'A4' | 'Legal';

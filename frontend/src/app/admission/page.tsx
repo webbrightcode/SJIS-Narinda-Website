@@ -341,7 +341,7 @@ export default function AdmissionPage() {
                 <p className="text-sm text-slate-600 mb-5">
                   Please submit an inquiry and our team will share the current fee structure with you.
                 </p>
-                <a href="#apply" className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#00183F] text-white text-sm font-bold hover:bg-[#C8102E] transition-colors">
+                <a href="#inquiry" className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#00183F] text-white text-sm font-bold hover:bg-[#C8102E] transition-colors">
                   Request Fee Information <ArrowRight className="w-4 h-4" />
                 </a>
               </div>
@@ -434,18 +434,33 @@ export default function AdmissionPage() {
           </ScrollReveal>
         </section>
 
-        {/* 5. Online Admission Inquiry / Application Form */}
-        <section id="apply">
+        {/* 5. Online Admission Inquiry Form */}
+        <section id="inquiry">
           <ScrollReveal direction="up" distance={30} duration={700}>
             <div className="bg-white rounded-3xl border border-slate-200 p-8 sm:p-12 shadow-xl">
               <div className="max-w-3xl mx-auto">
+            {/* Direct Application Notice */}
+            <div className="mb-8 p-4 rounded-2xl bg-amber-50/70 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-950">
+              <div>
+                <span className="font-bold text-[#00183F] block text-sm">Ready to formally apply for admission?</span>
+                <span className="text-slate-600">Skip the inquiry and jump straight to candidate registration, document upload & payment.</span>
+              </div>
+              <Link
+                href="/admission/apply"
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#00183F] text-amber-300 font-bold hover:bg-[#002866] transition-colors shrink-0"
+              >
+                <span>Open Application Form</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
             <div className="text-center mb-8">
               <Badge variant="crimson">Admissions Desk</Badge>
               <h3 className="text-3xl font-extrabold text-[#00183F] mt-2">
-                Online Admission Inquiry & Registration
+                Admission Inquiry & Counseling
               </h3>
               <p className="text-slate-600 text-sm mt-2">
-                Submit this preliminary application form. Our admissions officer will contact you within 24-48 hours.
+                Have questions or need guidance before applying? Submit your query and our admissions counselor will get in touch.
               </p>
             </div>
 
@@ -609,7 +624,7 @@ export default function AdmissionPage() {
                   className="w-full py-4 text-center justify-center font-bold"
                   icon={<Send className="w-5 h-5 text-white" />}
                 >
-                  {submitting ? 'Submitting Application...' : 'Submit Admission Inquiry'}
+                  {submitting ? 'Sending Inquiry...' : 'Submit Admission Inquiry'}
                 </Button>
               </div>
             </form>

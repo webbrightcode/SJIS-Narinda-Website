@@ -54,8 +54,11 @@ export const AdmissionSettingsManager: React.FC<Props> = ({ token, onToast }) =>
     sslcommerz_is_sandbox: boolean;
     bkash_app_key: string;
     bkash_app_secret: string;
+    bkash_username: string;
+    bkash_password: string;
     bkash_is_sandbox: boolean;
     nagad_merchant_id: string;
+    nagad_merchant_key: string;
     nagad_is_sandbox: boolean;
     print_page_size: 'A4' | 'Legal';
     form_header_note: string;
@@ -73,8 +76,11 @@ export const AdmissionSettingsManager: React.FC<Props> = ({ token, onToast }) =>
     sslcommerz_is_sandbox: true,
     bkash_app_key: '',
     bkash_app_secret: '',
+    bkash_username: '',
+    bkash_password: '',
     bkash_is_sandbox: true,
     nagad_merchant_id: '',
+    nagad_merchant_key: '',
     nagad_is_sandbox: true,
     print_page_size: 'A4',
     form_header_note: '',
@@ -100,8 +106,11 @@ export const AdmissionSettingsManager: React.FC<Props> = ({ token, onToast }) =>
           sslcommerz_is_sandbox: data.sslcommerz_is_sandbox !== false,
           bkash_app_key: data.bkash_app_key || '',
           bkash_app_secret: (data as any).bkash_app_secret || '',
+          bkash_username: data.bkash_username || '',
+          bkash_password: (data as any).bkash_password || '',
           bkash_is_sandbox: data.bkash_is_sandbox !== false,
           nagad_merchant_id: data.nagad_merchant_id || '',
+          nagad_merchant_key: (data as any).nagad_merchant_key || '',
           nagad_is_sandbox: data.nagad_is_sandbox !== false,
           print_page_size: data.print_page_size || 'A4',
           form_header_note: data.form_header_note || '',
@@ -547,6 +556,164 @@ export const AdmissionSettingsManager: React.FC<Props> = ({ token, onToast }) =>
                   value={formData.sslcommerz_store_pass}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, sslcommerz_store_pass: e.target.value }))
+                  }
+                  className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-white font-mono"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* bKash Direct Credentials */}
+          {formData.payment_gateway === 'bkash' && (
+            <div className="border border-pink-200 rounded-xl p-4 bg-pink-50/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-pink-900">bKash Merchant Credentials</span>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.bkash_is_sandbox}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          bkash_is_sandbox: e.target.checked,
+                        }))
+                      }
+                      className="rounded text-pink-600"
+                    />
+                    <span className="text-[11px] font-semibold">Sandbox / Testing Mode</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowSecrets(!showSecrets)}
+                    className="text-xs text-slate-500 hover:text-slate-800 flex items-center gap-1"
+                  >
+                    {showSecrets ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    <span className="text-[10px]">{showSecrets ? 'Hide' : 'Show'}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    App Key
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="bKash App Key"
+                    value={formData.bkash_app_key}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, bkash_app_key: e.target.value }))
+                    }
+                    className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-white font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    App Secret
+                  </label>
+                  <input
+                    type={showSecrets ? 'text' : 'password'}
+                    placeholder="bKash App Secret"
+                    value={formData.bkash_app_secret}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, bkash_app_secret: e.target.value }))
+                    }
+                    className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-white font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    Username
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="bKash Merchant Username"
+                    value={formData.bkash_username}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, bkash_username: e.target.value }))
+                    }
+                    className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-white font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    Password
+                  </label>
+                  <input
+                    type={showSecrets ? 'text' : 'password'}
+                    placeholder="bKash Merchant Password"
+                    value={formData.bkash_password}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, bkash_password: e.target.value }))
+                    }
+                    className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-white font-mono"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Nagad Direct Credentials */}
+          {formData.payment_gateway === 'nagad' && (
+            <div className="border border-orange-200 rounded-xl p-4 bg-orange-50/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-orange-900">Nagad Gateway Credentials</span>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.nagad_is_sandbox}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          nagad_is_sandbox: e.target.checked,
+                        }))
+                      }
+                      className="rounded text-orange-600"
+                    />
+                    <span className="text-[11px] font-semibold">Sandbox / Testing Mode</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowSecrets(!showSecrets)}
+                    className="text-xs text-slate-500 hover:text-slate-800 flex items-center gap-1"
+                  >
+                    {showSecrets ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    <span className="text-[10px]">{showSecrets ? 'Hide' : 'Show'}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                  Merchant ID
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. 683..."
+                  value={formData.nagad_merchant_id}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, nagad_merchant_id: e.target.value }))
+                  }
+                  className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-white font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                  Merchant Private Key
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Nagad Merchant Private / Public Key"
+                  value={formData.nagad_merchant_key}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, nagad_merchant_key: e.target.value }))
                   }
                   className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-white font-mono"
                 />

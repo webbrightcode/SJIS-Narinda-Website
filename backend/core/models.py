@@ -898,49 +898,71 @@ class OnlineApplication(models.Model):
         import datetime
 
         if not self.application_id:
-            # Generate SJIS-YYYY-NNNNN format
             year = datetime.date.today().year
-            last = OnlineApplication.objects.order_by('-id').first()
-            seq = (last.id + 1) if last else 1
+            last = OnlineApplication.objects.filter(
+                application_id__startswith=f"SJIS-{year}-"
+            ).order_by('-id').first()
+            seq = 1
+            if last and last.application_id:
+                try:
+                    seq = int(last.application_id.split('-')[-1]) + 1
+                except (ValueError, IndexError):
+                    seq = (last.id + 1) if last.id else 1
+            elif last and last.id:
+                seq = last.id + 1
             self.application_id = f"SJIS-{year}-{seq:05d}"
 
         # form_no is ONLY assigned when payment is not required OR payment is completed
         # This enforces the payment gate — no form_no = no downloadable form
         if not self.form_no and self.payment_status in ('not_required', 'completed'):
             try:
-                seq = int(self.application_id.split('-')[-1])
-                self.form_no = f"{seq:06d}"
+                seq_part = int(self.application_id.split('-')[-1])
+                self.form_no = f"{seq_part:06d}"
             except Exception:
                 self.form_no = self.application_id
 
-        # Auto-assign interview slot if slot-based mode and slot is not yet set
+        # Track if we are newly assigning an interview slot
+        is_new_slot = False
         if not self.interview_slot_id and self.payment_status in ('not_required', 'completed'):
             try:
                 settings = AdmissionSettings.get_settings()
                 if settings.interview_mode == 'slot_based':
                     grade = (self.grade_applying or '').strip()
+                    clean_grade = grade.split('(')[0].strip()
                     slot_qs = InterviewSlot.objects.filter(
                         is_active=True,
                         booked_count__lt=models.F('capacity')
                     ).order_by('date', 'start_time')
-                    if grade:
-                        # Prefer grade-specific slot, fall back to universal
-                        grade_slots = slot_qs.filter(grade_filter__icontains=grade.split('(')[0].strip())
-                        slot = grade_slots.first() or slot_qs.filter(grade_filter='').first()
+                    if clean_grade:
+                        # Exact or word-boundary check to prevent 'Grade 1' matching 'Grade 11'
+                        matched_slot = None
+                        for s in slot_qs:
+                            if not s.grade_filter:
+                                continue
+                            filters = [f.strip() for f in s.grade_filter.split(',') if f.strip()]
+                            for f in filters:
+                                f_clean = f.split('(')[0].strip()
+                                if f_clean.lower() == clean_grade.lower() or f.lower() == grade.lower():
+                                    matched_slot = s
+                                    break
+                            if matched_slot:
+                                break
+                        slot = matched_slot or slot_qs.filter(grade_filter='').first()
                     else:
                         slot = slot_qs.first()
                     if slot:
                         self.interview_slot = slot
+                        is_new_slot = True
             except Exception:
                 pass
 
         super().save(*args, **kwargs)
 
-        # Increment slot booked_count after save (only when newly assigned)
-        if self.interview_slot_id:
+        # Increment slot booked_count only when newly auto-assigned
+        if is_new_slot and self.interview_slot_id:
             InterviewSlot.objects.filter(
                 pk=self.interview_slot_id
-            ).update(booked_count=models.F('booked_count') + 0)  # refresh only; increment handled below
+            ).update(booked_count=models.F('booked_count') + 1)
 
     def confirm_payment(self, transaction_id='', gateway_ref='', amount=None):
         """Call this when payment gateway confirms success."""
