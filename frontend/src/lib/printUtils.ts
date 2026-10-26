@@ -5,16 +5,28 @@
  */
 export function printDocumentElement(
   elementId = 'physical-admission-document',
-  title = 'St. Joseph International School - Official Document',
-  pageSize: 'A4' | 'Legal' = 'Legal'
+  titleOrPageSize = 'St. Joseph International School - Official Document',
+  pageSizeOption?: 'A4' | 'Legal'
 ): void {
   if (typeof window === 'undefined') return;
 
+  let title = 'St. Joseph International School - Official Document';
+  let pageSize: 'A4' | 'Legal' = 'A4';
+
+  if (titleOrPageSize === 'A4' || titleOrPageSize === 'Legal') {
+    pageSize = titleOrPageSize;
+  } else if (titleOrPageSize) {
+    title = titleOrPageSize;
+  }
+
+  if (pageSizeOption) {
+    pageSize = pageSizeOption;
+  }
+
   const isLegal = pageSize === 'Legal';
   const pageCss = isLegal
-    ? `size: 216mm 356mm portrait; margin: 4mm 6mm 4mm 6mm;`
-    : `size: A4 portrait; margin: 4mm 6mm 4mm 6mm;`;
-  const targetHeight = isLegal ? '346mm' : '285mm';
+    ? `size: 216mm 356mm portrait; margin: 3mm 5mm 3mm 5mm;`
+    : `size: A4 portrait; margin: 3mm 5mm 3mm 5mm;`;
 
   const target = document.getElementById(elementId);
   if (!target) {
@@ -81,7 +93,8 @@ export function printDocumentElement(
             padding: 0 !important;
             width: 100% !important;
             height: 100% !important;
-            overflow: visible !important;
+            max-height: 100% !important;
+            overflow: hidden !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             font-family: Georgia, "Times New Roman", Cambria, serif !important;
@@ -98,14 +111,17 @@ export function printDocumentElement(
             opacity: 1 !important;
             width: 100% !important;
             max-width: 100% !important;
-            height: ${targetHeight} !important;
-            max-height: ${targetHeight} !important;
+            height: 100% !important;
+            max-height: 100% !important;
             margin: 0 auto !important;
-            padding: 2mm 3mm !important;
+            padding: 1.5mm 3mm !important;
             box-shadow: none !important;
             border: none !important;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
+            overflow: hidden !important;
           }
           #${elementId} * {
             visibility: visible !important;
@@ -117,19 +133,25 @@ export function printDocumentElement(
             display: flex !important;
             flex-direction: column !important;
             justify-content: flex-start !important;
-            gap: 1.5mm !important;
-            padding-bottom: 1.5mm !important;
+            gap: 1mm !important;
+            padding-bottom: 0.5mm !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
           }
           .admit-card-part {
             flex-shrink: 0 !important;
             margin-top: auto !important;
-            break-inside: avoid !important;
             page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
           }
         </style>
       </head>
       <body>
-        <div style="width: 100%; margin: 0 auto;">
+        <div style="width: 100%; height: 100%; margin: 0 auto;">
           ${clonedTarget.outerHTML}
         </div>
       </body>

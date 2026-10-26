@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import type { OnlineApplicationFormData } from '@/lib/types';
-import { Scissors, Printer, FileText, AlertTriangle } from 'lucide-react';
+import { Scissors, Printer, FileText, AlertTriangle, Info } from 'lucide-react';
 import { printDocumentElement } from '@/lib/printUtils';
 
 export interface PrintableApplicationFormProps {
@@ -49,14 +49,14 @@ export function PrintableApplicationForm({
   documents = [],
   admitCardOnly = false,
   defaultYellowPaper = false,
-  pageSize = 'Legal',
+  pageSize = 'A4',
   documentChecklist = [],
   reportingInstructions = '',
   paymentStatus = '',
   paymentTransactionId = '',
   interviewSlot = null,
 }: PrintableApplicationFormProps) {
-  const [selectedPageSize, setSelectedPageSize] = useState<'A4' | 'Legal'>('Legal');
+  const [selectedPageSize, setSelectedPageSize] = useState<'A4' | 'Legal'>(pageSize || 'A4');
 
   // Compute Clean Form No (e.g. 026110)
   const displayId = applicationId || form.form_no || 'SJIS-2027-DRAFT';
@@ -149,23 +149,28 @@ export function PrintableApplicationForm({
 
   // Paper styling class (clean white)
   const paperClass = 'bg-white text-black border-slate-300';
+  const activePageSize = selectedPageSize || pageSize || 'A4';
+  const isLegal = activePageSize === 'Legal';
+  const pageCss = isLegal
+    ? 'size: 216mm 356mm portrait; margin: 3mm 5mm 3mm 5mm;'
+    : 'size: A4 portrait; margin: 3mm 5mm 3mm 5mm;'
 
   return (
     <div className="printable-form-wrapper w-full">
-      {/* Legal Size Paper Warning Banner */}
-      <div className="no-print mb-3 p-3.5 rounded-xl bg-amber-50 border-2 border-amber-400 text-amber-950 flex items-start gap-3 shadow-xs">
-        <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+      {/* Paper Requirement Note Banner */}
+      <div className="no-print mb-3 p-3.5 rounded-xl bg-amber-50 border-2 border-amber-300 text-amber-950 flex items-start gap-3 shadow-xs">
+        <Info className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
             <span className="font-black text-amber-950 uppercase tracking-wide text-xs">
-              ⚠️ Mandatory Paper Requirement: Print on LEGAL Size Paper (8.5&quot; × 14&quot; / 216mm × 356mm)
+              Single-Page Admission Document Standard
             </span>
             <span className="px-2 py-0.5 bg-amber-200/90 text-amber-950 text-[10px] font-black rounded-md uppercase tracking-wider">
-              Permanent Standard
+              1-Page Fit
             </span>
           </div>
           <p className="text-[11.5px] text-amber-900 leading-relaxed font-medium">
-            This official St. Joseph International School document contains both the <strong>Application Form (Part 1)</strong> and the <strong>Tear-Off Admit Card (Part 2)</strong> on a single continuous sheet. In your browser print dialog, please ensure <strong>Paper Size is set to &quot;Legal&quot;</strong> (do not use A4) and <strong>Scale is set to &quot;100%&quot; or &quot;Fit to Printable Area&quot;</strong>.
+            This official St. Joseph International School document contains both the <strong>Application Form (Part 1)</strong> and the <strong>Admit Card (Part 2)</strong> formatted to strictly fit on a <strong>single continuous page</strong>. It is fully compatible with standard <strong>A4</strong> and <strong>Legal</strong> printers.
           </p>
         </div>
       </div>
@@ -175,10 +180,10 @@ export function PrintableApplicationForm({
         <div className="flex items-center gap-2">
           <FileText className="w-4 h-4 text-[#D4AF37]" />
           <span className="font-bold">
-            Official Physical Form &amp; Tear-off Admit Card Generator
+            Official Physical Form &amp; Admit Card
           </span>
           <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/40">
-            📄 Legal Paper Standard
+            1-Page Sheet ({activePageSize})
           </span>
           {paymentStatus === 'completed' && (
             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
@@ -195,13 +200,13 @@ export function PrintableApplicationForm({
               printDocumentElement(
                 'physical-admission-document',
                 'St. Joseph International School - Official Document',
-                'Legal'
+                activePageSize
               )
             }
             className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-[#D4AF37] hover:bg-[#c59f2e] text-[#00183F] font-black transition-all cursor-pointer shadow-sm text-xs"
           >
             <Printer className="w-4 h-4" />
-            <span>Print Form on Legal Paper (8.5&quot; × 14&quot;)</span>
+            <span>Print Single-Page Form ({activePageSize})</span>
           </button>
         </div>
       </div>
@@ -209,8 +214,7 @@ export function PrintableApplicationForm({
       <style>{`
         @media print {
           @page {
-            size: 216mm 356mm portrait;
-            margin: 4mm 6mm 4mm 6mm;
+            ${pageCss}
           }
           html, body {
             background: #ffffff !important;
@@ -219,7 +223,8 @@ export function PrintableApplicationForm({
             padding: 0 !important;
             width: 100% !important;
             height: 100% !important;
-            overflow: visible !important;
+            max-height: 100% !important;
+            overflow: hidden !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             font-family: Georgia, "Times New Roman", Cambria, serif !important;
@@ -230,23 +235,25 @@ export function PrintableApplicationForm({
           #physical-admission-document {
             display: flex !important;
             flex-direction: column !important;
-            justify-content: flex-start !important;
-            gap: 2mm !important;
+            justify-content: space-between !important;
             box-sizing: border-box !important;
             visibility: visible !important;
             opacity: 1 !important;
             width: 100% !important;
             max-width: 100% !important;
-            height: 346mm !important;
-            max-height: 346mm !important;
+            height: 100% !important;
+            max-height: 100% !important;
             margin: 0 auto !important;
-            padding: 2mm 3mm !important;
+            padding: 1.5mm 3mm !important;
             box-shadow: none !important;
             border: none !important;
             background: #ffffff !important;
             color: #000000 !important;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
+            overflow: hidden !important;
           }
           #physical-admission-document * {
             visibility: visible !important;
@@ -258,14 +265,20 @@ export function PrintableApplicationForm({
             display: flex !important;
             flex-direction: column !important;
             justify-content: flex-start !important;
-            gap: 1.5mm !important;
-            padding-bottom: 1.5mm !important;
+            gap: 1mm !important;
+            padding-bottom: 0.5mm !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
           }
           .admit-card-part {
             flex-shrink: 0 !important;
             margin-top: auto !important;
-            break-inside: avoid !important;
             page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
           }
         }
       `}</style>
@@ -280,16 +293,16 @@ export function PrintableApplicationForm({
             PART 1 · APPLICATION FOR ADMISSION TEST (TOP HALF)
            ══════════════════════════════════════════════════════════════════ */}
         {!admitCardOnly && (
-          <section className="admission-application-part pb-1 flex-1 flex flex-col justify-start space-y-1">
+          <section className="admission-application-part pb-1 print:pb-0 flex-1 flex flex-col justify-start space-y-1 print:space-y-0.5">
             {/* Header Block: Crest + Title + Address + Form No on left/center; Photo Box on right */}
-            <div className="grid grid-cols-[auto_1fr_auto] gap-2 sm:gap-3 items-start mb-0.5">
+            <div className="grid grid-cols-[auto_1fr_auto] gap-2 sm:gap-3 print:gap-2 items-start mb-0.5 print:mb-0">
               {/* Crest Logo */}
-              <div className="w-14 h-14 sm:w-16 sm:h-16 shrink-0 flex items-center justify-center">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 print:w-11 print:h-11 shrink-0 flex items-center justify-center">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/sjis-crest-logo.png"
                   alt="SJIS Crest"
-                  className="w-14 h-14 sm:w-16 sm:h-16 object-contain"
+                  className="w-14 h-14 sm:w-16 sm:h-16 print:w-11 print:h-11 object-contain"
                   onError={(e) => {
                     e.currentTarget.src = '/sjis-logo.png';
                   }}
@@ -299,23 +312,23 @@ export function PrintableApplicationForm({
               {/* Central Title, School Name, Address, Form No, and Instruction Banner */}
               <div className="flex flex-col justify-between h-full text-center px-1">
                 <div>
-                  <h1 className="text-sm sm:text-base font-bold tracking-tight text-black uppercase leading-tight">
+                  <h1 className="text-sm sm:text-base print:text-[13px] font-bold tracking-tight text-black uppercase leading-tight">
                     APPLICATION FOR ADMISSION TEST
                   </h1>
-                  <h2 className="text-xs sm:text-[12.5px] font-bold text-black mt-0.5 leading-tight">
+                  <h2 className="text-xs sm:text-[12.5px] print:text-[11px] font-bold text-black mt-0.5 print:mt-0 leading-tight">
                     St. Joseph International School (Narinda Campus)
                   </h2>
-                  <p className="text-[9.5px] sm:text-[10.5px] text-black font-normal leading-tight">
+                  <p className="text-[9.5px] sm:text-[10.5px] print:text-[8.5px] text-black font-normal leading-tight">
                     32 Shah Shaheb Lane, Narinda, Dhaka 1100
                   </p>
                 </div>
 
                 {/* Form No. Row */}
-                <div className="flex items-baseline gap-1.5 mt-1 text-left">
+                <div className="flex items-baseline gap-1.5 mt-1 print:mt-0.5 text-left">
                   <span className="text-xs font-semibold text-black whitespace-nowrap">
                     Form No..
                   </span>
-                  <span className="font-mono text-sm sm:text-base font-bold text-black px-1 min-w-[140px] border-b border-dotted border-black inline-block">
+                  <span className="font-mono text-sm sm:text-base print:text-[13px] font-bold text-black px-1 min-w-[140px] print:min-w-[120px] border-b border-dotted border-black inline-block">
                     {displayFormNo}
                   </span>
                   <span className="font-mono text-[9px] text-slate-500 ml-1 no-print">
@@ -324,15 +337,15 @@ export function PrintableApplicationForm({
                 </div>
 
                 {/* Instruction Banner */}
-                <div className="text-center mt-0.5">
-                  <p className="text-[10px] sm:text-[10.5px] font-bold uppercase tracking-wide text-black">
+                <div className="text-center mt-0.5 print:mt-0">
+                  <p className="text-[10px] sm:text-[10.5px] print:text-[8.5px] font-bold uppercase tracking-wide text-black">
                     (PLEASE USE BLOCK LETTERS TO FILL UP THE FORM)
                   </p>
                 </div>
               </div>
 
               {/* Top-Right Candidate Photograph Frame */}
-              <div className="w-20 h-26 sm:w-22 sm:h-28 border border-black bg-white shrink-0 overflow-hidden flex flex-col items-center justify-center p-1 text-center">
+              <div className="w-20 h-26 sm:w-22 sm:h-28 print:w-17 print:h-21 border border-black bg-white shrink-0 overflow-hidden flex flex-col items-center justify-center p-1 print:p-0.5 text-center">
                 {form.student_photo_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -341,7 +354,7 @@ export function PrintableApplicationForm({
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="text-[7px] sm:text-[7.5px] font-bold uppercase tracking-tight text-black leading-tight space-y-0.5">
+                  <div className="text-[7px] sm:text-[7.5px] print:text-[6.5px] font-bold uppercase tracking-tight text-black leading-tight space-y-0.5">
                     <div>ATTACH A</div>
                     <div>RECENT</div>
                     <div>PASSPORT SIZE</div>
@@ -353,13 +366,13 @@ export function PrintableApplicationForm({
             </div>
 
             {/* ── Form Fields 1 to 11 (Verbatim Match to Physical Form) ── */}
-            <div className="space-y-1 sm:space-y-1.5 text-[10px] sm:text-[10.5px] text-black leading-snug">
+            <div className="space-y-1 sm:space-y-1.5 print:space-y-0.5 text-[10px] sm:text-[10.5px] print:text-[8.5px] text-black leading-snug print:leading-tight">
               {/* Field 1: Full name */}
               <div className="flex items-baseline gap-1">
                 <span className="font-semibold whitespace-nowrap">
                   1. Full name of candidate (cannot be changed):
                 </span>
-                <span className="flex-1 font-bold uppercase px-2 border-b border-dotted border-black min-h-[16px]">
+                <span className="flex-1 font-bold uppercase px-2 border-b border-dotted border-black min-h-[16px] print:min-h-[13px]">
                   {candidateFullName}
                 </span>
               </div>
@@ -370,15 +383,15 @@ export function PrintableApplicationForm({
                   <span className="font-semibold whitespace-nowrap">
                     2. Authentic Date of Birth (cannot be changed)
                   </span>
-                  <span className="font-bold px-2 border-b border-dotted border-black min-w-[120px] sm:min-w-[140px] text-center">
+                  <span className="font-bold px-2 border-b border-dotted border-black min-w-[120px] sm:min-w-[140px] print:min-w-[100px] text-center">
                     {formattedDob || '—'}
                   </span>
                   <span className="font-semibold whitespace-nowrap ml-2">Religion:</span>
-                  <span className="flex-1 font-bold px-2 border-b border-dotted border-black min-h-[16px]">
+                  <span className="flex-1 font-bold px-2 border-b border-dotted border-black min-h-[16px] print:min-h-[13px]">
                     {displayReligion}
                   </span>
                 </div>
-                <div className="text-[8.5px] sm:text-[9px] text-black font-normal mt-[-1px]">
+                <div className="text-[8.5px] sm:text-[9px] print:text-[7.5px] text-black font-normal mt-[-1px]">
                   (As per Govt/Church birth certificate)
                 </div>
               </div>
@@ -386,11 +399,11 @@ export function PrintableApplicationForm({
               {/* Field 3: Father's Name & Occupation */}
               <div className="flex items-baseline gap-1.5">
                 <span className="font-semibold whitespace-nowrap">3. Father's Name</span>
-                <span className="flex-1 font-bold px-2 border-b border-dotted border-black min-h-[16px]">
+                <span className="flex-1 font-bold px-2 border-b border-dotted border-black min-h-[16px] print:min-h-[13px]">
                   {form.father_name || '—'}
                 </span>
                 <span className="font-semibold whitespace-nowrap ml-2">Occupation:</span>
-                <span className="w-1/3 sm:w-2/5 font-bold px-2 border-b border-dotted border-black min-h-[16px]">
+                <span className="w-1/3 sm:w-2/5 font-bold px-2 border-b border-dotted border-black min-h-[16px] print:min-h-[13px]">
                   {form.father_profession || '—'}
                 </span>
               </div>
@@ -398,11 +411,11 @@ export function PrintableApplicationForm({
               {/* Field 4: Mother's Name & Occupation */}
               <div className="flex items-baseline gap-1.5">
                 <span className="font-semibold whitespace-nowrap">4. Mother's Name</span>
-                <span className="flex-1 font-bold px-2 border-b border-dotted border-black min-h-[16px]">
+                <span className="flex-1 font-bold px-2 border-b border-dotted border-black min-h-[16px] print:min-h-[13px]">
                   {form.mother_name || '—'}
                 </span>
                 <span className="font-semibold whitespace-nowrap ml-2">Occupation:</span>
-                <span className="w-1/3 sm:w-2/5 font-bold px-2 border-b border-dotted border-black min-h-[16px]">
+                <span className="w-1/3 sm:w-2/5 font-bold px-2 border-b border-dotted border-black min-h-[16px] print:min-h-[13px]">
                   {form.mother_profession || '—'}
                 </span>
               </div>
@@ -410,7 +423,7 @@ export function PrintableApplicationForm({
               {/* Field 5: Present Address */}
               <div className="flex items-baseline gap-1">
                 <span className="font-semibold whitespace-nowrap">5. Present Address</span>
-                <span className="flex-1 font-normal px-2 border-b border-dotted border-black min-h-[16px]">
+                <span className="flex-1 font-normal px-2 border-b border-dotted border-black min-h-[16px] print:min-h-[13px]">
                   {form.present_address || '—'}
                 </span>
               </div>
@@ -420,11 +433,11 @@ export function PrintableApplicationForm({
                 <span className="font-semibold whitespace-nowrap">
                   6. Contact Number (Father)
                 </span>
-                <span className="flex-1 font-bold px-2 border-b border-dotted border-black min-h-[16px]">
+                <span className="flex-1 font-bold px-2 border-b border-dotted border-black min-h-[16px] print:min-h-[13px]">
                   {form.father_phone || form.contact_phone || '—'}
                 </span>
                 <span className="font-semibold whitespace-nowrap ml-2">(Mother)</span>
-                <span className="flex-1 font-bold px-2 border-b border-dotted border-black min-h-[16px]">
+                <span className="flex-1 font-bold px-2 border-b border-dotted border-black min-h-[16px] print:min-h-[13px]">
                   {form.mother_phone || '—'}
                 </span>
               </div>
@@ -434,7 +447,7 @@ export function PrintableApplicationForm({
                 <span className="font-semibold whitespace-nowrap">
                   7. Class/Grade for which application is being made
                 </span>
-                <span className="flex-1 font-bold text-xs sm:text-[13px] px-2 border-b border-dotted border-black min-h-[16px]">
+                <span className="flex-1 font-bold text-xs sm:text-[13px] print:text-[11px] px-2 border-b border-dotted border-black min-h-[16px] print:min-h-[13px]">
                   {form.grade_applying || '—'}
                 </span>
               </div>
@@ -445,11 +458,11 @@ export function PrintableApplicationForm({
                 <div className="flex items-center gap-1.5">
                   <span className="font-semibold">8. Gender:</span>
                   <span className="ml-1">Male</span>
-                  <span className="w-3.5 h-3.5 border border-black inline-flex items-center justify-center font-bold text-[9px] bg-white/60">
+                  <span className="w-3.5 h-3.5 print:w-3 print:h-3 border border-black inline-flex items-center justify-center font-bold text-[9px] print:text-[8px] bg-white/60">
                     {form.gender?.toLowerCase() === 'male' ? '✓' : ''}
                   </span>
                   <span className="ml-2">Female</span>
-                  <span className="w-3.5 h-3.5 border border-black inline-flex items-center justify-center font-bold text-[9px] bg-white/60">
+                  <span className="w-3.5 h-3.5 print:w-3 print:h-3 border border-black inline-flex items-center justify-center font-bold text-[9px] print:text-[8px] bg-white/60">
                     {form.gender?.toLowerCase() === 'female' ? '✓' : ''}
                   </span>
                 </div>
@@ -457,19 +470,19 @@ export function PrintableApplicationForm({
                 {/* Field 9 */}
                 <div className="flex items-center gap-1.5">
                   <span className="font-semibold">9. Student living with</span>
-                  <span className="w-3.5 h-3.5 border border-black inline-flex items-center justify-center font-bold text-[9px] bg-white/60 ml-1">
+                  <span className="w-3.5 h-3.5 print:w-3 print:h-3 border border-black inline-flex items-center justify-center font-bold text-[9px] print:text-[8px] bg-white/60 ml-1">
                     {form.student_living_with === 'parents' ? '✓' : ''}
                   </span>
                   <span>Parents</span>
-                  <span className="w-3.5 h-3.5 border border-black inline-flex items-center justify-center font-bold text-[9px] bg-white/60 ml-1">
+                  <span className="w-3.5 h-3.5 print:w-3 print:h-3 border border-black inline-flex items-center justify-center font-bold text-[9px] print:text-[8px] bg-white/60 ml-1">
                     {form.student_living_with === 'father' ? '✓' : ''}
                   </span>
                   <span>Father</span>
-                  <span className="w-3.5 h-3.5 border border-black inline-flex items-center justify-center font-bold text-[9px] bg-white/60 ml-1">
+                  <span className="w-3.5 h-3.5 print:w-3 print:h-3 border border-black inline-flex items-center justify-center font-bold text-[9px] print:text-[8px] bg-white/60 ml-1">
                     {form.student_living_with === 'mother' ? '✓' : ''}
                   </span>
                   <span>Mother</span>
-                  <span className="w-3.5 h-3.5 border border-black inline-flex items-center justify-center font-bold text-[9px] bg-white/60 ml-1">
+                  <span className="w-3.5 h-3.5 print:w-3 print:h-3 border border-black inline-flex items-center justify-center font-bold text-[9px] print:text-[8px] bg-white/60 ml-1">
                     {form.student_living_with === 'other' ? '✓' : ''}
                   </span>
                   <span>Other</span>
@@ -481,7 +494,7 @@ export function PrintableApplicationForm({
                 <span className="font-semibold whitespace-nowrap">
                   10. School & Class in which the candidate is studying this year:
                 </span>
-                <span className="flex-1 font-normal px-2 border-b border-dotted border-black min-h-[16px]">
+                <span className="flex-1 font-normal px-2 border-b border-dotted border-black min-h-[16px] print:min-h-[13px]">
                   {form.current_school_and_class || form.previous_school_name || 'None / First Admission'}
                 </span>
               </div>
@@ -491,54 +504,54 @@ export function PrintableApplicationForm({
                 <span className="font-semibold whitespace-nowrap">
                   11. If any sibling studying in this school Name:
                 </span>
-                <span className="flex-1 font-normal px-2 border-b border-dotted border-black min-h-[16px]">
+                <span className="flex-1 font-normal px-2 border-b border-dotted border-black min-h-[16px] print:min-h-[13px]">
                   {form.sibling_name || (form.sibling_at_sjis ? form.sibling_name_class : '—')}
                 </span>
                 <span className="font-semibold whitespace-nowrap ml-1">Class:</span>
-                <span className="w-12 sm:w-16 font-normal px-1 border-b border-dotted border-black min-h-[16px] text-center">
+                <span className="w-12 sm:w-16 print:w-10 font-normal px-1 border-b border-dotted border-black min-h-[16px] print:min-h-[13px] text-center">
                   {form.sibling_class || '—'}
                 </span>
                 <span className="font-semibold whitespace-nowrap ml-1">Section:</span>
-                <span className="w-12 sm:w-16 font-normal px-1 border-b border-dotted border-black min-h-[16px] text-center">
+                <span className="w-12 sm:w-16 print:w-10 font-normal px-1 border-b border-dotted border-black min-h-[16px] print:min-h-[13px] text-center">
                   {form.sibling_section || '—'}
                 </span>
                 <span className="font-semibold whitespace-nowrap ml-1">Roll:</span>
-                <span className="w-12 sm:w-16 font-normal px-1 border-b border-dotted border-black min-h-[16px] text-center">
+                <span className="w-12 sm:w-16 print:w-10 font-normal px-1 border-b border-dotted border-black min-h-[16px] print:min-h-[13px] text-center">
                   {form.sibling_roll || '—'}
                 </span>
               </div>
             </div>
 
             {/* ── Submission Deadline, Declaration, Office Use & Signature ── */}
-            <div className="mt-1.5 space-y-1 text-[9.5px] sm:text-[10px] text-black">
+            <div className="mt-1.5 print:mt-0.5 space-y-1 print:space-y-0.5 text-[9.5px] sm:text-[10px] print:text-[8.5px] text-black">
               {/* Submission Date */}
               <div className="flex items-baseline gap-1">
                 <span className="font-bold">The candidate must submit this form on</span>
-                <span className="font-bold px-2 border-b border-dotted border-black min-w-[160px] text-center">
+                <span className="font-bold px-2 border-b border-dotted border-black min-w-[160px] print:min-w-[120px] text-center">
                   {displaySubmissionDate}
                 </span>
               </div>
 
               {/* Undertaking Declaration */}
-              <p className="font-bold text-justify leading-snug">
+              <p className="font-bold text-justify leading-snug print:leading-tight">
                 I hereby declare that all of the above information is correct and authentic. I will not request for any change of these information in future.
               </p>
 
               {/* Received by & Signature Row */}
-              <div className="grid grid-cols-2 gap-6 pt-2 pb-0.5">
-                <div className="space-y-1">
+              <div className="grid grid-cols-2 gap-6 print:gap-4 pt-2 print:pt-0.5 pb-0.5 print:pb-0">
+                <div className="space-y-1 print:space-y-0.5">
                   <div className="flex items-baseline gap-1">
                     <span className="whitespace-nowrap">Received by:</span>
                     <span className="flex-1 border-b border-dotted border-black px-1 font-medium">
                       {form.received_by || ''}
                     </span>
                     <span className="whitespace-nowrap ml-1">Date:</span>
-                    <span className="w-20 border-b border-dotted border-black px-1 text-center font-medium">
+                    <span className="w-20 print:w-16 border-b border-dotted border-black px-1 text-center font-medium">
                       {displaySubmissionDate}
                     </span>
                   </div>
 
-                  <div className="flex items-baseline gap-1 pt-0.5">
+                  <div className="flex items-baseline gap-1 pt-0.5 print:pt-0">
                     <span className="whitespace-nowrap">For Office Use:</span>
                     <span className="flex-1 border-b border-dotted border-black px-1 font-medium">
                       {/* For Office Use blank line */}
@@ -560,41 +573,41 @@ export function PrintableApplicationForm({
                   </div>
                 </div>
 
-                <div className="flex flex-col justify-start items-end pt-2">
-                  <div className="w-44 sm:w-52 border-b border-dotted border-black mb-1" />
-                  <span className="font-normal text-[9px] sm:text-[9.5px] text-right">
+                <div className="flex flex-col justify-start items-end pt-2 print:pt-0.5">
+                  <div className="w-44 sm:w-52 print:w-40 border-b border-dotted border-black mb-1" />
+                  <span className="font-normal text-[9px] sm:text-[9.5px] print:text-[8px] text-right">
                     Signature of Parent/Guardian
                   </span>
                 </div>
               </div>
 
               {/* Two Bottom Business Card Boxes */}
-              <div className="grid grid-cols-2 gap-3 pt-0.5">
-                <div className="border border-black p-1.5 h-13 sm:h-14 flex flex-col justify-between text-[8.5px] sm:text-[9px] bg-white/40">
+              <div className="grid grid-cols-2 gap-3 print:gap-2 pt-0.5 print:pt-0">
+                <div className="border border-black p-1.5 print:p-1 h-13 sm:h-14 print:h-9 flex flex-col justify-between text-[8.5px] sm:text-[9px] print:text-[7.5px] bg-white/40">
                   <span className="font-bold block leading-tight">
                     Office address & Tel No (Father)
                   </span>
                   {form.father_office_address ? (
-                    <span className="text-[8px] sm:text-[8.5px] line-clamp-2 leading-tight">
+                    <span className="text-[8px] sm:text-[8.5px] print:text-[7px] line-clamp-2 leading-tight">
                       {form.father_office_address}
                     </span>
                   ) : (
-                    <div className="flex-1 flex items-center justify-center text-black/60 italic text-[8px]">
+                    <div className="flex-1 flex items-center justify-center text-black/60 italic text-[8px] print:text-[7px]">
                       Attach Business Card
                     </div>
                   )}
                 </div>
 
-                <div className="border border-black p-1.5 h-13 sm:h-14 flex flex-col justify-between text-[8.5px] sm:text-[9px] bg-white/40">
+                <div className="border border-black p-1.5 print:p-1 h-13 sm:h-14 print:h-9 flex flex-col justify-between text-[8.5px] sm:text-[9px] print:text-[7.5px] bg-white/40">
                   <span className="font-bold block leading-tight">
                     Office address & Tel No (Mother)
                   </span>
                   {form.mother_office_address ? (
-                    <span className="text-[8px] sm:text-[8.5px] line-clamp-2 leading-tight">
+                    <span className="text-[8px] sm:text-[8.5px] print:text-[7px] line-clamp-2 leading-tight">
                       {form.mother_office_address}
                     </span>
                   ) : (
-                    <div className="flex-1 flex items-center justify-center text-black/60 italic text-[8px]">
+                    <div className="flex-1 flex items-center justify-center text-black/60 italic text-[8px] print:text-[7px]">
                       Attach Business Card
                     </div>
                   )}
@@ -605,13 +618,12 @@ export function PrintableApplicationForm({
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
-            PERFORATED TEAR-OFF LINE
+            PERFORATED CUT LINE (With Scissors Icon)
            ══════════════════════════════════════════════════════════════════ */}
         {!admitCardOnly && (
-          <div className="relative my-2 sm:my-2.5 border-t border-dotted border-black">
-            <div className="absolute -top-2 left-3 px-2 bg-inherit text-[8px] sm:text-[8.5px] font-bold uppercase tracking-wider flex items-center gap-1.5 text-black">
-              <Scissors className="w-2.5 h-2.5" />
-              <span>Tear-off / Cut along this line</span>
+          <div className="relative my-2 sm:my-2.5 print:my-1 border-t border-dotted border-black">
+            <div className="absolute -top-2 left-4 px-1.5 bg-white text-black flex items-center">
+              <Scissors className="w-3.5 h-3.5 text-black" />
             </div>
           </div>
         )}
@@ -619,16 +631,16 @@ export function PrintableApplicationForm({
         {/* ══════════════════════════════════════════════════════════════════
             PART 2 · ADMIT CARD (EXACT VERBATIM MATCH TO PHYSICAL SLIP)
            ══════════════════════════════════════════════════════════════════ */}
-        <section className="admit-card-part pt-0.5">
+        <section className="admit-card-part pt-0.5 print:pt-0">
           {/* Header Block: Crest + Title + Address + Form No on left/center; Photo Box on right */}
-          <div className="grid grid-cols-[auto_1fr_auto] gap-2 sm:gap-3 items-start mb-1.5">
+          <div className="grid grid-cols-[auto_1fr_auto] gap-2 sm:gap-3 print:gap-2 items-start mb-1.5 print:mb-0.5">
             {/* Crest */}
-            <div className="w-13 h-13 sm:w-15 sm:h-15 shrink-0 flex items-center justify-center">
+            <div className="w-13 h-13 sm:w-15 sm:h-15 print:w-10 print:h-10 shrink-0 flex items-center justify-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/sjis-crest-logo.png"
                 alt="SJIS Crest"
-                className="w-13 h-13 sm:w-15 sm:h-15 object-contain"
+                className="w-13 h-13 sm:w-15 sm:h-15 print:w-10 print:h-10 object-contain"
                 onError={(e) => {
                   e.currentTarget.src = '/sjis-logo.png';
                 }}
@@ -638,30 +650,30 @@ export function PrintableApplicationForm({
             {/* Center Title + School Address + Form No */}
             <div className="flex flex-col justify-between h-full text-center px-1">
               <div>
-                <h3 className="text-sm sm:text-base font-bold text-black uppercase tracking-normal leading-tight">
+                <h3 className="text-sm sm:text-base print:text-[13px] font-bold text-black uppercase tracking-normal leading-tight">
                   ADMIT CARD
                 </h3>
-                <h4 className="text-xs sm:text-[12px] font-bold text-black mt-0.5 leading-tight">
+                <h4 className="text-xs sm:text-[12px] print:text-[11px] font-bold text-black mt-0.5 print:mt-0 leading-tight">
                   St. Joseph International School (Narinda Campus)
                 </h4>
-                <p className="text-[9.5px] sm:text-[10px] text-black font-normal leading-tight">
+                <p className="text-[9.5px] sm:text-[10px] print:text-[8.5px] text-black font-normal leading-tight">
                   32 Shah Shaheb Lane, Narinda, Dhaka 1100
                 </p>
               </div>
 
               {/* Form No.. (positioned under school address, to the left of photo box) */}
-              <div className="flex items-baseline gap-1.5 mt-2 text-left">
+              <div className="flex items-baseline gap-1.5 mt-2 print:mt-0.5 text-left">
                 <span className="text-xs font-semibold text-black whitespace-nowrap">
                   Form No..
                 </span>
-                <span className="font-mono text-sm sm:text-base font-bold text-black px-1 min-w-[140px] border-b border-dotted border-black inline-block">
+                <span className="font-mono text-sm sm:text-base print:text-[13px] font-bold text-black px-1 min-w-[140px] print:min-w-[120px] border-b border-dotted border-black inline-block">
                   {displayFormNo}
                 </span>
               </div>
             </div>
 
             {/* Right Photo Box */}
-            <div className="w-20 h-26 sm:w-22 sm:h-28 border border-black bg-white shrink-0 overflow-hidden flex flex-col items-center justify-center p-1 text-center">
+            <div className="w-20 h-26 sm:w-22 sm:h-28 print:w-17 print:h-21 border border-black bg-white shrink-0 overflow-hidden flex flex-col items-center justify-center p-1 print:p-0.5 text-center">
               {form.student_photo_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -670,7 +682,7 @@ export function PrintableApplicationForm({
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="text-[6.5px] sm:text-[7px] font-bold uppercase tracking-tight text-black leading-tight space-y-0.5">
+                <div className="text-[6.5px] sm:text-[7px] print:text-[6px] font-bold uppercase tracking-tight text-black leading-tight space-y-0.5">
                   <div>ATTACH A</div>
                   <div>RECENT</div>
                   <div>PASSPORT SIZE</div>
@@ -682,11 +694,11 @@ export function PrintableApplicationForm({
           </div>
 
           {/* Candidate Details on Admit Card */}
-          <div className="space-y-1 text-[10px] sm:text-[10.5px] text-black leading-snug">
+          <div className="space-y-1 print:space-y-0.5 text-[10px] sm:text-[10.5px] print:text-[8.5px] text-black leading-snug print:leading-tight">
             {/* Name */}
             <div className="flex items-baseline gap-1">
               <span className="font-semibold whitespace-nowrap">Name:</span>
-              <span className="flex-1 font-bold uppercase px-2 border-b border-dotted border-black min-h-[16px]">
+              <span className="flex-1 font-bold uppercase px-2 border-b border-dotted border-black min-h-[16px] print:min-h-[13px]">
                 {candidateFullName}
               </span>
             </div>
@@ -694,47 +706,47 @@ export function PrintableApplicationForm({
             {/* Son/Daughter of */}
             <div className="flex items-baseline gap-1">
               <span className="font-semibold whitespace-nowrap">Son/Daughter of:</span>
-              <span className="flex-1 font-bold px-2 border-b border-dotted border-black min-h-[16px]">
+              <span className="flex-1 font-bold px-2 border-b border-dotted border-black min-h-[16px] print:min-h-[13px]">
                 {sonDaughterOf}
               </span>
             </div>
 
             {/* Admission Test Details Sentence */}
-            <p className="pt-0.5 leading-relaxed text-justify">
+            <p className="pt-0.5 print:pt-0 leading-relaxed print:leading-snug text-justify">
               <span>may face interview/write the admission test for class </span>
-              <span className="font-bold border-b border-dotted border-black px-2 inline-block min-w-[90px] text-center">
+              <span className="font-bold border-b border-dotted border-black px-2 inline-block min-w-[90px] print:min-w-[70px] text-center">
                 {form.grade_applying || '........................'}
               </span>
               <span> to be held on </span>
-              <span className="font-bold border-b border-dotted border-black px-2 inline-block min-w-[100px] text-center">
+              <span className="font-bold border-b border-dotted border-black px-2 inline-block min-w-[100px] print:min-w-[80px] text-center">
                 {displayInterviewDate || '....................'}
               </span>
               <span> at </span>
-              <span className="font-bold border-b border-dotted border-black px-2 inline-block min-w-[65px] text-center">
+              <span className="font-bold border-b border-dotted border-black px-2 inline-block min-w-[65px] print:min-w-[50px] text-center">
                 {displayInterviewTime || '.............'}
               </span>
               <span> the candidate should bring a ballpoint pen, ruler and admit card. Paper will be supplied by the School.</span>
             </p>
 
             {/* Principal Signature & Date Row */}
-            <div className="flex items-end justify-between pt-4 sm:pt-5 pb-0.5">
-              <div className="w-52 sm:w-60">
+            <div className="flex items-end justify-between pt-4 sm:pt-5 print:pt-1.5 pb-0.5 print:pb-0">
+              <div className="w-52 sm:w-60 print:w-44">
                 <div className="border-b border-dotted border-black mb-1" />
-                <span className="font-bold text-[10px] sm:text-[10.5px] block">
+                <span className="font-bold text-[10px] sm:text-[10.5px] print:text-[8.5px] block">
                   Principal
                 </span>
               </div>
 
               <div className="flex items-baseline gap-1">
                 <span className="font-semibold">Date:</span>
-                <span className="font-bold border-b border-dotted border-black px-2 min-w-[90px] text-center inline-block">
+                <span className="font-bold border-b border-dotted border-black px-2 min-w-[90px] print:min-w-[70px] text-center inline-block">
                   {displaySubmissionDate || '........................'}
                 </span>
               </div>
             </div>
 
             {/* N.B. (Important Rules Verbatim from Photo) */}
-            <div className="pt-0.5 text-[9px] sm:text-[9.5px] leading-tight space-y-0.5">
+            <div className="pt-0.5 print:pt-0 text-[9px] sm:text-[9.5px] print:text-[7.5px] leading-tight space-y-0.5 print:space-y-0">
               <span className="font-bold block">N.B:</span>
               <p>1. The candidate must bring this admit card with her/him at the time of the interview/ Admission Test.</p>
               <p>2. Scripts of admission test will not be returned or shown to the students or guardians.</p>

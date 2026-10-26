@@ -1340,7 +1340,13 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
                       <Button
                         variant="gold"
                         size="sm"
-                        onClick={() => printDocumentElement('physical-admission-document', printPageSize)}
+                        onClick={() =>
+                          printDocumentElement(
+                            'physical-admission-document',
+                            `SJIS Admission Form - ${selectedApp.form_no || selectedApp.application_id}`,
+                            printPageSize
+                          )
+                        }
                         icon={<Printer className="w-4 h-4 text-[#00183F]" />}
                       >
                         Print Form & Admit Card ({printPageSize})
