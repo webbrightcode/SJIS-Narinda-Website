@@ -912,15 +912,15 @@ class OnlineApplication(models.Model):
                 seq = last.id + 1
             self.application_id = f"SJIS-{year}-{seq:05d}"
 
-        # form_no starts with 260001 and proceeds sequentially (e.g. 260001, 260002, 260003...)
-        # Assigned ONLY when payment is not required OR payment is completed
+        # form_no starts with 270001 and proceeds sequentially (e.g. 270001, 270002, 270003...)
+        # Prefix 27 = Academic Year 2027. Assigned ONLY when payment is not required OR payment is completed.
         if not self.form_no and self.payment_status in ('not_required', 'completed'):
-            # Only count form numbers that are valid sequential ones: 6-digit starting with 26
+            # Only count valid sequential form numbers: exactly 6 digits starting with 27
             existing_numbers = []
             for fn in OnlineApplication.objects.values_list('form_no', flat=True):
                 try:
                     num = int(fn)
-                    if num >= 260001 and len(fn.strip()) == 6:
+                    if num >= 270001 and len(fn.strip()) == 6:
                         existing_numbers.append(num)
                 except (ValueError, TypeError):
                     pass
@@ -928,7 +928,7 @@ class OnlineApplication(models.Model):
             if existing_numbers:
                 next_val = max(existing_numbers) + 1
             else:
-                next_val = 260001
+                next_val = 270001
 
             self.form_no = str(next_val)
 

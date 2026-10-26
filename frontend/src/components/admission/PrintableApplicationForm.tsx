@@ -59,7 +59,7 @@ export function PrintableApplicationForm({
   const [selectedPageSize, setSelectedPageSize] = useState<'A4' | 'Legal'>('Legal');
 
   // Compute Clean Form No (e.g. 026110)
-  const displayId = applicationId || form.form_no || 'SJIS-2026-DRAFT';
+  const displayId = applicationId || form.form_no || 'SJIS-2027-DRAFT';
   const displayFormNo =
     formNo ||
     form.form_no ||
@@ -70,10 +70,10 @@ export function PrintableApplicationForm({
             const lastPart = parts[parts.length - 1];
             if (!isNaN(Number(lastPart))) {
               const num = String(Number(lastPart));
-              return `26${num.padStart(4, '0')}`;
+              return `27${num.padStart(4, '0')}`;
             }
           }
-          return '260001';
+          return '270001';
         })()
       : 'PENDING PAYMENT');
 
