@@ -297,12 +297,12 @@ export function PrintableApplicationForm({
             {/* Header Block: Crest + Title + Address + Form No on left/center; Photo Box on right */}
             <div className="grid grid-cols-[auto_1fr_auto] gap-2 sm:gap-3 print:gap-3 items-start mb-1 print:mb-0.5">
               {/* Crest Logo */}
-              <div className="w-14 h-14 sm:w-16 sm:h-16 print:w-13.5 print:h-13.5 shrink-0 flex items-center justify-center">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 print:w-16 print:h-16 shrink-0 flex items-center justify-center">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/sjis-crest-logo.png"
                   alt="SJIS Crest"
-                  className="w-14 h-14 sm:w-16 sm:h-16 print:w-13.5 print:h-13.5 object-contain"
+                  className="w-16 h-16 sm:w-20 sm:h-20 print:w-16 print:h-16 object-contain"
                   onError={(e) => {
                     e.currentTarget.src = '/sjis-logo.png';
                   }}
@@ -621,8 +621,8 @@ export function PrintableApplicationForm({
             PERFORATED CUT LINE (With Scissors Icon)
            ══════════════════════════════════════════════════════════════════ */}
         {!admitCardOnly && (
-          <div className="relative my-2.5 sm:my-3 print:my-2 border-t border-dotted border-black">
-            <div className="absolute -top-2 left-4 px-1.5 bg-white text-black flex items-center">
+          <div className="relative my-3 sm:my-3.5 print:my-2.5 border-t border-dotted border-black">
+            <div className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 bg-white text-black flex items-center">
               <Scissors className="w-3.5 h-3.5 text-black" />
             </div>
           </div>
@@ -635,12 +635,12 @@ export function PrintableApplicationForm({
           {/* Header Block: Crest + Title + Address + Form No on left/center; Photo Box on right */}
           <div className="grid grid-cols-[auto_1fr_auto] gap-2 sm:gap-3 print:gap-3 items-start mb-1.5 print:mb-1">
             {/* Crest */}
-            <div className="w-13 h-13 sm:w-15 sm:h-15 print:w-12.5 print:h-12.5 shrink-0 flex items-center justify-center">
+            <div className="w-15 h-15 sm:w-18 sm:h-18 print:w-15 print:h-15 shrink-0 flex items-center justify-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/sjis-crest-logo.png"
                 alt="SJIS Crest"
-                className="w-13 h-13 sm:w-15 sm:h-15 print:w-12.5 print:h-12.5 object-contain"
+                className="w-15 h-15 sm:w-18 sm:h-18 print:w-15 print:h-15 object-contain"
                 onError={(e) => {
                   e.currentTarget.src = '/sjis-logo.png';
                 }}
