@@ -203,6 +203,24 @@ const inputClass =
   'w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00183F]/30 focus:border-[#00183F] text-sm text-slate-800 bg-white transition-all';
 const selectClass = inputClass + ' cursor-pointer';
 
+function getBdPhoneStatus(phone: string) {
+  const digits = phone.replace(/\D/g, '');
+  if (!digits) return null;
+  if (digits.startsWith('8801') && digits.length === 13) {
+    return { valid: true, text: 'Valid BD mobile (+8801...)' };
+  }
+  if (digits.startsWith('01') && digits.length === 11) {
+    return { valid: true, text: 'Valid 11-digit BD mobile' };
+  }
+  if (digits.length === 11) {
+    return { valid: true, text: '11 digits entered' };
+  }
+  return {
+    valid: false,
+    text: digits.length > 11 ? `${digits.length} digits (too long)` : `${digits.length}/11 digits`,
+  };
+}
+
 export default function OnlineApplicationPage() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<OnlineApplicationFormData>(INITIAL_FORM);
@@ -566,6 +584,9 @@ export default function OnlineApplicationPage() {
       if (res.success && res.draft_key) {
         setCloudDraftKey(res.draft_key);
         setCloudDraftPhone(cleanPhone);
+        if (!form.contact_phone?.trim()) {
+          set('contact_phone', cleanPhone);
+        }
         try {
           localStorage.setItem('sjis_apply_draft_key', res.draft_key);
           localStorage.setItem('sjis_apply_draft_phone', cleanPhone);
@@ -795,8 +816,18 @@ export default function OnlineApplicationPage() {
         setStepError('Please enter primary contact phone number.');
         return false;
       }
+      const digits = form.contact_phone.replace(/\D/g, '');
+      if (digits.length < 10 || (digits.startsWith('01') && digits.length !== 11)) {
+        setStepError('Please enter a valid 11-digit Bangladeshi mobile number (e.g. 01712345678) for Primary Contact.');
+        return false;
+      }
       if (!form.contact_email.trim()) {
         setStepError('Please enter guardian contact email address.');
+        return false;
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(form.contact_email.trim())) {
+        setStepError('Please enter a valid email address (e.g. guardian@example.com).');
         return false;
       }
       if (!form.present_address.trim() && !streetAddress.trim()) {
@@ -861,6 +892,8 @@ export default function OnlineApplicationPage() {
         localStorage.removeItem('sjis_apply_draft_docs');
         localStorage.removeItem('sjis_apply_draft_time');
         localStorage.removeItem('sjis_apply_draft_step');
+        localStorage.removeItem('sjis_apply_draft_key');
+        localStorage.removeItem('sjis_apply_draft_phone');
       } catch {
         // ignore
       }
@@ -1899,14 +1932,17 @@ export default function OnlineApplicationPage() {
                           onChange={(e) => set('father_profession', e.target.value)}
                         />
                       </Field>
-                      <Field label="6. Contact Number (Father)" required>
+                      <Field
+                        label="6. Contact Number (Father) (Optional)"
+                        hint="Optional if same as primary contact or no separate phone"
+                      >
                         <div className="relative">
                           <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                           <input
                             type="tel"
                             className={inputClass + ' pl-9'}
                             value={form.father_phone}
-                            placeholder="01969284214"
+                            placeholder="e.g. 01969284214 (Optional)"
                             onChange={(e) => set('father_phone', e.target.value)}
                           />
                         </div>
@@ -1964,14 +2000,17 @@ export default function OnlineApplicationPage() {
                           onChange={(e) => set('mother_profession', e.target.value)}
                         />
                       </Field>
-                      <Field label="6. Contact Number (Mother)" required>
+                      <Field
+                        label="6. Contact Number (Mother) (Optional)"
+                        hint="Optional if same as primary contact or no separate phone"
+                      >
                         <div className="relative">
                           <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                           <input
                             type="tel"
                             className={inputClass + ' pl-9'}
                             value={form.mother_phone}
-                            placeholder="01782109162"
+                            placeholder="e.g. 01782109162 (Optional)"
                             onChange={(e) => set('mother_phone', e.target.value)}
                           />
                         </div>
@@ -2028,15 +2067,55 @@ export default function OnlineApplicationPage() {
                       </Field>
 
                       <Field label="Primary Contact Phone" required hint="Will receive SMS updates & login credentials">
-                        <div className="relative">
-                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                          <input
-                            type="tel"
-                            className={inputClass + ' pl-9'}
-                            value={form.contact_phone}
-                            placeholder="+880 17XX-XXXXXX"
-                            onChange={(e) => set('contact_phone', e.target.value)}
-                          />
+                        <div className="space-y-1.5">
+                          {(form.father_phone?.trim() || form.mother_phone?.trim()) && (
+                            <div className="flex flex-wrap items-center gap-1.5 text-[11px] pb-0.5">
+                              <span className="text-slate-400 font-semibold">Quick Copy:</span>
+                              {form.father_phone?.trim() && (
+                                <button
+                                  type="button"
+                                  onClick={() => set('contact_phone', form.father_phone)}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold border border-blue-200 transition-colors cursor-pointer"
+                                  title="Copy Father's phone to Primary Contact"
+                                >
+                                  <span>⚡ Use Father's Phone</span>
+                                </button>
+                              )}
+                              {form.mother_phone?.trim() && (
+                                <button
+                                  type="button"
+                                  onClick={() => set('contact_phone', form.mother_phone)}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold border border-rose-200 transition-colors cursor-pointer"
+                                  title="Copy Mother's phone to Primary Contact"
+                                >
+                                  <span>⚡ Use Mother's Phone</span>
+                                </button>
+                              )}
+                            </div>
+                          )}
+                          <div className="relative">
+                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <input
+                              type="tel"
+                              className={inputClass + ' pl-9'}
+                              value={form.contact_phone}
+                              placeholder="017XXXXXXXX (11 digits)"
+                              onChange={(e) => set('contact_phone', e.target.value)}
+                            />
+                          </div>
+                          {(() => {
+                            const st = getBdPhoneStatus(form.contact_phone);
+                            if (!st) return null;
+                            return st.valid ? (
+                              <p className="text-[11px] text-emerald-600 font-bold flex items-center gap-1">
+                                <Check className="w-3.5 h-3.5" /> {st.text}
+                              </p>
+                            ) : (
+                              <p className="text-[11px] text-amber-600 font-medium">
+                                Format: {st.text} (BD mobile should be 11 digits e.g. 01712345678)
+                              </p>
+                            );
+                          })()}
                         </div>
                       </Field>
 
@@ -2657,13 +2736,22 @@ export default function OnlineApplicationPage() {
                       )}
                     </div>
                     <div className="flex-1 text-center sm:text-left space-y-1">
-                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#D4AF37] text-[#00183F] uppercase tracking-wider">
-                          Candidate Profile
-                        </span>
-                        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                          {form.academic_year} Session
-                        </span>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#D4AF37] text-[#00183F] uppercase tracking-wider">
+                            Candidate Profile
+                          </span>
+                          <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                            {form.academic_year} Session
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => { setStep(1); scrollTop(); }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-[#D4AF37] hover:text-white font-bold text-xs border border-white/20 transition-all cursor-pointer"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" /> Edit Profile & Photo
+                        </button>
                       </div>
                       <h3 className="text-xl sm:text-2xl font-black text-white">
                         {form.student_first_name} {form.student_last_name}
@@ -2687,9 +2775,10 @@ export default function OnlineApplicationPage() {
                       <button
                         type="button"
                         onClick={() => { setStep(1); scrollTop(); }}
-                        className="text-xs font-bold text-[#00183F] hover:text-[#C8102E] flex items-center gap-1 cursor-pointer transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#00183F]/5 hover:bg-[#00183F] text-[#00183F] hover:text-white font-bold text-xs border border-[#00183F]/15 transition-all cursor-pointer shadow-2xs"
+                        title="Jump back to modify Candidate Particulars"
                       >
-                        <Edit3 className="w-3.5 h-3.5" /> Edit
+                        <Edit3 className="w-3.5 h-3.5" /> Edit Step 1
                       </button>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
@@ -2733,9 +2822,10 @@ export default function OnlineApplicationPage() {
                       <button
                         type="button"
                         onClick={() => { setStep(2); scrollTop(); }}
-                        className="text-xs font-bold text-[#00183F] hover:text-[#C8102E] flex items-center gap-1 cursor-pointer transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#00183F]/5 hover:bg-[#00183F] text-[#00183F] hover:text-white font-bold text-xs border border-[#00183F]/15 transition-all cursor-pointer shadow-2xs"
+                        title="Jump back to modify Academic Background & Grade"
                       >
-                        <Edit3 className="w-3.5 h-3.5" /> Edit
+                        <Edit3 className="w-3.5 h-3.5" /> Edit Step 2
                       </button>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
@@ -2771,9 +2861,10 @@ export default function OnlineApplicationPage() {
                       <button
                         type="button"
                         onClick={() => { setStep(3); scrollTop(); }}
-                        className="text-xs font-bold text-[#00183F] hover:text-[#C8102E] flex items-center gap-1 cursor-pointer transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#00183F]/5 hover:bg-[#00183F] text-[#00183F] hover:text-white font-bold text-xs border border-[#00183F]/15 transition-all cursor-pointer shadow-2xs"
+                        title="Jump back to modify Parent Details & Address"
                       >
-                        <Edit3 className="w-3.5 h-3.5" /> Edit
+                        <Edit3 className="w-3.5 h-3.5" /> Edit Step 3
                       </button>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
@@ -2819,9 +2910,10 @@ export default function OnlineApplicationPage() {
                       <button
                         type="button"
                         onClick={() => { setStep(4); scrollTop(); }}
-                        className="text-xs font-bold text-[#00183F] hover:text-[#C8102E] flex items-center gap-1 cursor-pointer transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#00183F]/5 hover:bg-[#00183F] text-[#00183F] hover:text-white font-bold text-xs border border-[#00183F]/15 transition-all cursor-pointer shadow-2xs"
+                        title="Jump back to modify Uploaded Documents"
                       >
-                        <Edit3 className="w-3.5 h-3.5" /> Edit
+                        <Edit3 className="w-3.5 h-3.5" /> Edit Step 4
                       </button>
                     </div>
                     {documents.length > 0 ? (
@@ -2969,7 +3061,7 @@ export default function OnlineApplicationPage() {
                 <button
                   type="button"
                   onClick={handleSubmit}
-                  disabled={submitting || !form.parent_declaration_accepted}
+                  disabled={submitting}
                   className="inline-flex items-center gap-2 px-7 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white text-xs sm:text-sm font-bold shadow-lg shadow-emerald-700/25 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {submitting ? (
@@ -3115,25 +3207,40 @@ export default function OnlineApplicationPage() {
                     <Cloud className="w-4 h-4 text-slate-600" /> Want to resume on another phone or computer?
                   </p>
                   <p className="text-slate-500 text-[11px]">
-                    Enter your mobile number to get a 6-digit Resume Code that lets you continue from any device:
+                    Enter any mobile number (Father, Mother, or Guardian) to get a 6-digit Resume Code that lets you continue from any device:
                   </p>
-                  <div className="flex gap-2">
-                    <input
-                      type="tel"
-                      value={cloudPhoneInput}
-                      onChange={(e) => setCloudPhoneInput(e.target.value)}
-                      placeholder="e.g. 01712345678"
-                      className="flex-1 px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-[#00183F] outline-none"
-                    />
-                    <button
-                      type="button"
-                      disabled={isSavingCloud || !cloudPhoneInput.trim()}
-                      onClick={() => performCloudSave(cloudPhoneInput)}
-                      className="px-3.5 py-2 rounded-xl bg-[#00183F] hover:bg-[#002855] text-white text-xs font-bold disabled:opacity-50 transition-colors cursor-pointer shrink-0 inline-flex items-center gap-1.5"
-                    >
-                      {isSavingCloud && <Loader2 className="w-3 h-3 animate-spin" />}
-                      <span>Get Code</span>
-                    </button>
+                  <div className="space-y-1">
+                    <div className="flex gap-2">
+                      <input
+                        type="tel"
+                        value={cloudPhoneInput}
+                        onChange={(e) => setCloudPhoneInput(e.target.value)}
+                        placeholder="Mobile No (e.g. 01712345678)"
+                        className="flex-1 px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-[#00183F] outline-none"
+                      />
+                      <button
+                        type="button"
+                        disabled={isSavingCloud || !cloudPhoneInput.trim()}
+                        onClick={() => performCloudSave(cloudPhoneInput)}
+                        className="px-3.5 py-2 rounded-xl bg-[#00183F] hover:bg-[#002855] text-white text-xs font-bold disabled:opacity-50 transition-colors cursor-pointer shrink-0 inline-flex items-center gap-1.5"
+                      >
+                        {isSavingCloud && <Loader2 className="w-3 h-3 animate-spin" />}
+                        <span>Get Code</span>
+                      </button>
+                    </div>
+                    {(() => {
+                      const st = getBdPhoneStatus(cloudPhoneInput);
+                      if (!st) return null;
+                      return st.valid ? (
+                        <p className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
+                          <Check className="w-3 h-3" /> {st.text}
+                        </p>
+                      ) : (
+                        <p className="text-[10px] text-amber-600 font-medium">
+                          {st.text}
+                        </p>
+                      );
+                    })()}
                   </div>
                 </div>
               )}
@@ -3199,7 +3306,7 @@ export default function OnlineApplicationPage() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Mobile Number <span className="text-red-500">*</span>
+                  Mobile Number (Parent / Guardian) <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -3213,7 +3320,7 @@ export default function OnlineApplicationPage() {
                   />
                 </div>
                 <p className="text-[11px] text-slate-400 mt-1">
-                  The phone number used when saving your application.
+                  Enter the mobile number (Father, Mother, or Guardian) used when saving your application.
                 </p>
               </div>
 
