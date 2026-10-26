@@ -34,7 +34,10 @@ import {
   Lock,
   CreditCard,
   Clock,
+  MapPin,
+  Building2,
 } from 'lucide-react';
+import { BANGLADESH_DIVISIONS, findGeoByDistrict } from '@/lib/bangladeshGeoData';
 import {
   submitOnlineApplication,
   uploadMediaFile,
@@ -87,20 +90,6 @@ const HOW_HEARD = [
   'Newspaper / Magazine',
   'Google Search',
   'Walk-in / Signage',
-  'Other',
-];
-const DISTRICTS = [
-  'Dhaka',
-  'Chittagong',
-  'Sylhet',
-  'Rajshahi',
-  'Khulna',
-  'Barishal',
-  'Mymensingh',
-  'Rangpur',
-  'Cumilla',
-  'Narayanganj',
-  'Gazipur',
   'Other',
 ];
 
@@ -159,9 +148,9 @@ const INITIAL_FORM: OnlineApplicationFormData = {
   emergency_contact_relation: '',
   present_address: '',
   permanent_address: '',
-  present_thana: '',
+  present_thana: 'Sutrapur',
   present_district: 'Dhaka',
-  present_zip: '',
+  present_zip: '1100',
   parent_declaration_accepted: false,
   sibling_at_sjis: false,
   sibling_name_class: '',
@@ -218,10 +207,16 @@ export default function OnlineApplicationPage() {
   const [stepError, setStepError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
-
-  // District Custom Input State
-  const [isOtherDistrict, setIsOtherDistrict] = useState(false);
-  const [otherDistrictText, setOtherDistrictText] = useState('');
+  // Bangladesh Hierarchical Address Cascading State (Division -> District -> Thana -> Street)
+  const [selectedDivisionId, setSelectedDivisionId] = useState<string>('dhaka');
+  const [selectedDistrictId, setSelectedDistrictId] = useState<string>('dhaka');
+  const [selectedThana, setSelectedThana] = useState<string>('Sutrapur (Old Dhaka / Narinda / Gandaria vicinity)');
+  const [isCustomThana, setIsCustomThana] = useState(false);
+  const [customThanaText, setCustomThanaText] = useState('');
+  const [streetAddress, setStreetAddress] = useState('');
+  const [postalCode, setPostalCode] = useState('1100');
+  const [sameAsPresentAddress, setSameAsPresentAddress] = useState(true);
+  const [manualAddressOverride, setManualAddressOverride] = useState(false);
 
   // Student Photo Upload State
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -234,6 +229,176 @@ export default function OnlineApplicationPage() {
 
   const topRef = useRef<HTMLDivElement>(null);
 
+  // Active Division, District, and Thana lists
+  const activeDivision = BANGLADESH_DIVISIONS.find((d) => d.id === selectedDivisionId) || BANGLADESH_DIVISIONS[0];
+  const activeDistrictList = activeDivision?.districts || [];
+  const activeDistrict = activeDistrictList.find((d) => d.id === selectedDistrictId) || activeDistrictList[0] || BANGLADESH_DIVISIONS[0].districts[0];
+  const activeThanaList = activeDistrict?.thanas || [];
+
+  // Address synchronizer into physical form field 5
+  const syncAddress = (
+    street: string,
+    thanaVal: string,
+    customT: boolean,
+    customTVal: string,
+    distName: string,
+    zipVal: string,
+    keepPermanent: boolean,
+    manualOverride: boolean = manualAddressOverride
+  ) => {
+    const cleanThana = customT
+      ? customTVal.trim()
+      : (thanaVal.includes('(') ? thanaVal.split('(')[0].trim() : thanaVal.trim());
+
+    if (!manualOverride) {
+      const parts = [
+        street.trim(),
+        cleanThana,
+        distName.trim() ? (zipVal.trim() ? `${distName.trim()} - ${zipVal.trim()}` : distName.trim()) : '',
+      ].filter(Boolean);
+      const synthesized = parts.join(', ');
+
+      setForm((prev) => ({
+        ...prev,
+        present_address: synthesized,
+        present_thana: cleanThana,
+        present_district: distName.trim(),
+        present_zip: zipVal.trim(),
+        permanent_address: keepPermanent ? synthesized : prev.permanent_address,
+      }));
+    } else {
+      setForm((prev) => ({
+        ...prev,
+        present_thana: cleanThana,
+        present_district: distName.trim(),
+        present_zip: zipVal.trim(),
+        permanent_address: keepPermanent ? prev.present_address : prev.permanent_address,
+      }));
+    }
+  };
+
+  const handleDivisionChange = (newDivId: string) => {
+    setSelectedDivisionId(newDivId);
+    const targetDiv = BANGLADESH_DIVISIONS.find((d) => d.id === newDivId);
+    const firstDist = targetDiv?.districts[0];
+    const newDistId = firstDist?.id || '';
+    const newDistName = firstDist?.name || '';
+    const firstThana = firstDist?.thanas[0] || '';
+    const newZip = firstDist?.defaultPostalCode || '';
+
+    setSelectedDistrictId(newDistId);
+    setSelectedThana(firstThana);
+    setIsCustomThana(false);
+    setCustomThanaText('');
+    setPostalCode(newZip);
+
+    syncAddress(
+      streetAddress,
+      firstThana,
+      false,
+      '',
+      newDistName,
+      newZip,
+      sameAsPresentAddress
+    );
+  };
+
+  const handleDistrictChange = (newDistId: string) => {
+    setSelectedDistrictId(newDistId);
+    const targetDist = activeDistrictList.find((d) => d.id === newDistId);
+    const newDistName = targetDist?.name || '';
+    const firstThana = targetDist?.thanas[0] || '';
+    const newZip = targetDist?.defaultPostalCode || '';
+
+    setSelectedThana(firstThana);
+    setIsCustomThana(false);
+    setCustomThanaText('');
+    setPostalCode(newZip);
+
+    syncAddress(
+      streetAddress,
+      firstThana,
+      false,
+      '',
+      newDistName,
+      newZip,
+      sameAsPresentAddress
+    );
+  };
+
+  const handleThanaChange = (newThanaVal: string) => {
+    if (newThanaVal === '__custom__') {
+      setIsCustomThana(true);
+      syncAddress(
+        streetAddress,
+        '',
+        true,
+        customThanaText,
+        activeDistrict.name,
+        postalCode,
+        sameAsPresentAddress
+      );
+    } else {
+      setIsCustomThana(false);
+      setSelectedThana(newThanaVal);
+      syncAddress(
+        streetAddress,
+        newThanaVal,
+        false,
+        '',
+        activeDistrict.name,
+        postalCode,
+        sameAsPresentAddress
+      );
+    }
+  };
+
+  const handleCustomThanaTextChange = (text: string) => {
+    setCustomThanaText(text);
+    syncAddress(
+      streetAddress,
+      '',
+      true,
+      text,
+      activeDistrict.name,
+      postalCode,
+      sameAsPresentAddress
+    );
+  };
+
+  const handleStreetAddressChange = (text: string) => {
+    setStreetAddress(text);
+    syncAddress(
+      text,
+      selectedThana,
+      isCustomThana,
+      customThanaText,
+      activeDistrict.name,
+      postalCode,
+      sameAsPresentAddress
+    );
+  };
+
+  const handlePostalCodeChange = (code: string) => {
+    setPostalCode(code);
+    syncAddress(
+      streetAddress,
+      selectedThana,
+      isCustomThana,
+      customThanaText,
+      activeDistrict.name,
+      code,
+      sameAsPresentAddress
+    );
+  };
+
+  const handleSameAsPresentToggle = (checked: boolean) => {
+    setSameAsPresentAddress(checked);
+    if (checked) {
+      set('permanent_address', form.present_address);
+    }
+  };
+
   // Restore saved draft from localStorage on mount
   useEffect(() => {
     try {
@@ -243,6 +408,34 @@ export default function OnlineApplicationPage() {
         const parsed = JSON.parse(savedDraft);
         if (parsed && typeof parsed === 'object') {
           setForm((prev) => ({ ...prev, ...parsed }));
+          if (parsed.present_district) {
+            const geo = findGeoByDistrict(parsed.present_district);
+            if (geo.division && geo.district) {
+              setSelectedDivisionId(geo.division.id);
+              setSelectedDistrictId(geo.district.id);
+              if (parsed.present_thana) {
+                const foundThana = geo.district.thanas.find(
+                  (t) => t.toLowerCase() === parsed.present_thana.toLowerCase() || t.toLowerCase().startsWith(parsed.present_thana.toLowerCase())
+                );
+                if (foundThana) {
+                  setSelectedThana(foundThana);
+                  setIsCustomThana(false);
+                } else {
+                  setIsCustomThana(true);
+                  setCustomThanaText(parsed.present_thana);
+                }
+              }
+            }
+          }
+          if (parsed.present_zip) {
+            setPostalCode(parsed.present_zip);
+          }
+          if (parsed.present_address) {
+            setStreetAddress(parsed.present_address);
+          }
+          if (parsed.permanent_address && parsed.present_address && parsed.permanent_address !== parsed.present_address) {
+            setSameAsPresentAddress(false);
+          }
           if (parsed.student_first_name || parsed.contact_phone) {
             setDraftRestored(true);
           }
@@ -419,12 +612,16 @@ export default function OnlineApplicationPage() {
         setStepError('Please enter guardian contact email address.');
         return false;
       }
-      if (!form.present_address.trim()) {
-        setStepError('Please enter candidate present residential address.');
+      if (!form.present_address.trim() && !streetAddress.trim()) {
+        setStepError('Please provide candidate present residential street address.');
         return false;
       }
-      if (isOtherDistrict && (!form.present_district.trim() || form.present_district === 'Other')) {
-        setStepError('Please type the name of your District.');
+      if (isCustomThana && !customThanaText.trim()) {
+        setStepError('Please enter your Police Station / Thana name.');
+        return false;
+      }
+      if (!sameAsPresentAddress && !form.permanent_address.trim()) {
+        setStepError('Please enter candidate permanent address or check "Same as Present Address".');
         return false;
       }
     } else if (s === 5) {
@@ -1534,28 +1731,14 @@ export default function OnlineApplicationPage() {
                     </div>
                   </div>
 
-                  {/* Primary Guardian & Address */}
+                  {/* Primary Guardian & Communication */}
                   <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 sm:p-6 space-y-4">
                     <h3 className="text-sm font-black text-[#00183F] uppercase tracking-wide flex items-center justify-between">
                       <span className="flex items-center gap-2">
-                        <Home className="w-4 h-4 text-[#00183F]" /> 5. Present Address & Primary Communication
+                        <Phone className="w-4 h-4 text-[#00183F]" /> Primary Guardian & Communication Details
                       </span>
-                      <span className="text-[10px] text-slate-500 font-bold">Physical Form #5</span>
+                      <span className="text-[10px] text-slate-500 font-bold">Physical Form #6</span>
                     </h3>
-
-                    <Field
-                      label="5. Present Address"
-                      required
-                      hint="House/Road/Lane, Area, Post Office, Dhaka (e.g. 23/2/B, K.M. Das Lane, Tikatuli, Dhaka)"
-                    >
-                      <textarea
-                        rows={2}
-                        className={inputClass}
-                        value={form.present_address}
-                        placeholder="23/2/B, K.M. Das Lane, Tikatuli, Dhaka"
-                        onChange={(e) => set('present_address', e.target.value)}
-                      />
-                    </Field>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <Field label="Primary Guardian" required>
@@ -1566,10 +1749,10 @@ export default function OnlineApplicationPage() {
                             set('guardian_relation', e.target.value as 'father' | 'mother' | 'guardian' | 'other')
                           }
                         >
-                          <option value="father">Father</option>
-                          <option value="mother">Mother</option>
-                          <option value="guardian">Legal Guardian</option>
-                          <option value="other">Other Relative</option>
+                          <option value="father">Father (পিতা)</option>
+                          <option value="mother">Mother (মাতা)</option>
+                          <option value="guardian">Legal Guardian (আইনগত অভিভাবক)</option>
+                          <option value="other">Other Relative (অন্যান্য আত্মীয়)</option>
                         </select>
                       </Field>
 
@@ -1599,92 +1782,245 @@ export default function OnlineApplicationPage() {
                         </div>
                       </Field>
                     </div>
+                  </div>
 
+                  {/* 5. Present Address - Cascading Bangladesh Administrative Hierarchy */}
+                  <div className="bg-gradient-to-br from-slate-50 via-white to-sky-50/30 border border-slate-200 rounded-2xl p-5 sm:p-6 space-y-5 shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/80 pb-3">
+                      <div>
+                        <h3 className="text-sm font-black text-[#00183F] uppercase tracking-wide flex items-center gap-2">
+                          <Home className="w-4 h-4 text-[#C8102E]" /> 5. Present Residential Address (বর্তমান ঠিকানা)
+                        </h3>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Cascading administrative selection: Division ➔ District ➔ Police Station (Thana) ➔ Street / House
+                        </p>
+                      </div>
+                      <span className="self-start sm:self-center px-2.5 py-1 bg-[#00183F]/5 text-[#00183F] text-[10px] font-black uppercase rounded-lg tracking-wider border border-[#00183F]/10">
+                        Physical Form Field #5
+                      </span>
+                    </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                      <Field label="Thana / Police Station">
-                        <input
-                          type="text"
-                          className={inputClass}
-                          value={form.present_thana}
-                          placeholder="e.g. Sutrapur, Kotwali"
-                          onChange={(e) => set('present_thana', e.target.value)}
-                        />
+                    {/* Hierarchy Selectors: Division -> District -> Thana */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      {/* Step A: Division */}
+                      <Field label="1. Division (বিভাগ)" required hint="Select Bangladesh Division">
+                        <div className="relative">
+                          <select
+                            className={selectClass + ' font-medium text-slate-800'}
+                            value={selectedDivisionId}
+                            onChange={(e) => handleDivisionChange(e.target.value)}
+                          >
+                            {BANGLADESH_DIVISIONS.map((div) => (
+                              <option key={div.id} value={div.id}>
+                                {div.name} Division ({div.bnName} বিভাগ)
+                              </option>
+                            ))}
+                          </select>
+                        </div>
                       </Field>
 
-                      <Field label="District">
-                        <select
-                          className={selectClass}
-                          value={isOtherDistrict ? 'Other' : (DISTRICTS.includes(form.present_district) ? form.present_district : 'Other')}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === 'Other') {
-                              setIsOtherDistrict(true);
-                              set('present_district', otherDistrictText.trim());
-                            } else {
-                              setIsOtherDistrict(false);
-                              set('present_district', val);
-                            }
-                          }}
-                        >
-                          {DISTRICTS.map((d) => (
-                            <option key={d} value={d}>
-                              {d}
+                      {/* Step B: District */}
+                      <Field label="2. District (জেলা)" required hint={`Filtered for ${activeDivision.name} (${activeDistrictList.length} districts)`}>
+                        <div className="relative">
+                          <select
+                            className={selectClass + ' font-medium text-slate-800'}
+                            value={selectedDistrictId}
+                            onChange={(e) => handleDistrictChange(e.target.value)}
+                          >
+                            {activeDistrictList.map((dist) => (
+                              <option key={dist.id} value={dist.id}>
+                                {dist.name} ({dist.bnName})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </Field>
+
+                      {/* Step C: Police Station / Thana */}
+                      <Field label="3. Police Station / Thana (থানা)" required hint={`Filtered for ${activeDistrict.name} (${activeThanaList.length} thanas)`}>
+                        <div className="relative">
+                          <select
+                            className={selectClass + ' font-medium text-slate-800'}
+                            value={isCustomThana ? '__custom__' : selectedThana}
+                            onChange={(e) => handleThanaChange(e.target.value)}
+                          >
+                            {activeThanaList.map((thana) => (
+                              <option key={thana} value={thana}>
+                                {thana}
+                              </option>
+                            ))}
+                            <option value="__custom__">
+                              ➕ Other / Custom Police Station (লিখুন)...
                             </option>
-                          ))}
-                        </select>
-                      </Field>
-
-                      <Field label="Postal / ZIP Code">
-                        <input
-                          type="text"
-                          className={inputClass}
-                          value={form.present_zip}
-                          placeholder="e.g. 1100"
-                          onChange={(e) => set('present_zip', e.target.value)}
-                        />
+                          </select>
+                        </div>
                       </Field>
                     </div>
 
-                    {isOtherDistrict && (
-                      <div className="p-4 bg-amber-50/80 border border-amber-200/90 rounded-2xl animate-in fade-in slide-in-from-top-1 duration-200 shadow-sm">
+                    {/* Custom Thana input if selected */}
+                    {isCustomThana && (
+                      <div className="p-4 bg-amber-50/90 border border-amber-200 rounded-xl space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
                         <Field
-                          label="Specify District Name *"
-                          hint="Type the name of your district (e.g. Bogura, Cox's Bazar, Jessore, Dinajpur, etc.)"
+                          label="Specify Police Station / Thana Name (থানার নাম লিখুন) *"
+                          hint="Type the official name of the Police Station (Thana / Upazila / Outpost)"
                         >
-                          <div className="relative">
-                            <input
-                              type="text"
-                              className={`${inputClass} bg-white font-medium text-slate-900 border-amber-300 focus:border-amber-500 focus:ring-amber-200`}
-                              value={otherDistrictText}
-                              placeholder="Write/type your district name..."
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setOtherDistrictText(val);
-                                set('present_district', val);
-                              }}
-                              autoFocus
-                            />
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-xs font-semibold px-2 py-0.5 bg-amber-100 text-amber-800 rounded-md">
-                              Custom District
-                            </div>
-                          </div>
+                          <input
+                            type="text"
+                            className={`${inputClass} bg-white font-medium text-slate-900 border-amber-300 focus:border-amber-500`}
+                            value={customThanaText}
+                            placeholder="e.g. Sutrapur / Narinda Police Box, Shyampur Outpost..."
+                            onChange={(e) => handleCustomThanaTextChange(e.target.value)}
+                            autoFocus
+                          />
                         </Field>
                       </div>
                     )}
 
-                    <Field label="Permanent Address" hint="Leave blank if identical to present address">
-                      <textarea
-                        rows={2}
-                        className={inputClass}
-                        value={form.permanent_address}
-                        placeholder="Permanent family address..."
-                        onChange={(e) => set('permanent_address', e.target.value)}
-                      />
-                    </Field>
+                    {/* Street Address & Postal Code */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="sm:col-span-2">
+                        <Field
+                          label="4. House / Flat / Holding No., Road / Lane, Area *"
+                          required
+                          hint="e.g. Holding #23, Road #4, Narinda or Flat 4B, 12 K.M. Das Lane, Tikatuli"
+                        >
+                          <div className="relative">
+                            <input
+                              type="text"
+                              className={inputClass}
+                              value={streetAddress}
+                              placeholder="House / Holding No., Road / Lane, Moholla / Area..."
+                              onChange={(e) => handleStreetAddressChange(e.target.value)}
+                            />
+                          </div>
+                        </Field>
+                      </div>
 
-                    {/* Emergency Contact */}
-                    <div className="border-t border-slate-200 pt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <Field label="Postal / ZIP Code" hint="Post Office code (e.g. 1100)">
+                          <input
+                            type="text"
+                            className={inputClass}
+                            value={postalCode}
+                            placeholder="1100"
+                            onChange={(e) => handlePostalCodeChange(e.target.value)}
+                          />
+                        </Field>
+                      </div>
+                    </div>
+
+                    {/* Live Physical Form #5 Synthesis & Preview Box */}
+                    <div className="rounded-xl border border-sky-200 bg-sky-50/60 p-4 space-y-2">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-[#00183F]">
+                          <MapPin className="w-3.5 h-3.5 text-[#C8102E]" />
+                          <span>Physical Admission Form & Admit Card Line 5 Preview:</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!manualAddressOverride) {
+                              setManualAddressOverride(true);
+                            } else {
+                              setManualAddressOverride(false);
+                              syncAddress(
+                                streetAddress,
+                                selectedThana,
+                                isCustomThana,
+                                customThanaText,
+                                activeDistrict.name,
+                                postalCode,
+                                sameAsPresentAddress,
+                                false
+                              );
+                            }
+                          }}
+                          className="text-[11px] font-bold text-[#00183F] hover:text-[#C8102E] underline underline-offset-2 flex items-center gap-1 cursor-pointer transition-colors"
+                        >
+                          {manualAddressOverride ? '↺ Reset to Auto-Generated' : '✏️ Fine-tune Final Text'}
+                        </button>
+                      </div>
+
+                      {manualAddressOverride ? (
+                        <div className="space-y-1">
+                          <textarea
+                            rows={2}
+                            className={`${inputClass} bg-white text-xs font-medium`}
+                            value={form.present_address}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              set('present_address', val);
+                              if (sameAsPresentAddress) {
+                                set('permanent_address', val);
+                              }
+                            }}
+                          />
+                          <p className="text-[10px] text-amber-700 font-medium">
+                            Manual edit mode enabled. This exact text will print directly on Field 5 of the physical form.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="bg-white rounded-lg px-3 py-2 border border-sky-100 shadow-inner">
+                          <p className="text-xs font-mono font-medium text-slate-800 select-all">
+                            <span className="font-bold text-[#00183F]">5. Present Address:</span>{' '}
+                            {form.present_address ? (
+                              <span>{form.present_address}</span>
+                            ) : (
+                              <span className="text-slate-400 italic">
+                                [House / Road], {isCustomThana ? (customThanaText || 'Police Station') : (selectedThana.split('(')[0].trim())}, {activeDistrict.name} - {postalCode || '1100'}
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Permanent Address with 'Same as Present' convenience toggle */}
+                    <div className="border-t border-slate-200/80 pt-4 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="sameAsPresentAddress"
+                          checked={sameAsPresentAddress}
+                          onChange={(e) => handleSameAsPresentToggle(e.target.checked)}
+                          className="w-4 h-4 rounded text-[#00183F] focus:ring-[#00183F] border-slate-300 cursor-pointer"
+                        />
+                        <label
+                          htmlFor="sameAsPresentAddress"
+                          className="text-xs font-bold text-slate-800 cursor-pointer select-none"
+                        >
+                          Permanent Address is identical to Present Address (স্থায়ী ঠিকানা ও বর্তমান ঠিকানা একই)
+                        </label>
+                      </div>
+
+                      {!sameAsPresentAddress && (
+                        <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+                          <Field
+                            label="Permanent Family Address (স্থায়ী ঠিকানা) *"
+                            hint="Village / Holding, Post Office, Upazila / Thana, Home District"
+                          >
+                            <textarea
+                              rows={2}
+                              className={inputClass}
+                              value={form.permanent_address}
+                              placeholder="e.g. Village: Shantibag, Post: Sonargaon, Upazila: Sonargaon, District: Narayanganj"
+                              onChange={(e) => set('permanent_address', e.target.value)}
+                            />
+                          </Field>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Emergency Contact */}
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 sm:p-6 space-y-4">
+                    <h3 className="text-sm font-black text-[#00183F] uppercase tracking-wide flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-[#00183F]" /> Emergency Contact (Secondary)
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-bold">Alternative Contact</span>
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <Field label="Emergency Contact Person">
                         <input
                           type="text"
