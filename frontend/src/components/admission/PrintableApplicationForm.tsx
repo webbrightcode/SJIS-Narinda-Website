@@ -582,32 +582,32 @@ export function PrintableApplicationForm({
               </div>
 
               {/* Two Bottom Business Card Boxes */}
-              <div className="grid grid-cols-2 gap-3 print:gap-3 pt-1 print:pt-1">
-                <div className="border border-black p-1.5 print:p-2 h-13 sm:h-14 print:h-12 flex flex-col justify-between text-[8.5px] sm:text-[9px] print:text-[8.5px] bg-white/40">
-                  <span className="font-bold block leading-tight">
-                    Office address & Tel No (Father)
+              <div className="grid grid-cols-2 gap-3 print:gap-3 pt-1.5 print:pt-1">
+                <div className="border border-black p-2 print:p-2.5 h-18 sm:h-20 print:h-18 flex flex-col justify-between text-[8.5px] sm:text-[9.5px] print:text-[9px] bg-white/40">
+                  <span className="font-bold block leading-tight text-[9px] sm:text-[10px] print:text-[9.5px]">
+                    Office address &amp; Tel No (Father)
                   </span>
                   {form.father_office_address ? (
-                    <span className="text-[8px] sm:text-[8.5px] print:text-[8px] line-clamp-2 leading-tight">
+                    <span className="text-[8px] sm:text-[9px] print:text-[8.5px] line-clamp-3 leading-tight mt-1">
                       {form.father_office_address}
                     </span>
                   ) : (
-                    <div className="flex-1 flex items-center justify-center text-black/60 italic text-[8px] print:text-[8px]">
+                    <div className="flex-1 flex items-center justify-center text-black/60 italic text-[8.5px] sm:text-[9px] print:text-[8.5px]">
                       Attach Business Card
                     </div>
                   )}
                 </div>
 
-                <div className="border border-black p-1.5 print:p-1 h-13 sm:h-14 print:h-12 flex flex-col justify-between text-[8.5px] sm:text-[9px] print:text-[8.5px] bg-white/40">
-                  <span className="font-bold block leading-tight">
-                    Office address & Tel No (Mother)
+                <div className="border border-black p-2 print:p-2.5 h-18 sm:h-20 print:h-18 flex flex-col justify-between text-[8.5px] sm:text-[9.5px] print:text-[9px] bg-white/40">
+                  <span className="font-bold block leading-tight text-[9px] sm:text-[10px] print:text-[9.5px]">
+                    Office address &amp; Tel No (Mother)
                   </span>
                   {form.mother_office_address ? (
-                    <span className="text-[8px] sm:text-[8.5px] print:text-[8px] line-clamp-2 leading-tight">
+                    <span className="text-[8px] sm:text-[9px] print:text-[8.5px] line-clamp-3 leading-tight mt-1">
                       {form.mother_office_address}
                     </span>
                   ) : (
-                    <div className="flex-1 flex items-center justify-center text-black/60 italic text-[8px] print:text-[8px]">
+                    <div className="flex-1 flex items-center justify-center text-black/60 italic text-[8.5px] sm:text-[9px] print:text-[8.5px]">
                       Attach Business Card
                     </div>
                   )}
