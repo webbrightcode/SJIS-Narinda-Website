@@ -15,6 +15,7 @@ from .models import (
     ApplicationDocument,
     AdmissionSettings,
     InterviewSlot,
+    ApplicationDraft,
 )
 
 admin.site.site_header = "St. Joseph International School, Narinda - Administration"
@@ -268,4 +269,12 @@ class InterviewSlotAdmin(admin.ModelAdmin):
     search_fields = ('label', 'grade_filter', 'venue', 'notes')
     date_hierarchy = 'date'
     readonly_fields = ('booked_count', 'created_at')
+
+
+@admin.register(ApplicationDraft)
+class ApplicationDraftAdmin(admin.ModelAdmin):
+    list_display = ('draft_key', 'phone', 'candidate_name', 'grade_applying', 'current_step', 'updated_at', 'expires_at')
+    search_fields = ('draft_key', 'phone', 'candidate_name', 'grade_applying')
+    list_filter = ('current_step', 'created_at', 'expires_at')
+    readonly_fields = ('draft_key', 'created_at', 'updated_at')
 

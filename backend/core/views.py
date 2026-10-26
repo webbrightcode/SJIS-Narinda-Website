@@ -31,6 +31,7 @@ from .models import (
     ApplicationDocument,
     AdmissionSettings,
     InterviewSlot,
+    ApplicationDraft,
 )
 from .serializers import (
     SliderSlideSerializer,
@@ -1435,3 +1436,97 @@ class ApplicationDocumentViewSet(viewsets.ModelViewSet):
         doc.save()
         return Response(ApplicationDocumentSerializer(doc).data)
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# APPLICATION DRAFT — Cloud Save & Resume API Views
+# ─────────────────────────────────────────────────────────────────────────────
+
+class DraftSaveView(APIView):
+    """
+    POST /api/draft/save/
+    Body: { phone, draft_data, documents, current_step, candidate_name, grade_applying, draft_key? }
+
+    - If draft_key is supplied AND matches phone → update that draft.
+    - Otherwise → create a new draft and return a fresh draft_key (PIN).
+    Returns: { draft_key, expires_at, updated_at }
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        import datetime as dt
+        phone        = (request.data.get('phone') or '').strip()
+        draft_data   = request.data.get('draft_data') or {}
+        documents    = request.data.get('documents') or []
+        current_step = int(request.data.get('current_step') or 1)
+        cname        = (request.data.get('candidate_name') or '').strip()[:200]
+        grade        = (request.data.get('grade_applying') or '').strip()[:80]
+        draft_key    = (request.data.get('draft_key') or '').strip().upper()
+
+        if not phone:
+            return Response({'error': 'Phone number is required.'}, status=400)
+
+        # Try to find existing draft to update
+        draft = None
+        if draft_key:
+            try:
+                draft = ApplicationDraft.objects.get(draft_key=draft_key, phone=phone)
+            except ApplicationDraft.DoesNotExist:
+                pass  # will create a new one
+
+        if draft is None:
+            draft = ApplicationDraft(phone=phone)
+
+        draft.draft_data    = draft_data
+        draft.documents     = documents
+        draft.current_step  = current_step
+        draft.candidate_name = cname
+        draft.grade_applying = grade
+        draft.save()
+
+        return Response({
+            'draft_key':   draft.draft_key,
+            'expires_at':  draft.expires_at.isoformat() if draft.expires_at else None,
+            'updated_at':  draft.updated_at.isoformat(),
+        })
+
+
+class DraftRetrieveView(APIView):
+    """
+    POST /api/draft/retrieve/
+    Body: { phone, draft_key }
+
+    Returns the saved draft data so the user can resume on any device.
+    Returns: { draft_key, draft_data, documents, current_step, candidate_name, grade_applying, updated_at }
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        import datetime as dt
+        phone     = (request.data.get('phone') or '').strip()
+        draft_key = (request.data.get('draft_key') or '').strip().upper()
+
+        if not phone or not draft_key:
+            return Response({'error': 'Both phone and draft code are required.'}, status=400)
+
+        try:
+            draft = ApplicationDraft.objects.get(draft_key=draft_key, phone=phone)
+        except ApplicationDraft.DoesNotExist:
+            return Response({'error': 'No draft found with that code and phone number. Please check and try again.'}, status=404)
+
+        # Check expiry
+        if draft.expires_at:
+            now = dt.datetime.now(dt.timezone.utc)
+            if draft.expires_at < now:
+                draft.delete()
+                return Response({'error': 'This draft has expired (drafts are kept for 30 days). Please start a new application.'}, status=410)
+
+        return Response({
+            'draft_key':      draft.draft_key,
+            'draft_data':     draft.draft_data,
+            'documents':      draft.documents,
+            'current_step':   draft.current_step,
+            'candidate_name': draft.candidate_name,
+            'grade_applying': draft.grade_applying,
+            'updated_at':     draft.updated_at.isoformat(),
+            'expires_at':     draft.expires_at.isoformat() if draft.expires_at else None,
+        })

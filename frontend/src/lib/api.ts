@@ -1099,6 +1099,79 @@ export async function trackApplicationStatus(
   }
 }
 
+// ─── Draft: Cloud Save & Resume ───────────────────────────────────────────────
+
+export interface DraftSavePayload {
+  phone: string;
+  draft_data: Record<string, unknown>;
+  documents: unknown[];
+  current_step: number;
+  candidate_name?: string;
+  grade_applying?: string;
+  draft_key?: string; // supply to update an existing draft
+}
+
+export interface DraftSaveResult {
+  success: boolean;
+  draft_key?: string;
+  expires_at?: string;
+  updated_at?: string;
+  error?: string;
+}
+
+export interface DraftRetrieveResult {
+  success: boolean;
+  draft_key?: string;
+  draft_data?: Record<string, unknown>;
+  documents?: unknown[];
+  current_step?: number;
+  candidate_name?: string;
+  grade_applying?: string;
+  updated_at?: string;
+  expires_at?: string;
+  error?: string;
+}
+
+/**
+ * Public: Save (or update) a draft to the cloud. Returns a PIN-style draft_key.
+ */
+export async function saveDraftToCloud(payload: DraftSavePayload): Promise<DraftSaveResult> {
+  try {
+    const res = await fetchWithTimeout(apiUrl('/draft/save/'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(payload),
+    }, 10000);
+    const json = await res.json();
+    if (res.ok) {
+      return { success: true, draft_key: json.draft_key, expires_at: json.expires_at, updated_at: json.updated_at };
+    }
+    return { success: false, error: (json as { error?: string }).error || 'Could not save draft.' };
+  } catch {
+    return { success: false, error: 'Network error. Please check your connection.' };
+  }
+}
+
+/**
+ * Public: Retrieve a saved cloud draft using phone + draft code (PIN).
+ */
+export async function retrieveDraftFromCloud(phone: string, draftKey: string): Promise<DraftRetrieveResult> {
+  try {
+    const res = await fetchWithTimeout(apiUrl('/draft/retrieve/'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ phone, draft_key: draftKey }),
+    }, 10000);
+    const json = await res.json();
+    if (res.ok) {
+      return { success: true, ...(json as Omit<DraftRetrieveResult, 'success'>) };
+    }
+    return { success: false, error: (json as { error?: string }).error || 'Draft not found.' };
+  } catch {
+    return { success: false, error: 'Network error. Please check your connection.' };
+  }
+}
+
 /**
  * Admin: List all applications.
  */

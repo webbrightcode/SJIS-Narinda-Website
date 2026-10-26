@@ -31,6 +31,8 @@ from .views import (
     PaymentInitiateView,
     PaymentCallbackView,
     PaymentManualConfirmView,
+    DraftSaveView,
+    DraftRetrieveView,
 )
 
 router = DefaultRouter()
@@ -70,4 +72,7 @@ urlpatterns = [
     path('payment/callback/', PaymentCallbackView.as_view(), name='payment-callback'),
     path('payment/ipn/', PaymentCallbackView.as_view(), name='payment-ipn'),
     path('payment/manual-confirm/', PaymentManualConfirmView.as_view(), name='payment-manual-confirm'),
+    # Draft: Cloud Save & Resume
+    path('draft/save/', DraftSaveView.as_view(), name='draft-save'),
+    path('draft/retrieve/', DraftRetrieveView.as_view(), name='draft-retrieve'),
 ]

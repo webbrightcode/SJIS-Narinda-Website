@@ -1030,3 +1030,50 @@ class ApplicationDocument(models.Model):
     def __str__(self):
         return f"{self.get_doc_type_display()} for {self.application.application_id}"
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# APPLICATION DRAFT  — Cloud Save & Resume from Any Device
+# ─────────────────────────────────────────────────────────────────────────────
+
+class ApplicationDraft(models.Model):
+    """
+    Stores a partial admission application draft so parents can safely resume
+    from any device using their mobile number + a short PIN code.
+    Drafts auto-expire after 30 days.
+    """
+    draft_key  = models.CharField(
+        max_length=8, unique=True, db_index=True,
+        help_text="Short code shown to the applicant e.g. SJ4729."
+    )
+    phone = models.CharField(
+        max_length=30, db_index=True,
+        help_text="Parent mobile number — used to verify ownership."
+    )
+    draft_data = models.JSONField(default=dict, blank=True)
+    documents  = models.JSONField(default=list, blank=True)
+    current_step = models.PositiveSmallIntegerField(default=1)
+    candidate_name = models.CharField(max_length=200, blank=True, default='')
+    grade_applying = models.CharField(max_length=80, blank=True, default='')
+    created_at  = models.DateTimeField(auto_now_add=True)
+    updated_at  = models.DateTimeField(auto_now=True)
+    expires_at  = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        verbose_name = "Application Draft (Cloud)"
+        verbose_name_plural = "Application Drafts (Cloud)"
+
+    def save(self, *args, **kwargs):
+        import datetime as dt, random, string
+        if not self.draft_key:
+            while True:
+                code = "SJ" + ''.join(random.choices(string.digits, k=4))
+                if not ApplicationDraft.objects.filter(draft_key=code).exists():
+                    self.draft_key = code
+                    break
+        if not self.expires_at:
+            self.expires_at = dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=30)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Draft {self.draft_key} — {self.candidate_name or 'Unknown'} ({self.phone})"

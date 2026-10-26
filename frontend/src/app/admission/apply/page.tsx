@@ -40,6 +40,10 @@ import {
   Save,
   Check,
   RotateCcw,
+  Cloud,
+  Smartphone,
+  KeyRound,
+  RefreshCw,
 } from 'lucide-react';
 import { BANGLADESH_DIVISIONS, findGeoByDistrict } from '@/lib/bangladeshGeoData';
 import {
@@ -48,6 +52,8 @@ import {
   getAdmissionGuide,
   getAdmissionSettings,
   initiatePayment,
+  saveDraftToCloud,
+  retrieveDraftFromCloud,
   type SubmitApplicationResponse,
 } from '@/lib/api';
 import type { OnlineApplicationFormData, AdmissionGuide, AdmissionSettings } from '@/lib/types';
@@ -214,6 +220,20 @@ export default function OnlineApplicationPage() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const [draftSavedToast, setDraftSavedToast] = useState(false);
+
+  // Cloud Draft State (cross-device save & resume)
+  const [cloudDraftKey, setCloudDraftKey] = useState<string | null>(null);
+  const [cloudDraftPhone, setCloudDraftPhone] = useState<string>('');
+  const [cloudPhoneInput, setCloudPhoneInput] = useState<string>('');
+  const [isSavingCloud, setIsSavingCloud] = useState(false);
+  const [copiedDraftKey, setCopiedDraftKey] = useState(false);
+
+  // Resume Modal State
+  const [showResumeModal, setShowResumeModal] = useState(false);
+  const [resumePhone, setResumePhone] = useState('');
+  const [resumeCode, setResumeCode] = useState('');
+  const [resumeLoading, setResumeLoading] = useState(false);
+  const [resumeError, setResumeError] = useState<string | null>(null);
   // Bangladesh Hierarchical Address Cascading State (Division -> District -> Thana -> Street)
   const [selectedDivisionId, setSelectedDivisionId] = useState<string>('dhaka');
   const [selectedDistrictId, setSelectedDistrictId] = useState<string>('dhaka');
@@ -406,6 +426,74 @@ export default function OnlineApplicationPage() {
     }
   };
 
+  // Shared draft loader (used by both local storage restoration and cloud code resumption)
+  const applyDraftData = (
+    parsed: Record<string, any>,
+    docs: any[] = [],
+    stepNum?: number,
+    key?: string,
+    phone?: string
+  ) => {
+    if (parsed && typeof parsed === 'object') {
+      setForm((prev) => ({ ...prev, ...parsed }));
+      if (parsed.present_district) {
+        const geo = findGeoByDistrict(parsed.present_district);
+        if (geo.division && geo.district) {
+          setSelectedDivisionId(geo.division.id);
+          setSelectedDistrictId(geo.district.id);
+          if (parsed.present_thana) {
+            const foundThana = geo.district.thanas.find(
+              (t) =>
+                t.toLowerCase() === parsed.present_thana.toLowerCase() ||
+                t.toLowerCase().startsWith(parsed.present_thana.toLowerCase())
+            );
+            if (foundThana) {
+              setSelectedThana(foundThana);
+              setIsCustomThana(false);
+            } else {
+              setIsCustomThana(true);
+              setCustomThanaText(parsed.present_thana);
+            }
+          }
+        }
+      }
+      if (parsed.present_zip) {
+        setPostalCode(parsed.present_zip);
+      }
+      if (parsed.present_address) {
+        setStreetAddress(parsed.present_address);
+      }
+      if (
+        parsed.permanent_address &&
+        parsed.present_address &&
+        parsed.permanent_address !== parsed.present_address
+      ) {
+        setSameAsPresentAddress(false);
+      }
+      if (parsed.student_first_name || parsed.contact_phone) {
+        setDraftRestored(true);
+      }
+    }
+    if (Array.isArray(docs) && docs.length > 0) {
+      setDocuments(docs);
+    }
+    if (stepNum && stepNum >= 1 && stepNum <= STEPS.length) {
+      setStep(stepNum);
+    }
+    if (key) {
+      setCloudDraftKey(key);
+      try {
+        localStorage.setItem('sjis_apply_draft_key', key);
+      } catch {}
+    }
+    if (phone) {
+      setCloudDraftPhone(phone);
+      try {
+        localStorage.setItem('sjis_apply_draft_phone', phone);
+      } catch {}
+    }
+  };
+
   // Restore saved draft from localStorage on mount
   useEffect(() => {
     try {
@@ -413,57 +501,26 @@ export default function OnlineApplicationPage() {
       const savedDocs = localStorage.getItem('sjis_apply_draft_docs');
       const savedTime = localStorage.getItem('sjis_apply_draft_time');
       const savedStep = localStorage.getItem('sjis_apply_draft_step');
+      const savedKey  = localStorage.getItem('sjis_apply_draft_key');
+      const savedPhone = localStorage.getItem('sjis_apply_draft_phone');
 
       if (savedTime) setLastSavedAt(savedTime);
-      if (savedStep && !isNaN(Number(savedStep))) {
-        const stepNum = Number(savedStep);
-        if (stepNum >= 1 && stepNum <= STEPS.length) {
-          setStep(stepNum);
-        }
-      }
+      if (savedKey) setCloudDraftKey(savedKey);
+      if (savedPhone) setCloudDraftPhone(savedPhone);
+
+      const stepNum = savedStep && !isNaN(Number(savedStep)) ? Number(savedStep) : undefined;
+      let parsed = null;
+      let parsedDocs: any[] = [];
 
       if (savedDraft) {
-        const parsed = JSON.parse(savedDraft);
-        if (parsed && typeof parsed === 'object') {
-          setForm((prev) => ({ ...prev, ...parsed }));
-          if (parsed.present_district) {
-            const geo = findGeoByDistrict(parsed.present_district);
-            if (geo.division && geo.district) {
-              setSelectedDivisionId(geo.division.id);
-              setSelectedDistrictId(geo.district.id);
-              if (parsed.present_thana) {
-                const foundThana = geo.district.thanas.find(
-                  (t) => t.toLowerCase() === parsed.present_thana.toLowerCase() || t.toLowerCase().startsWith(parsed.present_thana.toLowerCase())
-                );
-                if (foundThana) {
-                  setSelectedThana(foundThana);
-                  setIsCustomThana(false);
-                } else {
-                  setIsCustomThana(true);
-                  setCustomThanaText(parsed.present_thana);
-                }
-              }
-            }
-          }
-          if (parsed.present_zip) {
-            setPostalCode(parsed.present_zip);
-          }
-          if (parsed.present_address) {
-            setStreetAddress(parsed.present_address);
-          }
-          if (parsed.permanent_address && parsed.present_address && parsed.permanent_address !== parsed.present_address) {
-            setSameAsPresentAddress(false);
-          }
-          if (parsed.student_first_name || parsed.contact_phone) {
-            setDraftRestored(true);
-          }
-        }
+        try { parsed = JSON.parse(savedDraft); } catch {}
       }
       if (savedDocs) {
-        const parsedDocs = JSON.parse(savedDocs);
-        if (Array.isArray(parsedDocs) && parsedDocs.length > 0) {
-          setDocuments(parsedDocs);
-        }
+        try { parsedDocs = JSON.parse(savedDocs); } catch {}
+      }
+
+      if (parsed) {
+        applyDraftData(parsed, parsedDocs, stepNum, savedKey || undefined, savedPhone || undefined);
       }
     } catch (e) {
       console.warn('Could not restore draft:', e);
@@ -488,6 +545,39 @@ export default function OnlineApplicationPage() {
     }
   }, [form, documents, step, result]);
 
+  // Save partial application to cloud to receive a shareable 6-digit Resume Code
+  const performCloudSave = async (phoneToUse: string) => {
+    const cleanPhone = phoneToUse.trim();
+    if (!cleanPhone) return;
+    setIsSavingCloud(true);
+    try {
+      const candidateName = form.student_first_name
+        ? `${form.student_first_name} ${form.student_last_name}`.trim()
+        : '';
+      const res = await saveDraftToCloud({
+        phone: cleanPhone,
+        draft_data: form as unknown as Record<string, unknown>,
+        documents: documents as unknown[],
+        current_step: step,
+        candidate_name: candidateName,
+        grade_applying: form.grade_applying,
+        draft_key: cloudDraftKey || undefined,
+      });
+      if (res.success && res.draft_key) {
+        setCloudDraftKey(res.draft_key);
+        setCloudDraftPhone(cleanPhone);
+        try {
+          localStorage.setItem('sjis_apply_draft_key', res.draft_key);
+          localStorage.setItem('sjis_apply_draft_phone', cleanPhone);
+        } catch {}
+      }
+    } catch (e) {
+      console.warn('Cloud draft save failed:', e);
+    } finally {
+      setIsSavingCloud(false);
+    }
+  };
+
   const saveDraftManually = () => {
     try {
       localStorage.setItem('sjis_apply_draft', JSON.stringify(form));
@@ -498,8 +588,60 @@ export default function OnlineApplicationPage() {
       localStorage.setItem('sjis_apply_draft_step', String(step));
       setLastSavedAt(timeStr);
       setShowSaveModal(true);
+
+      const candidatePhone =
+        form.contact_phone?.trim() ||
+        form.father_phone?.trim() ||
+        form.mother_phone?.trim() ||
+        cloudDraftPhone.trim();
+
+      if (candidatePhone) {
+        setCloudPhoneInput(candidatePhone);
+        performCloudSave(candidatePhone);
+      }
     } catch {
       // ignore
+    }
+  };
+
+  // Resume draft from any other device using mobile number + 6-digit draft code
+  const handleResumeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resumePhone.trim() || !resumeCode.trim()) {
+      setResumeError('Please enter both your mobile number and draft code.');
+      return;
+    }
+    setResumeLoading(true);
+    setResumeError(null);
+    try {
+      const res = await retrieveDraftFromCloud(resumePhone.trim(), resumeCode.trim().toUpperCase());
+      if (res.success && res.draft_data) {
+        applyDraftData(
+          res.draft_data,
+          (res.documents as UploadedDocItem[]) || [],
+          res.current_step,
+          res.draft_key,
+          resumePhone.trim()
+        );
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        setLastSavedAt(timeStr);
+        try {
+          localStorage.setItem('sjis_apply_draft', JSON.stringify(res.draft_data));
+          if (res.documents) localStorage.setItem('sjis_apply_draft_docs', JSON.stringify(res.documents));
+          localStorage.setItem('sjis_apply_draft_time', timeStr);
+          if (res.current_step) localStorage.setItem('sjis_apply_draft_step', String(res.current_step));
+        } catch {}
+        setShowResumeModal(false);
+        setDraftRestored(true);
+        topRef.current?.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        setResumeError(res.error || 'Draft not found. Please verify your mobile number and draft code.');
+      }
+    } catch {
+      setResumeError('Network error. Please check your connection and try again.');
+    } finally {
+      setResumeLoading(false);
     }
   };
 
@@ -509,9 +651,13 @@ export default function OnlineApplicationPage() {
       localStorage.removeItem('sjis_apply_draft_docs');
       localStorage.removeItem('sjis_apply_draft_time');
       localStorage.removeItem('sjis_apply_draft_step');
+      localStorage.removeItem('sjis_apply_draft_key');
+      localStorage.removeItem('sjis_apply_draft_phone');
       setForm(INITIAL_FORM);
       setDocuments([]);
       setDraftRestored(false);
+      setCloudDraftKey(null);
+      setCloudDraftPhone('');
       setLastSavedAt(null);
       setStep(1);
     } catch {
@@ -1058,6 +1204,18 @@ export default function OnlineApplicationPage() {
               <span>{showGuidelines ? 'Hide' : 'View'} Admission Criteria & Age Limits</span>
               {showGuidelines ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
             </button>
+            <span>•</span>
+            <button
+              type="button"
+              onClick={() => {
+                setResumeError(null);
+                setShowResumeModal(true);
+              }}
+              className="inline-flex items-center gap-1.5 text-amber-200 hover:text-white font-bold bg-amber-400/15 hover:bg-amber-400/25 px-3 py-1 rounded-full border border-amber-400/40 transition-all cursor-pointer shadow-xs"
+            >
+              <KeyRound className="w-3.5 h-3.5 text-amber-300" />
+              <span>Resume Saved Application</span>
+            </button>
           </div>
         </div>
       </section>
@@ -1114,8 +1272,13 @@ export default function OnlineApplicationPage() {
                 <BookmarkCheck className="w-4 h-4" />
               </div>
               <div>
-                <p className="font-bold text-amber-900 text-sm">
-                  Welcome back! Incomplete Draft Restored
+                <p className="font-bold text-amber-900 text-sm flex items-center gap-2">
+                  <span>Welcome back! Incomplete Draft Restored</span>
+                  {cloudDraftKey && (
+                    <span className="bg-amber-200 text-amber-950 font-mono font-black px-2 py-0.5 rounded text-[10px] border border-amber-300">
+                      Code: {cloudDraftKey}
+                    </span>
+                  )}
                 </p>
                 <p className="text-amber-800/90 text-xs mt-0.5">
                   We found your previous progress for{' '}
@@ -1166,6 +1329,18 @@ export default function OnlineApplicationPage() {
                 <Clock className="w-3 h-3" /> Auto-saves as you type
               </span>
             )}
+            <button
+              type="button"
+              onClick={() => {
+                setResumeError(null);
+                setShowResumeModal(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold text-[11px] transition-colors shadow-2xs cursor-pointer"
+              title="Resume an application started on another device with your Draft Code"
+            >
+              <KeyRound className="w-3.5 h-3.5 text-slate-600" />
+              <span>Resume with Code</span>
+            </button>
             <button
               type="button"
               onClick={saveDraftManually}
@@ -2849,12 +3024,12 @@ export default function OnlineApplicationPage() {
               </div>
               <h3 className="text-lg font-bold">Progress Safely Saved!</h3>
               <p className="text-xs text-slate-300 mt-1">
-                Your admission application draft is safely preserved on this device.
+                Your admission application draft is safely preserved.
               </p>
             </div>
 
             {/* Modal Content */}
-            <div className="p-6 space-y-4 text-slate-700 text-sm">
+            <div className="p-6 space-y-4 text-slate-700 text-sm max-h-[80vh] overflow-y-auto">
               <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-2.5 text-xs">
                 <div className="flex justify-between items-center">
                   <span className="text-slate-500">Candidate:</span>
@@ -2880,10 +3055,93 @@ export default function OnlineApplicationPage() {
                 </div>
               </div>
 
-              <div className="flex items-start gap-2.5 text-xs text-slate-600 bg-amber-50 p-3.5 rounded-xl border border-amber-200/70">
-                <Info className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+              {/* Cross-device Resume Code Box */}
+              {cloudDraftKey ? (
+                <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-300/80 rounded-2xl p-4 text-xs space-y-2.5 shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-amber-900 uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+                      <Smartphone className="w-3.5 h-3.5 text-amber-700" /> Resume from Any Device
+                    </span>
+                    <span className="text-[10px] text-amber-700 bg-amber-200/60 font-semibold px-2 py-0.5 rounded-full">
+                      Valid for 30 days
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-white rounded-xl p-3 border border-amber-200">
+                    <div>
+                      <div className="text-[10px] text-slate-400 uppercase font-semibold">Your Draft Code</div>
+                      <div className="font-mono text-2xl font-black text-[#00183F] tracking-widest">
+                        {cloudDraftKey}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (cloudDraftKey) {
+                          navigator.clipboard.writeText(cloudDraftKey);
+                          setCopiedDraftKey(true);
+                          setTimeout(() => setCopiedDraftKey(false), 2000);
+                        }
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold text-xs transition-colors cursor-pointer"
+                    >
+                      {copiedDraftKey ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          <span className="text-emerald-700">Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5 text-amber-800" />
+                          <span>Copy Code</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {cloudDraftPhone && (
+                    <p className="text-[11px] text-amber-900">
+                      Linked to Mobile: <strong className="font-bold">{cloudDraftPhone}</strong>
+                    </p>
+                  )}
+
+                  <p className="text-[11px] text-amber-800/90 leading-relaxed">
+                    You can switch to another phone, tablet, or laptop anytime. Just visit the admissions page and enter your <strong>Mobile Number</strong> and <strong>Draft Code</strong> to continue right where you left off.
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs space-y-2.5">
+                  <p className="font-bold text-slate-700 flex items-center gap-1.5">
+                    <Cloud className="w-4 h-4 text-slate-600" /> Want to resume on another phone or computer?
+                  </p>
+                  <p className="text-slate-500 text-[11px]">
+                    Enter your mobile number to get a 6-digit Resume Code that lets you continue from any device:
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="tel"
+                      value={cloudPhoneInput}
+                      onChange={(e) => setCloudPhoneInput(e.target.value)}
+                      placeholder="e.g. 01712345678"
+                      className="flex-1 px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-[#00183F] outline-none"
+                    />
+                    <button
+                      type="button"
+                      disabled={isSavingCloud || !cloudPhoneInput.trim()}
+                      onClick={() => performCloudSave(cloudPhoneInput)}
+                      className="px-3.5 py-2 rounded-xl bg-[#00183F] hover:bg-[#002855] text-white text-xs font-bold disabled:opacity-50 transition-colors cursor-pointer shrink-0 inline-flex items-center gap-1.5"
+                    >
+                      {isSavingCloud && <Loader2 className="w-3 h-3 animate-spin" />}
+                      <span>Get Code</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-start gap-2.5 text-xs text-slate-600 bg-emerald-50 p-3 rounded-xl border border-emerald-200/70">
+                <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 <span>
-                  You can safely close this browser or turn off your device. When you return to the admissions portal on this device, all your filled details and uploaded documents will be waiting for you.
+                  All your filled data, photo, and uploaded documents are safely preserved on this device.
                 </span>
               </div>
 
@@ -2904,6 +3162,109 @@ export default function OnlineApplicationPage() {
                 </a>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Resume Saved Application Modal */}
+      {showResumeModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-[#00183F] via-[#002855] to-[#00183F] text-white p-6 text-center relative">
+              <button
+                type="button"
+                onClick={() => setShowResumeModal(false)}
+                className="absolute top-4 right-4 text-white/70 hover:text-white text-lg cursor-pointer"
+              >
+                ✕
+              </button>
+              <div className="w-14 h-14 rounded-full bg-amber-400/20 border-2 border-amber-300 flex items-center justify-center mx-auto mb-3 shadow-inner">
+                <KeyRound className="w-7 h-7 text-[#D4AF37]" />
+              </div>
+              <h3 className="text-lg font-bold">Resume Saved Application</h3>
+              <p className="text-xs text-slate-300 mt-1">
+                Enter your mobile number and Draft Code to continue right where you left off.
+              </p>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={handleResumeSubmit} className="p-6 space-y-4">
+              {resumeError && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                  <span>{resumeError}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Mobile Number <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="tel"
+                    required
+                    value={resumePhone}
+                    onChange={(e) => setResumePhone(e.target.value)}
+                    placeholder="e.g. 01712345678"
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-[#00183F] outline-none"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  The phone number used when saving your application.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Draft Code <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    maxLength={8}
+                    value={resumeCode}
+                    onChange={(e) => setResumeCode(e.target.value.toUpperCase())}
+                    placeholder="e.g. SJ4829"
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-300 font-mono font-bold tracking-wider text-xs sm:text-sm uppercase focus:ring-2 focus:ring-[#00183F] outline-none"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  The 6-character code (e.g. SJ4729) provided when you clicked "Save & Continue Later".
+                </p>
+              </div>
+
+              <div className="pt-2 flex flex-col gap-2.5">
+                <button
+                  type="submit"
+                  disabled={resumeLoading}
+                  className="w-full py-3 rounded-xl bg-[#00183F] hover:bg-[#002855] text-white font-bold text-xs sm:text-sm shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
+                >
+                  {resumeLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Retrieving Application...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Find & Continue Application</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowResumeModal(false)}
+                  className="w-full py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold text-xs sm:text-sm text-center transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
