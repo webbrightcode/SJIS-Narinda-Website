@@ -622,8 +622,8 @@ export function PrintableApplicationForm({
             PART 2 · ADMIT CARD (EXACT VERBATIM MATCH TO PHYSICAL SLIP)
            ══════════════════════════════════════════════════════════════════ */}
         <section className="admit-card-part pt-0.5">
-          {/* Header Block: Crest + Title + Address + Photo Frame */}
-          <div className="flex items-start justify-between gap-2 sm:gap-3">
+          {/* Header Block: Crest + Title + Address + Form No on left/center; Photo Box on right */}
+          <div className="grid grid-cols-[auto_1fr_auto] gap-2 sm:gap-3 items-start mb-1.5">
             {/* Crest */}
             <div className="w-13 h-13 sm:w-15 sm:h-15 shrink-0 flex items-center justify-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -637,21 +637,33 @@ export function PrintableApplicationForm({
               />
             </div>
 
-            {/* Center Title */}
-            <div className="flex-1 text-center px-1">
-              <h3 className="text-sm sm:text-base font-bold text-black uppercase tracking-normal leading-tight">
-                ADMIT CARD
-              </h3>
-              <h4 className="text-xs sm:text-[12px] font-bold text-black mt-0.5 leading-tight">
-                St. Joseph International School (Narinda Campus)
-              </h4>
-              <p className="text-[9.5px] sm:text-[10px] text-black font-normal leading-tight">
-                32 Shah Shaheb Lane, Narinda, Dhaka 1100
-              </p>
+            {/* Center Title + School Address + Form No */}
+            <div className="flex flex-col justify-between h-full text-center px-1">
+              <div>
+                <h3 className="text-sm sm:text-base font-bold text-black uppercase tracking-normal leading-tight">
+                  ADMIT CARD
+                </h3>
+                <h4 className="text-xs sm:text-[12px] font-bold text-black mt-0.5 leading-tight">
+                  St. Joseph International School (Narinda Campus)
+                </h4>
+                <p className="text-[9.5px] sm:text-[10px] text-black font-normal leading-tight">
+                  32 Shah Shaheb Lane, Narinda, Dhaka 1100
+                </p>
+              </div>
+
+              {/* Form No.. (positioned under school address, to the left of photo box) */}
+              <div className="flex items-baseline gap-1.5 mt-2 text-left">
+                <span className="text-xs font-semibold text-black whitespace-nowrap">
+                  Form No..
+                </span>
+                <span className="font-mono text-sm sm:text-base font-bold text-black px-1 min-w-[140px] border-b border-dotted border-black inline-block">
+                  {displayFormNo}
+                </span>
+              </div>
             </div>
 
             {/* Right Photo Box */}
-            <div className="w-18 h-24 sm:w-20 sm:h-26 border border-black bg-white shrink-0 overflow-hidden flex flex-col items-center justify-center p-1 text-center">
+            <div className="w-20 h-26 sm:w-22 sm:h-28 border border-black bg-white shrink-0 overflow-hidden flex flex-col items-center justify-center p-1 text-center">
               {form.student_photo_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -669,16 +681,6 @@ export function PrintableApplicationForm({
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Form No.. */}
-          <div className="flex items-baseline gap-1.5 mt-[-10px] sm:mt-[-12px] mb-1">
-            <span className="text-xs font-semibold text-black whitespace-nowrap">
-              Form No..
-            </span>
-            <span className="font-mono text-sm sm:text-base font-bold text-black px-1 min-w-[130px] border-b border-dotted border-black inline-block">
-              {displayFormNo}
-            </span>
           </div>
 
           {/* Candidate Details on Admit Card */}
