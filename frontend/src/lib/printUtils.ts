@@ -114,7 +114,7 @@ export function printDocumentElement(
             height: 100% !important;
             max-height: 100% !important;
             margin: 0 auto !important;
-            padding: 1.5mm 3mm !important;
+            padding: 2mm 3.5mm !important;
             box-shadow: none !important;
             border: none !important;
             page-break-after: avoid !important;
