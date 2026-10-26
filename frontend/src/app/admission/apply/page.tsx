@@ -200,7 +200,7 @@ function Field({
 }
 
 const inputClass =
-  'w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00183F]/30 focus:border-[#00183F] text-sm text-slate-800 bg-white transition-all';
+  'w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00183F]/30 focus:border-[#00183F] text-base sm:text-sm text-slate-800 bg-white transition-all';
 const selectClass = inputClass + ' cursor-pointer';
 
 function getBdPhoneStatus(phone: string) {
