@@ -2059,10 +2059,10 @@ export default function OnlineApplicationPage() {
                             set('guardian_relation', e.target.value as 'father' | 'mother' | 'guardian' | 'other')
                           }
                         >
-                          <option value="father">Father (পিতা)</option>
-                          <option value="mother">Mother (মাতা)</option>
-                          <option value="guardian">Legal Guardian (আইনগত অভিভাবক)</option>
-                          <option value="other">Other Relative (অন্যান্য আত্মীয়)</option>
+                          <option value="father">Father</option>
+                          <option value="mother">Mother</option>
+                          <option value="guardian">Legal Guardian</option>
+                          <option value="other">Other Relative</option>
                         </select>
                       </Field>
 
@@ -2139,7 +2139,7 @@ export default function OnlineApplicationPage() {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/80 pb-3">
                       <div>
                         <h3 className="text-sm font-black text-[#00183F] uppercase tracking-wide flex items-center gap-2">
-                          <Home className="w-4 h-4 text-[#C8102E]" /> 5. Present Residential Address (বর্তমান ঠিকানা)
+                          <Home className="w-4 h-4 text-[#C8102E]" /> 5. Present Residential Address
                         </h3>
                         <p className="text-xs text-slate-500 mt-0.5">
                           Cascading administrative selection: Division ➔ District ➔ Police Station (Thana) ➔ Street / House
@@ -2153,7 +2153,7 @@ export default function OnlineApplicationPage() {
                     {/* Hierarchy Selectors: Division -> District -> Thana */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       {/* Step A: Division */}
-                      <Field label="1. Division (বিভাগ)" required hint="Select Bangladesh Division">
+                      <Field label="1. Division" required hint="Select Administrative Division">
                         <div className="relative">
                           <select
                             className={selectClass + ' font-medium text-slate-800'}
@@ -2162,7 +2162,7 @@ export default function OnlineApplicationPage() {
                           >
                             {BANGLADESH_DIVISIONS.map((div) => (
                               <option key={div.id} value={div.id}>
-                                {div.name} Division ({div.bnName} বিভাগ)
+                                {div.name} Division
                               </option>
                             ))}
                           </select>
@@ -2170,7 +2170,7 @@ export default function OnlineApplicationPage() {
                       </Field>
 
                       {/* Step B: District */}
-                      <Field label="2. District (জেলা)" required hint={`Filtered for ${activeDivision.name} (${activeDistrictList.length} districts)`}>
+                      <Field label="2. District" required hint={`Filtered for ${activeDivision.name} (${activeDistrictList.length} districts)`}>
                         <div className="relative">
                           <select
                             className={selectClass + ' font-medium text-slate-800'}
@@ -2179,7 +2179,7 @@ export default function OnlineApplicationPage() {
                           >
                             {activeDistrictList.map((dist) => (
                               <option key={dist.id} value={dist.id}>
-                                {dist.name} ({dist.bnName})
+                                {dist.name}
                               </option>
                             ))}
                           </select>
@@ -2187,7 +2187,7 @@ export default function OnlineApplicationPage() {
                       </Field>
 
                       {/* Step C: Police Station / Thana */}
-                      <Field label="3. Police Station / Thana (থানা)" required hint={`Filtered for ${activeDistrict.name} (${activeThanaList.length} thanas)`}>
+                      <Field label="3. Police Station / Thana" required hint={`Filtered for ${activeDistrict.name} (${activeThanaList.length} thanas)`}>
                         <div className="relative">
                           <select
                             className={selectClass + ' font-medium text-slate-800'}
@@ -2200,7 +2200,7 @@ export default function OnlineApplicationPage() {
                               </option>
                             ))}
                             <option value="__custom__">
-                              ➕ Other / Custom Police Station (লিখুন)...
+                              ➕ Other / Custom Police Station...
                             </option>
                           </select>
                         </div>
@@ -2211,7 +2211,7 @@ export default function OnlineApplicationPage() {
                     {isCustomThana && (
                       <div className="p-4 bg-amber-50/90 border border-amber-200 rounded-xl space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
                         <Field
-                          label="Specify Police Station / Thana Name (থানার নাম লিখুন) *"
+                          label="Specify Police Station / Thana Name *"
                           hint="Type the official name of the Police Station (Thana / Upazila / Outpost)"
                         >
                           <input
@@ -2339,14 +2339,14 @@ export default function OnlineApplicationPage() {
                           htmlFor="sameAsPresentAddress"
                           className="text-xs font-bold text-slate-800 cursor-pointer select-none"
                         >
-                          Permanent Address is identical to Present Address (স্থায়ী ঠিকানা ও বর্তমান ঠিকানা একই)
+                          Permanent Address is identical to Present Address
                         </label>
                       </div>
 
                       {!sameAsPresentAddress && (
                         <div className="animate-in fade-in slide-in-from-top-1 duration-200">
                           <Field
-                            label="Permanent Family Address (স্থায়ী ঠিকানা) *"
+                            label="Permanent Family Address *"
                             hint="Village / Holding, Post Office, Upazila / Thana, Home District"
                           >
                             <textarea
