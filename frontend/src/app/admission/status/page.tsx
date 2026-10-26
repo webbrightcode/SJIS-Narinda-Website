@@ -364,7 +364,7 @@ function StatusResult({ data }: { data: ApplicationStatusResult }) {
               submittedAt={data.submitted_at}
               admitCardOnly={printModalMode === 'admit_card'}
               defaultYellowPaper={false}
-              pageSize={data.print_page_size || 'A4'}
+              pageSize={data.print_page_size || 'Legal'}
               documentChecklist={data.document_checklist || []}
               reportingInstructions={data.reporting_instructions || ''}
               paymentStatus={data.payment_status}

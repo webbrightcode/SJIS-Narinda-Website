@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import type { OnlineApplicationFormData } from '@/lib/types';
-import { Scissors, Printer, FileText } from 'lucide-react';
+import { Scissors, Printer, FileText, AlertTriangle } from 'lucide-react';
 import { printDocumentElement } from '@/lib/printUtils';
 
 export interface PrintableApplicationFormProps {
@@ -49,14 +49,14 @@ export function PrintableApplicationForm({
   documents = [],
   admitCardOnly = false,
   defaultYellowPaper = false,
-  pageSize = 'A4',
+  pageSize = 'Legal',
   documentChecklist = [],
   reportingInstructions = '',
   paymentStatus = '',
   paymentTransactionId = '',
   interviewSlot = null,
 }: PrintableApplicationFormProps) {
-  const [selectedPageSize, setSelectedPageSize] = useState<'A4' | 'Legal'>(pageSize);
+  const [selectedPageSize, setSelectedPageSize] = useState<'A4' | 'Legal'>('Legal');
 
   // Compute Clean Form No (e.g. 026110)
   const displayId = applicationId || form.form_no || 'SJIS-2026-DRAFT';
@@ -151,47 +151,42 @@ export function PrintableApplicationForm({
 
   return (
     <div className="printable-form-wrapper w-full">
+      {/* Legal Size Paper Warning Banner */}
+      <div className="no-print mb-3 p-3.5 rounded-xl bg-amber-50 border-2 border-amber-400 text-amber-950 flex items-start gap-3 shadow-xs">
+        <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+        <div className="space-y-0.5">
+          <div className="flex items-center gap-2">
+            <span className="font-black text-amber-950 uppercase tracking-wide text-xs">
+              ⚠️ Mandatory Paper Requirement: Print on LEGAL Size Paper (8.5&quot; × 14&quot; / 216mm × 356mm)
+            </span>
+            <span className="px-2 py-0.5 bg-amber-200/90 text-amber-950 text-[10px] font-black rounded-md uppercase tracking-wider">
+              Permanent Standard
+            </span>
+          </div>
+          <p className="text-[11.5px] text-amber-900 leading-relaxed font-medium">
+            This official St. Joseph International School document contains both the <strong>Application Form (Part 1)</strong> and the <strong>Tear-Off Admit Card (Part 2)</strong> on a single continuous sheet. In your browser print dialog, please ensure <strong>Paper Size is set to &quot;Legal&quot;</strong> (do not use A4) and <strong>Scale is set to &quot;100%&quot; or &quot;Fit to Printable Area&quot;</strong>.
+          </p>
+        </div>
+      </div>
+
       {/* On-screen Toolbar (Hidden during print) */}
       <div className="no-print mb-4 p-3 rounded-2xl bg-slate-900 text-white flex flex-wrap items-center justify-between gap-3 text-xs shadow-md">
         <div className="flex items-center gap-2">
           <FileText className="w-4 h-4 text-[#D4AF37]" />
           <span className="font-bold">
-            Official Physical Form & Tear-off Admit Card Generator
+            Official Physical Form &amp; Tear-off Admit Card Generator
+          </span>
+          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/40">
+            📄 Legal Paper Standard
           </span>
           {paymentStatus === 'completed' && (
             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-              ✓ Verified & Paid
+              ✓ Verified &amp; Paid
             </span>
           )}
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Page size toggle */}
-          <div className="flex items-center gap-1 bg-white/10 rounded-lg p-0.5 border border-white/20">
-            <button
-              type="button"
-              onClick={() => setSelectedPageSize('A4')}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
-                selectedPageSize === 'A4'
-                  ? 'bg-[#D4AF37] text-[#00183F]'
-                  : 'text-white hover:bg-white/10'
-              }`}
-            >
-              A4
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedPageSize('Legal')}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
-                selectedPageSize === 'Legal'
-                  ? 'bg-[#D4AF37] text-[#00183F]'
-                  : 'text-white hover:bg-white/10'
-              }`}
-            >
-              Legal (F4)
-            </button>
-          </div>
-
           {/* Print button */}
           <button
             type="button"
@@ -199,13 +194,13 @@ export function PrintableApplicationForm({
               printDocumentElement(
                 'physical-admission-document',
                 'St. Joseph International School - Official Document',
-                selectedPageSize
+                'Legal'
               )
             }
-            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-[#D4AF37] hover:bg-[#c59f2e] text-[#00183F] font-black transition-all cursor-pointer shadow-sm"
+            className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-[#D4AF37] hover:bg-[#c59f2e] text-[#00183F] font-black transition-all cursor-pointer shadow-sm text-xs"
           >
-            <Printer className="w-3.5 h-3.5" />
-            <span>Print / Save PDF ({selectedPageSize})</span>
+            <Printer className="w-4 h-4" />
+            <span>Print Form on Legal Paper (8.5&quot; × 14&quot;)</span>
           </button>
         </div>
       </div>
@@ -213,8 +208,8 @@ export function PrintableApplicationForm({
       <style>{`
         @media print {
           @page {
-            size: ${selectedPageSize === 'Legal' ? '216mm 356mm portrait' : 'A4 portrait'};
-            margin: ${selectedPageSize === 'Legal' ? '5mm 7mm 5mm 7mm' : '4mm 6mm 4mm 6mm'};
+            size: 216mm 356mm portrait;
+            margin: 4mm 6mm 4mm 6mm;
           }
           html, body {
             background: #ffffff !important;
@@ -234,14 +229,15 @@ export function PrintableApplicationForm({
           #physical-admission-document {
             display: flex !important;
             flex-direction: column !important;
-            justify-content: space-between !important;
+            justify-content: flex-start !important;
+            gap: 2mm !important;
             box-sizing: border-box !important;
             visibility: visible !important;
             opacity: 1 !important;
             width: 100% !important;
             max-width: 100% !important;
-            height: ${selectedPageSize === 'Legal' ? '342mm' : '285mm'} !important;
-            max-height: ${selectedPageSize === 'Legal' ? '342mm' : '285mm'} !important;
+            height: 346mm !important;
+            max-height: 346mm !important;
             margin: 0 auto !important;
             padding: 2mm 3mm !important;
             box-shadow: none !important;
@@ -260,8 +256,9 @@ export function PrintableApplicationForm({
             flex: 1 1 auto !important;
             display: flex !important;
             flex-direction: column !important;
-            justify-content: space-between !important;
-            padding-bottom: 2mm !important;
+            justify-content: flex-start !important;
+            gap: 1.5mm !important;
+            padding-bottom: 1.5mm !important;
           }
           .admit-card-part {
             flex-shrink: 0 !important;
@@ -282,25 +279,25 @@ export function PrintableApplicationForm({
             PART 1 · APPLICATION FOR ADMISSION TEST (TOP HALF)
            ══════════════════════════════════════════════════════════════════ */}
         {!admitCardOnly && (
-          <section className="admission-application-part pb-1 flex-1 flex flex-col justify-between">
-            {/* Header Block: Crest + Title + Address + Photo Frame */}
-            <div>
-              <div className="flex items-start justify-between gap-2 sm:gap-3">
-                {/* Crest Logo */}
-                <div className="w-14 h-14 sm:w-16 sm:h-16 shrink-0 flex items-center justify-center">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/sjis-crest-logo.png"
-                    alt="SJIS Crest"
-                    className="w-14 h-14 sm:w-16 sm:h-16 object-contain"
-                    onError={(e) => {
-                      e.currentTarget.src = '/sjis-logo.png';
-                    }}
-                  />
-                </div>
+          <section className="admission-application-part pb-1 flex-1 flex flex-col justify-start space-y-1">
+            {/* Header Block: Crest + Title + Address + Form No on left/center; Photo Box on right */}
+            <div className="grid grid-cols-[auto_1fr_auto] gap-2 sm:gap-3 items-start mb-0.5">
+              {/* Crest Logo */}
+              <div className="w-14 h-14 sm:w-16 sm:h-16 shrink-0 flex items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/sjis-crest-logo.png"
+                  alt="SJIS Crest"
+                  className="w-14 h-14 sm:w-16 sm:h-16 object-contain"
+                  onError={(e) => {
+                    e.currentTarget.src = '/sjis-logo.png';
+                  }}
+                />
+              </div>
 
-                {/* Central Title & Address */}
-                <div className="flex-1 text-center px-1">
+              {/* Central Title, School Name, Address, Form No, and Instruction Banner */}
+              <div className="flex flex-col justify-between h-full text-center px-1">
+                <div>
                   <h1 className="text-sm sm:text-base font-bold tracking-tight text-black uppercase leading-tight">
                     APPLICATION FOR ADMISSION TEST
                   </h1>
@@ -312,45 +309,45 @@ export function PrintableApplicationForm({
                   </p>
                 </div>
 
-                {/* Top-Right Candidate Photograph Frame */}
-                <div className="w-20 h-26 sm:w-22 sm:h-28 border border-black bg-white shrink-0 overflow-hidden flex flex-col items-center justify-center p-1 text-center">
-                  {form.student_photo_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={form.student_photo_url}
-                      alt="Candidate"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="text-[7px] sm:text-[7.5px] font-bold uppercase tracking-tight text-black leading-tight space-y-0.5">
-                      <div>ATTACH A</div>
-                      <div>RECENT</div>
-                      <div>PASSPORT SIZE</div>
-                      <div>PHOTOGRAPH</div>
-                      <div>WITH GLUE</div>
-                    </div>
-                  )}
+                {/* Form No. Row */}
+                <div className="flex items-baseline gap-1.5 mt-1 text-left">
+                  <span className="text-xs font-semibold text-black whitespace-nowrap">
+                    Form No..
+                  </span>
+                  <span className="font-mono text-sm sm:text-base font-bold text-black px-1 min-w-[140px] border-b border-dotted border-black inline-block">
+                    {displayFormNo}
+                  </span>
+                  <span className="font-mono text-[9px] text-slate-500 ml-1 no-print">
+                    ({displayId})
+                  </span>
+                </div>
+
+                {/* Instruction Banner */}
+                <div className="text-center mt-0.5">
+                  <p className="text-[10px] sm:text-[10.5px] font-bold uppercase tracking-wide text-black">
+                    (PLEASE USE BLOCK LETTERS TO FILL UP THE FORM)
+                  </p>
                 </div>
               </div>
 
-              {/* Form No. on Left */}
-              <div className="flex items-baseline gap-1.5 mt-[-10px] sm:mt-[-12px] mb-1">
-                <span className="text-xs font-semibold text-black whitespace-nowrap">
-                  Form No..
-                </span>
-                <span className="font-mono text-sm sm:text-base font-bold text-black px-1 min-w-[130px] border-b border-dotted border-black inline-block">
-                  {displayFormNo}
-                </span>
-                <span className="font-mono text-[9px] text-slate-500 ml-1 no-print">
-                  ({displayId})
-                </span>
-              </div>
-
-              {/* Instruction Banner */}
-              <div className="text-center my-0.5 pb-0.5">
-                <p className="text-[10px] sm:text-[10.5px] font-bold uppercase tracking-wide text-black">
-                  (PLEASE USE BLOCK LETTERS TO FILL UP THE FORM)
-                </p>
+              {/* Top-Right Candidate Photograph Frame */}
+              <div className="w-20 h-26 sm:w-22 sm:h-28 border border-black bg-white shrink-0 overflow-hidden flex flex-col items-center justify-center p-1 text-center">
+                {form.student_photo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={form.student_photo_url}
+                    alt="Candidate"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="text-[7px] sm:text-[7.5px] font-bold uppercase tracking-tight text-black leading-tight space-y-0.5">
+                    <div>ATTACH A</div>
+                    <div>RECENT</div>
+                    <div>PASSPORT SIZE</div>
+                    <div>PHOTOGRAPH</div>
+                    <div>WITH GLUE</div>
+                  </div>
+                )}
               </div>
             </div>
 

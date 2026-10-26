@@ -106,7 +106,7 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
   const [admSettings, setAdmSettings] = useState<AdmissionSettings | null>(null);
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'completed' | 'pending' | 'not_required'>('all');
   const [slotFilter, setSlotFilter] = useState('all');
-  const [printPageSize, setPrintPageSize] = useState<'A4' | 'Legal'>('A4');
+  const [printPageSize, setPrintPageSize] = useState<'A4' | 'Legal'>('Legal');
 
   // Workflow update form state
   const [workflowState, setWorkflowState] = useState<{

@@ -6,15 +6,15 @@
 export function printDocumentElement(
   elementId = 'physical-admission-document',
   title = 'St. Joseph International School - Official Document',
-  pageSize: 'A4' | 'Legal' = 'A4'
+  pageSize: 'A4' | 'Legal' = 'Legal'
 ): void {
   if (typeof window === 'undefined') return;
 
   const isLegal = pageSize === 'Legal';
   const pageCss = isLegal
-    ? `size: 216mm 356mm portrait; margin: 6mm 8mm 6mm 8mm;`
-    : `size: A4 portrait; margin: 5mm 7mm 5mm 7mm;`;
-  const targetHeight = isLegal ? '342mm' : '285mm';
+    ? `size: 216mm 356mm portrait; margin: 4mm 6mm 4mm 6mm;`
+    : `size: A4 portrait; margin: 4mm 6mm 4mm 6mm;`;
+  const targetHeight = isLegal ? '346mm' : '285mm';
 
   const target = document.getElementById(elementId);
   if (!target) {
@@ -116,8 +116,9 @@ export function printDocumentElement(
             flex: 1 1 auto !important;
             display: flex !important;
             flex-direction: column !important;
-            justify-content: space-between !important;
-            padding-bottom: 2mm !important;
+            justify-content: flex-start !important;
+            gap: 1.5mm !important;
+            padding-bottom: 1.5mm !important;
           }
           .admit-card-part {
             flex-shrink: 0 !important;

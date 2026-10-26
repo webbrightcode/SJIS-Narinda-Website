@@ -291,7 +291,7 @@ function PaymentResultInner() {
               applicationId={appData.application_id}
               formNo={appData.form_no}
               submittedAt={appData.submitted_at}
-              pageSize={appData.print_page_size || 'A4'}
+              pageSize={appData.print_page_size || 'Legal'}
               documentChecklist={appData.document_checklist || []}
               reportingInstructions={appData.reporting_instructions || ''}
               paymentStatus={appData.payment_status}

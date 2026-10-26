@@ -731,7 +731,7 @@ export default function OnlineApplicationPage() {
               applicationId={result.application_id}
               formNo={result.form_no || undefined}
               documents={documents}
-              pageSize={admSettings?.print_page_size || 'A4'}
+              pageSize={admSettings?.print_page_size || 'Legal'}
               documentChecklist={admSettings?.document_checklist || []}
               reportingInstructions={admSettings?.reporting_instructions || ''}
             />
@@ -962,7 +962,7 @@ export default function OnlineApplicationPage() {
                 applicationId={result.application_id}
                 formNo={result.form_no || undefined}
                 documents={documents}
-                pageSize={admSettings?.print_page_size || 'A4'}
+                pageSize={admSettings?.print_page_size || 'Legal'}
                 documentChecklist={admSettings?.document_checklist || []}
                 reportingInstructions={admSettings?.reporting_instructions || ''}
               />
