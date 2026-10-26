@@ -69,10 +69,11 @@ export function PrintableApplicationForm({
             const parts = applicationId.split('-');
             const lastPart = parts[parts.length - 1];
             if (!isNaN(Number(lastPart))) {
-              return String(lastPart).padStart(6, '0');
+              const num = String(Number(lastPart));
+              return `26${num.padStart(4, '0')}`;
             }
           }
-          return '026110';
+          return '260001';
         })()
       : 'PENDING PAYMENT');
 

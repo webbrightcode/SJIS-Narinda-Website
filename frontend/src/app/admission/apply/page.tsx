@@ -36,6 +36,10 @@ import {
   Clock,
   MapPin,
   Building2,
+  BookmarkCheck,
+  Save,
+  Check,
+  RotateCcw,
 } from 'lucide-react';
 import { BANGLADESH_DIVISIONS, findGeoByDistrict } from '@/lib/bangladeshGeoData';
 import {
@@ -207,6 +211,9 @@ export default function OnlineApplicationPage() {
   const [stepError, setStepError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const [draftSavedToast, setDraftSavedToast] = useState(false);
   // Bangladesh Hierarchical Address Cascading State (Division -> District -> Thana -> Street)
   const [selectedDivisionId, setSelectedDivisionId] = useState<string>('dhaka');
   const [selectedDistrictId, setSelectedDistrictId] = useState<string>('dhaka');
@@ -404,6 +411,17 @@ export default function OnlineApplicationPage() {
     try {
       const savedDraft = localStorage.getItem('sjis_apply_draft');
       const savedDocs = localStorage.getItem('sjis_apply_draft_docs');
+      const savedTime = localStorage.getItem('sjis_apply_draft_time');
+      const savedStep = localStorage.getItem('sjis_apply_draft_step');
+
+      if (savedTime) setLastSavedAt(savedTime);
+      if (savedStep && !isNaN(Number(savedStep))) {
+        const stepNum = Number(savedStep);
+        if (stepNum >= 1 && stepNum <= STEPS.length) {
+          setStep(stepNum);
+        }
+      }
+
       if (savedDraft) {
         const parsed = JSON.parse(savedDraft);
         if (parsed && typeof parsed === 'object') {
@@ -459,19 +477,42 @@ export default function OnlineApplicationPage() {
       if (form.student_first_name || form.contact_phone || form.present_address || documents.length > 0) {
         localStorage.setItem('sjis_apply_draft', JSON.stringify(form));
         localStorage.setItem('sjis_apply_draft_docs', JSON.stringify(documents));
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        localStorage.setItem('sjis_apply_draft_time', timeStr);
+        localStorage.setItem('sjis_apply_draft_step', String(step));
+        setLastSavedAt(timeStr);
       }
     } catch {
       // ignore localStorage quota errors
     }
-  }, [form, documents, result]);
+  }, [form, documents, step, result]);
+
+  const saveDraftManually = () => {
+    try {
+      localStorage.setItem('sjis_apply_draft', JSON.stringify(form));
+      localStorage.setItem('sjis_apply_draft_docs', JSON.stringify(documents));
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      localStorage.setItem('sjis_apply_draft_time', timeStr);
+      localStorage.setItem('sjis_apply_draft_step', String(step));
+      setLastSavedAt(timeStr);
+      setShowSaveModal(true);
+    } catch {
+      // ignore
+    }
+  };
 
   const clearDraft = () => {
     try {
       localStorage.removeItem('sjis_apply_draft');
       localStorage.removeItem('sjis_apply_draft_docs');
+      localStorage.removeItem('sjis_apply_draft_time');
+      localStorage.removeItem('sjis_apply_draft_step');
       setForm(INITIAL_FORM);
       setDocuments([]);
       setDraftRestored(false);
+      setLastSavedAt(null);
       setStep(1);
     } catch {
       // ignore
@@ -672,6 +713,8 @@ export default function OnlineApplicationPage() {
       try {
         localStorage.removeItem('sjis_apply_draft');
         localStorage.removeItem('sjis_apply_draft_docs');
+        localStorage.removeItem('sjis_apply_draft_time');
+        localStorage.removeItem('sjis_apply_draft_step');
       } catch {
         // ignore
       }
@@ -1065,22 +1108,75 @@ export default function OnlineApplicationPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         {/* Draft Restored Banner */}
         {draftRestored && (
-          <div className="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200/80 flex items-center justify-between gap-3 text-xs text-amber-900 shadow-sm animate-in fade-in">
-            <div className="flex items-center gap-2.5">
-              <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>
-                <strong>Draft Restored:</strong> We found an unfinished application in your browser and restored your progress.
-              </span>
+          <div className="mb-6 p-4.5 rounded-2xl bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border border-amber-300/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-950 shadow-sm animate-in fade-in">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-xl bg-amber-200/80 flex items-center justify-center shrink-0 text-amber-800">
+                <BookmarkCheck className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="font-bold text-amber-900 text-sm">
+                  Welcome back! Incomplete Draft Restored
+                </p>
+                <p className="text-amber-800/90 text-xs mt-0.5">
+                  We found your previous progress for{' '}
+                  <strong className="text-amber-950">
+                    {form.student_first_name ? `${form.student_first_name} ${form.student_last_name}`.trim() : 'Candidate Application'}
+                  </strong>
+                  {form.grade_applying ? ` (${form.grade_applying})` : ''}{lastSavedAt ? ` • Last saved at ${lastSavedAt}` : ''}.
+                  You can safely continue right from where you left off.
+                </p>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={clearDraft}
-              className="px-3 py-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-[11px] transition-colors shrink-0 cursor-pointer"
-            >
-              Start Over / Clear
-            </button>
+            <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+              <button
+                type="button"
+                onClick={() => setDraftRestored(false)}
+                className="px-3.5 py-1.5 rounded-lg bg-amber-200 hover:bg-amber-300 text-amber-950 font-bold text-[11px] transition-colors cursor-pointer"
+              >
+                Continue Application
+              </button>
+              <button
+                type="button"
+                onClick={clearDraft}
+                className="px-3 py-1.5 rounded-lg bg-white/80 hover:bg-white text-slate-600 hover:text-red-700 font-semibold text-[11px] transition-colors border border-amber-200 cursor-pointer"
+              >
+                Clear & Start Over
+              </button>
+            </div>
           </div>
         )}
+
+        {/* Top Progress & Auto-Save Status Header */}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2 text-slate-500">
+            <span className="font-bold text-[#00183F] uppercase tracking-wider text-[11px]">
+              Step {step} of {STEPS.length}:
+            </span>
+            <span className="font-semibold text-slate-700">{STEPS[step - 1]?.title}</span>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            {lastSavedAt ? (
+              <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200/70 font-medium">
+                <Check className="w-3 h-3 text-emerald-600" />
+                <span>Auto-saved at {lastSavedAt}</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-[11px] text-slate-400">
+                <Clock className="w-3 h-3" /> Auto-saves as you type
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={saveDraftManually}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-[11px] transition-colors shadow-2xs cursor-pointer"
+              title="Save draft and safely exit or continue later"
+            >
+              <BookmarkCheck className="w-3.5 h-3.5 text-amber-700" />
+              <span>Save & Exit</span>
+            </button>
+          </div>
+        </div>
 
         {/* Responsive Step Progress Bar */}
         <div className="w-full mb-8">
@@ -2648,17 +2744,29 @@ export default function OnlineApplicationPage() {
             )}
 
             {/* Step Navigation Actions */}
-            <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between gap-4">
-              <button
-                type="button"
-                onClick={prev}
-                disabled={step === 1}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-xs sm:text-sm font-semibold hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-              >
-                <ChevronLeft className="w-4 h-4" /> Previous
-              </button>
+            <div className="mt-8 pt-6 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={prev}
+                  disabled={step === 1}
+                  className="inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-xs sm:text-sm font-semibold hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                >
+                  <ChevronLeft className="w-4 h-4" /> Previous
+                </button>
 
-              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={saveDraftManually}
+                  className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2.5 rounded-xl border border-amber-300 bg-amber-50/80 hover:bg-amber-100 text-amber-950 text-xs sm:text-sm font-bold transition-all shadow-xs cursor-pointer active:scale-98"
+                  title="Save current progress and safely resume later"
+                >
+                  <BookmarkCheck className="w-4 h-4 text-amber-700 shrink-0" />
+                  <span>Save & Continue Later</span>
+                </button>
+              </div>
+
+              <div className="hidden sm:flex items-center gap-1.5">
                 {STEPS.map((s) => (
                   <div
                     key={s.id}
@@ -2729,6 +2837,76 @@ export default function OnlineApplicationPage() {
         </div>
       </div>
     </div>
+
+      {/* Draft Safely Saved Confirmation Modal */}
+      {showSaveModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-[#00183F] via-[#002855] to-[#00183F] text-white p-6 text-center relative">
+              <div className="w-14 h-14 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center mx-auto mb-3 shadow-inner">
+                <BookmarkCheck className="w-7 h-7 text-emerald-300" />
+              </div>
+              <h3 className="text-lg font-bold">Progress Safely Saved!</h3>
+              <p className="text-xs text-slate-300 mt-1">
+                Your admission application draft is safely preserved on this device.
+              </p>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-4 text-slate-700 text-sm">
+              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-2.5 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500">Candidate:</span>
+                  <span className="font-bold text-[#00183F]">
+                    {form.student_first_name
+                      ? `${form.student_first_name} ${form.student_last_name}`.trim()
+                      : 'Candidate Application Draft'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500">Grade Applying:</span>
+                  <span className="font-semibold text-slate-800">{form.grade_applying || 'Not yet selected'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500">Saved Step:</span>
+                  <span className="font-semibold text-slate-800">
+                    Step {step} of {STEPS.length} ({STEPS[step - 1]?.title})
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500">Saved Time:</span>
+                  <span className="font-bold text-emerald-700">{lastSavedAt || 'Just now'}</span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5 text-xs text-slate-600 bg-amber-50 p-3.5 rounded-xl border border-amber-200/70">
+                <Info className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                <span>
+                  You can safely close this browser or turn off your device. When you return to the admissions portal on this device, all your filled details and uploaded documents will be waiting for you.
+                </span>
+              </div>
+
+              <div className="pt-2 flex flex-col gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setShowSaveModal(false)}
+                  className="w-full py-3 rounded-xl bg-[#00183F] hover:bg-[#002855] text-white font-bold text-xs sm:text-sm shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <span>Continue Editing Application</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+                <a
+                  href="/"
+                  className="w-full py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold text-xs sm:text-sm text-center transition-colors cursor-pointer"
+                >
+                  Exit to SJIS Homepage
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Print & PDF Interactive Modal (When Viewing on Screen) */}
       {showPrintModal && (
