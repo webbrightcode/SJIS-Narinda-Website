@@ -729,17 +729,17 @@ export function PrintableApplicationForm({
             </p>
 
             {/* Principal Signature & Date Row */}
-            <div className="flex items-end justify-between pt-4 sm:pt-5 print:pt-3.5 pb-0.5 print:pb-0.5">
-              <div className="w-52 sm:w-60 print:w-48">
+            <div className="flex items-end justify-between pt-7 sm:pt-9 print:pt-7 pb-1 print:pb-1">
+              <div className="w-52 sm:w-64 print:w-56">
                 <div className="border-b border-dotted border-black mb-1.5" />
                 <span className="font-bold text-[10px] sm:text-[10.5px] print:text-[10px] block">
                   Principal
                 </span>
               </div>
 
-              <div className="flex items-baseline gap-1">
-                <span className="font-semibold">Date:</span>
-                <span className="font-bold border-b border-dotted border-black px-2 min-w-[90px] print:min-w-[80px] text-center inline-block">
+              <div className="flex items-baseline gap-1 pb-0.5">
+                <span className="font-semibold text-[10px] print:text-[10px]">Date:</span>
+                <span className="font-bold border-b border-dotted border-black px-2 min-w-[95px] print:min-w-[85px] text-center inline-block">
                   {displaySubmissionDate || '........................'}
                 </span>
               </div>
