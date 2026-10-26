@@ -39,6 +39,35 @@ export interface PrintableApplicationFormProps {
     label?: string;
     reporting_venue?: string;
   } | null;
+  /** Dynamic admission test / interview date set by admin from dashboard */
+  admissionTestDate?: string;
+  /** Dynamic admission test / interview time set by admin from dashboard */
+  admissionTestTime?: string;
+}
+
+/** Format an admission test / interview date into standard English school format (e.g. 7th March '26) */
+export function formatAdmitCardDate(dateVal?: string | null): string {
+  if (!dateVal || !dateVal.trim()) return '';
+  const trimmed = dateVal.trim();
+  // If it contains ISO date format (YYYY-MM-DD) or standard date:
+  if (/^\d{4}-\d{2}-\d{2}/.test(trimmed) || /^\d{2}\/\d{2}\/\d{4}/.test(trimmed)) {
+    const d = new Date(trimmed);
+    if (!isNaN(d.getTime())) {
+      const day = d.getDate();
+      const suffix =
+        day % 10 === 1 && day !== 11
+          ? 'st'
+          : day % 10 === 2 && day !== 12
+          ? 'nd'
+          : day % 10 === 3 && day !== 13
+          ? 'rd'
+          : 'th';
+      const month = d.toLocaleDateString('en-GB', { month: 'long' });
+      const year = String(d.getFullYear()).slice(-2);
+      return `${day}${suffix} ${month} '${year}`;
+    }
+  }
+  return trimmed;
 }
 
 export function PrintableApplicationForm({
@@ -55,6 +84,8 @@ export function PrintableApplicationForm({
   paymentStatus = '',
   paymentTransactionId = '',
   interviewSlot = null,
+  admissionTestDate = '',
+  admissionTestTime = '',
 }: PrintableApplicationFormProps) {
   const [selectedPageSize, setSelectedPageSize] = useState<'A4' | 'Legal'>(pageSize || 'A4');
 
@@ -123,24 +154,31 @@ export function PrintableApplicationForm({
         })()
       : '28.06.2026');
 
-  // Interview Date & Time
-  const displayInterviewDate = interviewSlot?.date
-    ? new Date(interviewSlot.date).toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: '2-digit',
-      })
-    : form.interview_date
-    ? new Date(form.interview_date).toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: '2-digit',
-      })
-    : "7th March '26";
+  // Admission Test / Interview Date & Time (Dynamic: Admin Settings -> Application Slot/Date -> Dotted Line)
+  const rawInterviewDate =
+    interviewSlot?.date ||
+    (form as any).entrance_exam_date ||
+    form.interview_date ||
+    admissionTestDate ||
+    form.admission_test_date ||
+    '';
 
-  const displayInterviewTime = interviewSlot?.start_time
-    ? (interviewSlot.start_time.length === 8 ? interviewSlot.start_time.slice(0, 5) : interviewSlot.start_time)
-    : (form.interview_time || '09:30 AM');
+  const displayInterviewDate = rawInterviewDate
+    ? formatAdmitCardDate(rawInterviewDate)
+    : '';
+
+  const rawInterviewTime =
+    interviewSlot?.start_time ||
+    form.interview_time ||
+    admissionTestTime ||
+    form.admission_test_time ||
+    '09:30 AM';
+
+  const displayInterviewTime = rawInterviewTime
+    ? rawInterviewTime.length === 8 && rawInterviewTime.includes(':')
+      ? rawInterviewTime.slice(0, 5)
+      : rawInterviewTime
+    : '09:30 AM';
 
   // Capitalize Religion
   const displayReligion = form.religion

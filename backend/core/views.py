@@ -1384,6 +1384,9 @@ class ApplicationStatusLookupView(APIView):
             'print_page_size': adm_settings.print_page_size,
             'document_checklist': adm_settings.document_checklist,
             'reporting_instructions': adm_settings.reporting_instructions,
+            'admission_test_date': adm_settings.admission_test_date,
+            'admission_test_time': adm_settings.admission_test_time,
+            'admission_test_venue': adm_settings.admission_test_venue,
             'interview_slot': slot_data,
         }
 

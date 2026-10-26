@@ -410,8 +410,11 @@ export interface AdmissionSettings {
   reporting_instructions: string;
   // Classes & Grades (Option 7 on application form)
   available_grades?: string[];
-  // Interview
+  // Interview & Admit Card Schedule
   interview_mode: 'slot_based' | 'manual';
+  admission_test_date?: string;
+  admission_test_time?: string;
+  admission_test_venue?: string;
   updated_at?: string;
 }
 
@@ -512,6 +515,8 @@ export interface OnlineApplicationFormData {
   submission_deadline?: string;
   interview_date?: string;
   interview_time?: string;
+  admission_test_date?: string;
+  admission_test_time?: string;
   received_by?: string;
 }
 

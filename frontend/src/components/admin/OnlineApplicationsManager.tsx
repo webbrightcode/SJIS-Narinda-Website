@@ -112,6 +112,7 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
   const [workflowState, setWorkflowState] = useState<{
     status: ApplicationStatus;
     entrance_exam_date: string;
+    interview_time: string;
     entrance_exam_venue: string;
     admin_notes: string;
     documents_verified: boolean;
@@ -119,6 +120,7 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
   }>({
     status: 'submitted',
     entrance_exam_date: '',
+    interview_time: '',
     entrance_exam_venue: '',
     admin_notes: '',
     documents_verified: false,
@@ -158,6 +160,7 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
       setWorkflowState({
         status: selectedApp.status,
         entrance_exam_date: selectedApp.entrance_exam_date || '',
+        interview_time: selectedApp.interview_time || '',
         entrance_exam_venue: selectedApp.entrance_exam_venue || '',
         admin_notes: selectedApp.admin_notes || '',
         documents_verified: selectedApp.documents_verified || false,
@@ -1221,6 +1224,19 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
 
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                        Interview / Exam Time
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 09:30 AM"
+                        value={workflowState.interview_time}
+                        onChange={(e) => setWorkflowState({ ...workflowState, interview_time: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 bg-white focus:ring-2 focus:ring-[#00183F] outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
                         Exam Venue & Room Number
                       </label>
                       <input
@@ -1370,6 +1386,17 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
                       pageSize={printPageSize}
                       documentChecklist={admSettings?.document_checklist}
                       reportingInstructions={admSettings?.reporting_instructions}
+                      admissionTestDate={
+                        selectedApp.entrance_exam_date ||
+                        (selectedApp.interview_date ? selectedApp.interview_date.split('T')[0] : '') ||
+                        admSettings?.admission_test_date
+                      }
+                      admissionTestTime={selectedApp.interview_time || admSettings?.admission_test_time}
+                      interviewSlot={
+                        availableSlots.find((s) => s.id === selectedApp.interview_slot) ||
+                        selectedApp.interview_slot_detail ||
+                        null
+                      }
                       defaultYellowPaper={false}
                     />
                   </div>

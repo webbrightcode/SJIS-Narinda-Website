@@ -370,6 +370,8 @@ function StatusResult({ data }: { data: ApplicationStatusResult }) {
               paymentStatus={data.payment_status}
               paymentTransactionId={data.payment_transaction_id}
               interviewSlot={data.interview_slot}
+              admissionTestDate={(data as any).admission_test_date || (data as any).entrance_exam_date}
+              admissionTestTime={(data as any).admission_test_time || (data as any).interview_time}
             />
           </div>
         </div>

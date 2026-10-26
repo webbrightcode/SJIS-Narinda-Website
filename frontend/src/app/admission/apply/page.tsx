@@ -964,6 +964,8 @@ export default function OnlineApplicationPage() {
               pageSize={admSettings?.print_page_size || 'Legal'}
               documentChecklist={admSettings?.document_checklist || []}
               reportingInstructions={admSettings?.reporting_instructions || ''}
+              admissionTestDate={admSettings?.admission_test_date}
+              admissionTestTime={admSettings?.admission_test_time}
             />
           </div>
         )}
@@ -1195,6 +1197,8 @@ export default function OnlineApplicationPage() {
                 pageSize={admSettings?.print_page_size || 'Legal'}
                 documentChecklist={admSettings?.document_checklist || []}
                 reportingInstructions={admSettings?.reporting_instructions || ''}
+                admissionTestDate={admSettings?.admission_test_date}
+                admissionTestTime={admSettings?.admission_test_time}
               />
             </div>
           </div>
@@ -3437,6 +3441,9 @@ export default function OnlineApplicationPage() {
               form={form}
               applicationId={result?.application_id}
               documents={documents}
+              pageSize={admSettings?.print_page_size || 'Legal'}
+              admissionTestDate={admSettings?.admission_test_date}
+              admissionTestTime={admSettings?.admission_test_time}
             />
           </div>
         </div>

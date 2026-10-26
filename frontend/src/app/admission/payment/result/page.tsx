@@ -297,6 +297,8 @@ function PaymentResultInner() {
               paymentStatus={appData.payment_status}
               paymentTransactionId={appData.payment_transaction_id}
               interviewSlot={appData.interview_slot}
+              admissionTestDate={(appData as any).admission_test_date || (appData as any).entrance_exam_date}
+              admissionTestTime={(appData as any).admission_test_time || (appData as any).interview_time}
             />
           </div>
         </div>

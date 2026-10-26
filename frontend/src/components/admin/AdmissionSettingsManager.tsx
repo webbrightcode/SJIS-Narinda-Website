@@ -28,6 +28,7 @@ import {
 } from '@/lib/api';
 import type { AdmissionSettings, DocumentChecklistItem } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
+import { formatAdmitCardDate } from '@/components/admission/PrintableApplicationForm';
 
 interface Props {
   token: string;
@@ -66,6 +67,9 @@ export const AdmissionSettingsManager: React.FC<Props> = ({ token, onToast }) =>
     document_checklist: DocumentChecklistItem[];
     reporting_instructions: string;
     interview_mode: 'slot_based' | 'manual';
+    admission_test_date: string;
+    admission_test_time: string;
+    admission_test_venue: string;
   }>({
     payment_required: false,
     payment_gateway: 'manual',
@@ -88,6 +92,9 @@ export const AdmissionSettingsManager: React.FC<Props> = ({ token, onToast }) =>
     document_checklist: [],
     reporting_instructions: '',
     interview_mode: 'slot_based',
+    admission_test_date: "7th March '26",
+    admission_test_time: '09:30 AM',
+    admission_test_venue: 'SJIS Narinda Campus',
   });
 
   const loadSettings = async () => {
@@ -118,6 +125,9 @@ export const AdmissionSettingsManager: React.FC<Props> = ({ token, onToast }) =>
           document_checklist: Array.isArray(data.document_checklist) ? data.document_checklist : [],
           reporting_instructions: data.reporting_instructions || '',
           interview_mode: data.interview_mode || 'slot_based',
+          admission_test_date: data.admission_test_date || "7th March '26",
+          admission_test_time: data.admission_test_time || '09:30 AM',
+          admission_test_venue: data.admission_test_venue || 'SJIS Narinda Campus',
         });
       }
     } catch {
@@ -818,6 +828,105 @@ export const AdmissionSettingsManager: React.FC<Props> = ({ token, onToast }) =>
               <option value="slot_based">Automated (Auto-assign available interview slot on payment/submit)</option>
               <option value="manual">Manual (Admin assigns interview slot per applicant individually)</option>
             </select>
+          </div>
+        </div>
+
+        {/* PANEL: Dynamic Admission Test & Admit Card Schedule */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-5 lg:col-span-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-2">
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                <Calendar className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-[#00183F]">
+                  Admission Test / Assessment Schedule (Admit Card)
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  Dynamically sets the exam date and time printed on candidate admit cards
+                </p>
+              </div>
+            </div>
+            <div className="self-start sm:self-auto px-3 py-1 bg-amber-50 rounded-lg border border-amber-200 text-[11px] font-bold text-amber-900 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+              <span>Live Admit Card Preview</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Admission Test Date
+              </label>
+              <div className="space-y-1.5">
+                <input
+                  type="text"
+                  placeholder="e.g. 7th March '26 or 2026-03-07"
+                  value={formData.admission_test_date}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, admission_test_date: e.target.value }))
+                  }
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-1 focus:ring-[#00183F] font-bold text-slate-900"
+                />
+                <div className="flex items-center gap-2 text-[10px] text-slate-500">
+                  <span>Quick pick:</span>
+                  <input
+                    type="date"
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        setFormData((prev) => ({
+                          ...prev,
+                          admission_test_date: formatAdmitCardDate(e.target.value),
+                        }));
+                      }
+                    }}
+                    className="text-[10px] px-2 py-0.5 border border-slate-200 rounded-md bg-slate-50 cursor-pointer"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Admission Test Time
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. 09:30 AM"
+                value={formData.admission_test_time}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, admission_test_time: e.target.value }))
+                }
+                className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-1 focus:ring-[#00183F] font-bold text-slate-900"
+              />
+              <p className="text-[10px] text-slate-400 mt-1">Default start time for test sessions</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Test / Assessment Venue
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. SJIS Narinda Campus"
+                value={formData.admission_test_venue}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, admission_test_venue: e.target.value }))
+                }
+                className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-1 focus:ring-[#00183F] font-bold text-slate-900"
+              />
+              <p className="text-[10px] text-slate-400 mt-1">Physical campus venue or room</p>
+            </div>
+          </div>
+
+          {/* Live Preview Card */}
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+            <span className="font-bold text-slate-500 uppercase tracking-wider text-[10px] block mb-1">
+              Verbatim Admit Card Sentence Preview:
+            </span>
+            <p className="font-serif italic text-slate-900 text-[12px] leading-relaxed">
+              &ldquo;...may face interview/write the admission test for class <span className="font-sans font-bold not-italic underline decoration-dotted decoration-black px-1">Playgroup (Age 3.5+)</span> to be held on <span className="font-sans font-black not-italic bg-amber-100 text-amber-950 px-1.5 py-0.5 rounded border border-amber-300">{formatAdmitCardDate(formData.admission_test_date) || '....................'}</span> at <span className="font-sans font-black not-italic bg-amber-100 text-amber-950 px-1.5 py-0.5 rounded border border-amber-300">{formData.admission_test_time || '09:30 AM'}</span> the candidate should bring a ballpoint pen, ruler and admit card. Paper will be supplied by the School.&rdquo;
+            </p>
           </div>
         </div>
 

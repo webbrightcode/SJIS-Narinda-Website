@@ -582,10 +582,22 @@ class AdmissionSettings(models.Model):
         help_text="Special instructions printed at the bottom of the admit card (e.g. reporting time, dress code, what to bring)."
     )
 
-    # ── Interview Scheduling ──────────────────────────────────────────────────
+    # ── Interview Scheduling & Admit Card Date ────────────────────────────────
     interview_mode = models.CharField(
         max_length=20, choices=INTERVIEW_MODE_CHOICES, default='manual',
         help_text="How interview slots are assigned to applicants."
+    )
+    admission_test_date = models.CharField(
+        max_length=100, blank=True, default="7th March '26",
+        help_text="Default admission test / interview date printed on admit cards (e.g. 7th March '26 or 2026-03-07)."
+    )
+    admission_test_time = models.CharField(
+        max_length=50, blank=True, default="09:30 AM",
+        help_text="Default admission test / interview time printed on admit cards (e.g. 09:30 AM)."
+    )
+    admission_test_venue = models.CharField(
+        max_length=255, blank=True, default="SJIS Narinda Campus",
+        help_text="Default venue for admission test / interview."
     )
 
     updated_at = models.DateTimeField(auto_now=True)

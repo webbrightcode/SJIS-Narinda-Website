@@ -255,8 +255,9 @@ class AdmissionSettingsAdmin(admin.ModelAdmin):
         ('Document Checklist (Printed on Admit Card)', {
             'fields': ('document_checklist', 'reporting_instructions'),
         }),
-        ('Interview Scheduling', {
-            'fields': ('interview_mode',),
+        ('Interview Scheduling & Default Admit Card Test Schedule', {
+            'fields': ('interview_mode', 'admission_test_date', 'admission_test_time', 'admission_test_venue'),
+            'description': 'Configure default admission test / assessment date & time printed on candidate admit cards.',
         }),
     )
 
