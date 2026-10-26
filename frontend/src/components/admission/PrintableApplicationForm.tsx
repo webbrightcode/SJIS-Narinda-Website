@@ -312,10 +312,10 @@ export function PrintableApplicationForm({
               {/* Central Title, School Name, Address, Form No, and Instruction Banner */}
               <div className="flex flex-col justify-between h-full text-center px-1">
                 <div>
-                  <h1 className="text-sm sm:text-base print:text-[15px] font-bold tracking-tight text-black uppercase leading-tight">
+                  <h1 className="text-base sm:text-lg print:text-[18px] font-bold tracking-tight text-black uppercase leading-tight">
                     APPLICATION FOR ADMISSION TEST
                   </h1>
-                  <h2 className="text-xs sm:text-[12.5px] print:text-[12.5px] font-bold text-black mt-0.5 print:mt-0.5 leading-tight">
+                  <h2 className="text-sm sm:text-base print:text-[14.5px] font-bold text-black mt-0.5 print:mt-0.5 leading-tight">
                     St. Joseph International School (Narinda Campus)
                   </h2>
                   <p className="text-[9.5px] sm:text-[10.5px] print:text-[10px] text-black font-normal leading-tight">
@@ -650,10 +650,10 @@ export function PrintableApplicationForm({
             {/* Center Title + School Address + Form No */}
             <div className="flex flex-col justify-between h-full text-center px-1">
               <div>
-                <h3 className="text-sm sm:text-base print:text-[15px] font-bold text-black uppercase tracking-normal leading-tight">
+                <h3 className="text-base sm:text-lg print:text-[17px] font-bold text-black uppercase tracking-normal leading-tight">
                   ADMIT CARD
                 </h3>
-                <h4 className="text-xs sm:text-[12px] print:text-[12px] font-bold text-black mt-0.5 print:mt-0.5 leading-tight">
+                <h4 className="text-sm sm:text-[14px] print:text-[13.5px] font-bold text-black mt-0.5 print:mt-0.5 leading-tight">
                   St. Joseph International School (Narinda Campus)
                 </h4>
                 <p className="text-[9.5px] sm:text-[10px] print:text-[9.5px] text-black font-normal leading-tight">
