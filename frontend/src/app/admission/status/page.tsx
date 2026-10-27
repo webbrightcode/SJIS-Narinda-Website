@@ -384,25 +384,41 @@ function StatusCheckerInner() {
   const searchParams = useSearchParams();
   const initialId = searchParams.get('id') || searchParams.get('form_no') || '';
   const initialPhone = searchParams.get('phone') || '';
+  const initialDob = searchParams.get('dob') || '';
 
+  const [authMethod, setAuthMethod] = useState<'phone' | 'dob'>(initialDob && !initialPhone ? 'dob' : 'phone');
   const [appId, setAppId] = useState(initialId);
   const [phone, setPhone] = useState(initialPhone);
+  const [dob, setDob] = useState(initialDob);
   const [inputId, setInputId] = useState(initialId);
   const [inputPhone, setInputPhone] = useState(initialPhone);
+  const [inputDob, setInputDob] = useState(initialDob);
   const [loading, setLoading] = useState(false);
   const [statusData, setStatusData] = useState<ApplicationStatusResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleCheck = async (idToCheck = inputId, phoneToCheck = inputPhone) => {
+  const handleCheck = async (
+    idToCheck = inputId,
+    phoneToCheck = inputPhone,
+    dobToCheck = inputDob,
+    method = authMethod
+  ) => {
     const trimmedId = idToCheck.trim().toUpperCase();
     const trimmedPhone = phoneToCheck.trim();
+    const trimmedDob = dobToCheck.trim();
 
     if (!trimmedId) {
       setError('Please enter your Application Reference ID or Form Number.');
       return;
     }
-    if (!trimmedPhone) {
+
+    if (method === 'phone' && !trimmedPhone) {
       setError('Please enter the registered Guardian Mobile Number to verify credentials.');
+      return;
+    }
+
+    if (method === 'dob' && !trimmedDob) {
+      setError("Please select or enter the Student's Date of Birth to verify credentials.");
       return;
     }
 
@@ -410,19 +426,31 @@ function StatusCheckerInner() {
     setError(null);
     setStatusData(null);
 
-    const res = await trackApplicationStatus(trimmedId, true, trimmedPhone);
+    const res = await trackApplicationStatus(
+      trimmedId,
+      true,
+      method === 'phone' ? trimmedPhone : undefined,
+      method === 'dob' ? trimmedDob : undefined
+    );
     setLoading(false);
 
     if (res.success && res.data) {
       setStatusData(res.data);
       setAppId(trimmedId);
-      setPhone(trimmedPhone);
+      if (method === 'phone') setPhone(trimmedPhone);
+      if (method === 'dob') setDob(trimmedDob);
 
-      // Keep browser URL updated for easy sharing/refreshing without page reload
+      // Keep browser URL updated for sharing/refreshing
       try {
         const nextUrl = new URL(window.location.href);
         nextUrl.searchParams.set('id', trimmedId);
-        nextUrl.searchParams.set('phone', trimmedPhone);
+        if (method === 'phone' && trimmedPhone) {
+          nextUrl.searchParams.set('phone', trimmedPhone);
+          nextUrl.searchParams.delete('dob');
+        } else if (method === 'dob' && trimmedDob) {
+          nextUrl.searchParams.set('dob', trimmedDob);
+          nextUrl.searchParams.delete('phone');
+        }
         window.history.replaceState({}, '', nextUrl.toString());
       } catch {
         // Fallback silently if history API is restricted
@@ -430,16 +458,16 @@ function StatusCheckerInner() {
     } else {
       setError(
         res.error ||
-        'No matching application found for this Application ID / Form Number and Mobile Number. Please verify your credentials or contact admissions desk.'
+        'No matching application found for this Application Reference and credential combination. Please verify your details or contact admissions desk.'
       );
     }
   };
 
   useEffect(() => {
-    if (initialId && initialPhone) {
-      handleCheck(initialId, initialPhone);
-    } else if (initialId && !initialPhone) {
-      setError('For candidate privacy and security, please enter your registered mobile number to proceed.');
+    if (initialId && (initialPhone || initialDob)) {
+      handleCheck(initialId, initialPhone, initialDob, initialDob && !initialPhone ? 'dob' : 'phone');
+    } else if (initialId && !initialPhone && !initialDob) {
+      setError('For candidate privacy and security, please verify using either your registered mobile number or date of birth.');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -466,7 +494,7 @@ function StatusCheckerInner() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            handleCheck(inputId, inputPhone);
+            handleCheck(inputId, inputPhone, inputDob, authMethod);
           }}
           className="space-y-4"
         >
@@ -494,28 +522,86 @@ function StatusCheckerInner() {
             </p>
           </div>
 
-          {/* Field 2: Registered Mobile Number */}
+          {/* Verification Method Selector & Dynamic Field */}
           <div>
-            <label
-              htmlFor="guardian-phone-input"
-              className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5"
-            >
-              Registered Guardian Mobile <span className="text-rose-500">*</span>
-            </label>
-            <div className="relative">
-              <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="tel"
-                id="guardian-phone-input"
-                value={inputPhone}
-                onChange={(e) => setInputPhone(e.target.value)}
-                placeholder="e.g. 01712-345678 or +8801..."
-                className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00183F]/30 focus:border-[#00183F] text-sm font-mono text-slate-900 tracking-wider placeholder:normal-case placeholder:font-sans placeholder:text-slate-400 transition-all bg-slate-50/50 focus:bg-white"
-              />
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
+                Verification Key <span className="text-rose-500">*</span>
+              </label>
+              <div className="inline-flex bg-slate-100 p-0.5 rounded-lg text-xs font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setAuthMethod('phone')}
+                  className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 ${
+                    authMethod === 'phone'
+                      ? 'bg-white text-[#00183F] shadow-xs font-bold'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <Phone className="w-3 h-3" /> Mobile
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAuthMethod('dob')}
+                  className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 ${
+                    authMethod === 'dob'
+                      ? 'bg-white text-[#00183F] shadow-xs font-bold'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <CalendarDays className="w-3 h-3" /> Date of Birth
+                </button>
+              </div>
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">
-              The primary, father&apos;s, or mother&apos;s mobile number provided on the application
-            </p>
+
+            {authMethod === 'phone' ? (
+              <div>
+                <div className="relative">
+                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="tel"
+                    id="guardian-phone-input"
+                    value={inputPhone}
+                    onChange={(e) => setInputPhone(e.target.value)}
+                    placeholder="e.g. 01712-345678 or +8801..."
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00183F]/30 focus:border-[#00183F] text-sm font-mono text-slate-900 tracking-wider placeholder:normal-case placeholder:font-sans placeholder:text-slate-400 transition-all bg-slate-50/50 focus:bg-white"
+                  />
+                </div>
+                <div className="flex items-center justify-between mt-1 text-[11px]">
+                  <span className="text-slate-400">Registered guardian mobile number</span>
+                  <button
+                    type="button"
+                    onClick={() => setAuthMethod('dob')}
+                    className="text-[#00183F] hover:text-[#C8102E] font-semibold underline cursor-pointer"
+                  >
+                    Verify with Date of Birth instead
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="relative">
+                  <CalendarDays className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="date"
+                    id="student-dob-input"
+                    value={inputDob}
+                    onChange={(e) => setInputDob(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00183F]/30 focus:border-[#00183F] text-sm text-slate-900 transition-all bg-slate-50/50 focus:bg-white"
+                  />
+                </div>
+                <div className="flex items-center justify-between mt-1 text-[11px]">
+                  <span className="text-slate-400">Candidate&apos;s registered date of birth</span>
+                  <button
+                    type="button"
+                    onClick={() => setAuthMethod('phone')}
+                    className="text-[#00183F] hover:text-[#C8102E] font-semibold underline cursor-pointer"
+                  >
+                    Verify with Mobile Number instead
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Submit Button */}
@@ -571,7 +657,7 @@ function StatusCheckerInner() {
       {/* Refresh */}
       {statusData && (
         <button
-          onClick={() => handleCheck(appId, phone)}
+          onClick={() => handleCheck(appId, phone, dob, authMethod)}
           className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 text-xs text-slate-500 hover:text-[#00183F] transition-colors font-bold print:hidden cursor-pointer"
         >
           <RefreshCw className="w-3.5 h-3.5" /> Refresh Application Status

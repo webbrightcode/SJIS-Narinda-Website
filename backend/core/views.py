@@ -1,5 +1,6 @@
 import re
 import uuid
+from datetime import datetime, date
 from urllib.parse import quote
 from django.conf import settings
 from django.contrib.auth import authenticate
@@ -1335,7 +1336,9 @@ class ApplicationTrackRateThrottle(SimpleRateThrottle):
 class ApplicationStatusLookupView(APIView):
     """
     Public: GET /api/applications/track/?id=SJIS-2026-00001&phone=01711XXXXXX
-    Dual-Factor Verification: Requires Application ID / Form Number AND Guardian's registered phone.
+            OR /api/applications/track/?id=SJIS-2026-00001&dob=2018-05-14
+    Dual-Factor Verification: Requires Application ID / Form Number AND
+    (Guardian's registered phone OR Candidate's Date of Birth).
     Protects candidate PII from unauthorized guessing, scraping, and sequence enumeration.
     Rate-limited to 20 attempts/minute per IP.
     """
@@ -1345,6 +1348,7 @@ class ApplicationStatusLookupView(APIView):
     def get(self, request):
         raw_key = (request.query_params.get('id') or request.query_params.get('form_no') or '').strip()
         phone_param = (request.query_params.get('phone') or '').strip()
+        dob_param = (request.query_params.get('dob') or request.query_params.get('date_of_birth') or '').strip()
 
         if not raw_key:
             return Response(
@@ -1354,12 +1358,12 @@ class ApplicationStatusLookupView(APIView):
 
         is_staff = bool(request.user and request.user.is_authenticated)
 
-        # Phone is required for public applicants to prevent unauthorized PII disclosure
-        if not is_staff and not phone_param:
+        # Either Phone OR Date of Birth is required for public applicants to verify identity
+        if not is_staff and not phone_param and not dob_param:
             return Response(
                 {
-                    'error': 'For student privacy, please enter the registered guardian mobile number.',
-                    'requires_phone': True
+                    'error': 'For student privacy, please provide either the registered guardian mobile number or student date of birth.',
+                    'requires_verification': True
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
@@ -1380,40 +1384,59 @@ class ApplicationStatusLookupView(APIView):
 
         # Unified generic error to prevent user enumeration
         GENERIC_NOT_FOUND = {
-            'error': 'No matching application found for this Application ID / Form Number and Mobile Number. Please verify your credentials or contact the admissions office.'
+            'error': 'No matching application found for this Application Reference and credential combination. Please verify your details or contact the admissions office.'
         }
 
         if not app:
             return Response(GENERIC_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
 
-        # Verify phone number against contact_phone, father_phone, mother_phone
+        # Verify identity: Phone OR Date of Birth
         if not is_staff:
-            clean_input = re.sub(r'\D', '', phone_param)
-            if len(clean_input) < 6:
-                return Response(
-                    {'error': 'Please enter a valid mobile number (at least 6 digits).'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+            verified = False
 
-            applicant_phones = [
-                re.sub(r'\D', '', getattr(app, f) or '')
-                for f in ('contact_phone', 'father_phone', 'mother_phone')
-            ]
+            # 1. Verify Phone if provided
+            if phone_param:
+                clean_input = re.sub(r'\D', '', phone_param)
+                if len(clean_input) >= 6:
+                    applicant_phones = [
+                        re.sub(r'\D', '', getattr(app, f) or '')
+                        for f in ('contact_phone', 'father_phone', 'mother_phone')
+                    ]
+                    for ap in applicant_phones:
+                        if not ap or len(ap) < 6:
+                            continue
+                        match_len = min(len(clean_input), len(ap), 8)
+                        if clean_input.endswith(ap[-match_len:]) or ap.endswith(clean_input[-match_len:]):
+                            verified = True
+                            break
+                        if len(clean_input) >= 10 and len(ap) >= 10 and clean_input[-10:] == ap[-10:]:
+                            verified = True
+                            break
 
-            phone_matches = False
-            for ap in applicant_phones:
-                if not ap or len(ap) < 6:
-                    continue
-                # Match last 8 to 11 digits (handles 017XXXXXXXX vs +88017XXXXXXXX vs 88017XXXXXXXX)
-                match_len = min(len(clean_input), len(ap), 8)
-                if clean_input.endswith(ap[-match_len:]) or ap.endswith(clean_input[-match_len:]):
-                    phone_matches = True
-                    break
-                if len(clean_input) >= 10 and len(ap) >= 10 and clean_input[-10:] == ap[-10:]:
-                    phone_matches = True
-                    break
+            # 2. Verify Date of Birth if provided and not yet verified
+            if not verified and dob_param and app.date_of_birth:
+                parsed_dob = None
+                clean_dob_str = dob_param.strip()
+                for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%d.%m.%Y', '%m/%d/%Y', '%Y/%m/%d'):
+                    try:
+                        parsed_dob = datetime.strptime(clean_dob_str, fmt).date()
+                        break
+                    except (ValueError, TypeError):
+                        continue
+                if not parsed_dob:
+                    digits = re.sub(r'\D', '', clean_dob_str)
+                    if len(digits) == 8:
+                        for fmt in ('%Y%m%d', '%d%m%Y', '%m%d%Y'):
+                            try:
+                                parsed_dob = datetime.strptime(digits, fmt).date()
+                                break
+                            except (ValueError, TypeError):
+                                continue
 
-            if not phone_matches:
+                if parsed_dob and parsed_dob == app.date_of_birth:
+                    verified = True
+
+            if not verified:
                 return Response(GENERIC_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
 
         STATUS_MESSAGES = {
