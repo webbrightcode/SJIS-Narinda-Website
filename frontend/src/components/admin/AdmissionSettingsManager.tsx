@@ -21,6 +21,9 @@ import {
   GraduationCap,
   ArrowUp,
   ArrowDown,
+  Pencil,
+  Check,
+  X,
 } from 'lucide-react';
 import {
   getAdmissionSettings,
@@ -43,6 +46,8 @@ export const AdmissionSettingsManager: React.FC<Props> = ({ token, onToast }) =>
   const [newDocItem, setNewDocItem] = useState('');
   const [newDocRequired, setNewDocRequired] = useState(true);
   const [newGradeInput, setNewGradeInput] = useState('');
+  const [editingGradeIndex, setEditingGradeIndex] = useState<number | null>(null);
+  const [editingGradeText, setEditingGradeText] = useState('');
 
   // Form state
   const [formData, setFormData] = useState<{
@@ -173,7 +178,45 @@ export const AdmissionSettingsManager: React.FC<Props> = ({ token, onToast }) =>
     setNewGradeInput('');
   };
 
+  const startEditingGrade = (index: number, currentName: string) => {
+    setEditingGradeIndex(index);
+    setEditingGradeText(currentName);
+  };
+
+  const cancelEditingGrade = () => {
+    setEditingGradeIndex(null);
+    setEditingGradeText('');
+  };
+
+  const saveEditingGrade = (index: number) => {
+    const trimmed = editingGradeText.trim();
+    if (!trimmed) {
+      onToast?.('Grade name cannot be empty.');
+      return;
+    }
+    if (
+      formData.available_grades.some(
+        (grade, i) => i !== index && grade.toLowerCase() === trimmed.toLowerCase()
+      )
+    ) {
+      onToast?.('Another class/grade with this name already exists.');
+      return;
+    }
+    setFormData((prev) => ({
+      ...prev,
+      available_grades: prev.available_grades.map((grade, i) => (i === index ? trimmed : grade)),
+    }));
+    setEditingGradeIndex(null);
+    setEditingGradeText('');
+    onToast?.('Grade name updated. Click "Save All Settings" to apply changes.');
+  };
+
   const removeGradeItem = (index: number) => {
+    if (editingGradeIndex === index) {
+      cancelEditingGrade();
+    } else if (editingGradeIndex !== null && editingGradeIndex > index) {
+      setEditingGradeIndex(editingGradeIndex - 1);
+    }
     setFormData((prev) => ({
       ...prev,
       available_grades: prev.available_grades.filter((_, i) => i !== index),
@@ -183,6 +226,9 @@ export const AdmissionSettingsManager: React.FC<Props> = ({ token, onToast }) =>
   const moveGradeItem = (index: number, direction: 'up' | 'down') => {
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= formData.available_grades.length) return;
+    if (editingGradeIndex !== null) {
+      cancelEditingGrade();
+    }
     const list = [...formData.available_grades];
     const [moved] = list.splice(index, 1);
     list.splice(targetIndex, 0, moved);
@@ -190,6 +236,7 @@ export const AdmissionSettingsManager: React.FC<Props> = ({ token, onToast }) =>
   };
 
   const resetGradesToDefault = () => {
+    cancelEditingGrade();
     setFormData((prev) => ({
       ...prev,
       available_grades: [
@@ -371,50 +418,114 @@ export const AdmissionSettingsManager: React.FC<Props> = ({ token, onToast }) =>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                {formData.available_grades.map((grade, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-indigo-300 transition-all text-xs group shadow-2xs"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="w-5 h-5 rounded-md bg-indigo-100 text-indigo-800 text-[10px] font-black flex items-center justify-center shrink-0">
-                        {index + 1}
-                      </span>
-                      <span className="font-bold text-slate-800 truncate" title={grade}>
-                        {grade}
-                      </span>
-                    </div>
+                {formData.available_grades.map((grade, index) => {
+                  const isEditing = editingGradeIndex === index;
+                  return (
+                    <div
+                      key={index}
+                      className={`flex items-center justify-between p-2.5 rounded-xl border transition-all text-xs group shadow-2xs ${
+                        isEditing
+                          ? 'border-indigo-400 bg-white ring-2 ring-indigo-100 shadow-sm'
+                          : 'border-slate-200 bg-slate-50/70 hover:bg-white hover:border-indigo-300'
+                      }`}
+                    >
+                      {isEditing ? (
+                        <div className="flex items-center gap-1.5 w-full">
+                          <span className="w-5 h-5 rounded-md bg-indigo-600 text-white text-[10px] font-black flex items-center justify-center shrink-0">
+                            {index + 1}
+                          </span>
+                          <input
+                            type="text"
+                            value={editingGradeText}
+                            onChange={(e) => setEditingGradeText(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                saveEditingGrade(index);
+                              } else if (e.key === 'Escape') {
+                                e.preventDefault();
+                                cancelEditingGrade();
+                              }
+                            }}
+                            autoFocus
+                            placeholder="Grade name..."
+                            className="flex-1 min-w-0 px-2 py-1 text-xs font-bold text-slate-800 bg-white border border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                          />
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => saveEditingGrade(index)}
+                              className="p-1 rounded text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer"
+                              title="Save Changes (Enter)"
+                            >
+                              <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={cancelEditingGrade}
+                              className="p-1 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                              title="Cancel (Esc)"
+                            >
+                              <X className="w-3.5 h-3.5 stroke-[2.5]" />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <span className="w-5 h-5 rounded-md bg-indigo-100 text-indigo-800 text-[10px] font-black flex items-center justify-center shrink-0">
+                              {index + 1}
+                            </span>
+                            <span
+                              className="font-bold text-slate-800 truncate cursor-pointer hover:text-indigo-600 transition-colors"
+                              title={`${grade} (Click to edit)`}
+                              onClick={() => startEditingGrade(index, grade)}
+                            >
+                              {grade}
+                            </span>
+                          </div>
 
-                    <div className="flex items-center gap-1 shrink-0 ml-2">
-                      <button
-                        type="button"
-                        onClick={() => moveGradeItem(index, 'up')}
-                        disabled={index === 0}
-                        className="p-1 rounded text-slate-400 hover:text-indigo-700 hover:bg-indigo-50 disabled:opacity-30 disabled:hover:bg-transparent transition-colors cursor-pointer"
-                        title="Move Up"
-                      >
-                        <ArrowUp className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => moveGradeItem(index, 'down')}
-                        disabled={index === formData.available_grades.length - 1}
-                        className="p-1 rounded text-slate-400 hover:text-indigo-700 hover:bg-indigo-50 disabled:opacity-30 disabled:hover:bg-transparent transition-colors cursor-pointer"
-                        title="Move Down"
-                      >
-                        <ArrowDown className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeGradeItem(index)}
-                        className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                        title="Remove Grade"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                          <div className="flex items-center gap-1 shrink-0 ml-2">
+                            <button
+                              type="button"
+                              onClick={() => startEditingGrade(index, grade)}
+                              className="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
+                              title="Edit Grade Name"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveGradeItem(index, 'up')}
+                              disabled={index === 0}
+                              className="p-1 rounded text-slate-400 hover:text-indigo-700 hover:bg-indigo-50 disabled:opacity-30 disabled:hover:bg-transparent transition-colors cursor-pointer"
+                              title="Move Up"
+                            >
+                              <ArrowUp className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveGradeItem(index, 'down')}
+                              disabled={index === formData.available_grades.length - 1}
+                              className="p-1 rounded text-slate-400 hover:text-indigo-700 hover:bg-indigo-50 disabled:opacity-30 disabled:hover:bg-transparent transition-colors cursor-pointer"
+                              title="Move Down"
+                            >
+                              <ArrowDown className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removeGradeItem(index)}
+                              className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                              title="Remove Grade"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
