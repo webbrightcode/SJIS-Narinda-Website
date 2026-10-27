@@ -105,49 +105,68 @@ export async function fetchWithTimeout(url: string, options?: RequestInit, timeo
   }
 }
 
-async function fetchWithFallback<T>(url: string, fallback: T, options?: RequestInit): Promise<T> {
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
+async function fetchWithFallback<T>(url: string, fallback: T, options?: RequestInit, maxRetries = 2): Promise<T> {
+  const targetUrl = apiUrl(url);
+  const isServer = typeof window === 'undefined';
+  // Allow more time for initial cold start / reload during SSR
+  const timeoutMs = isServer ? 8000 : 4000;
 
-    const targetUrl = apiUrl(url);
-    const isNoCache =
-      options?.cache === 'no-store' ||
-      Boolean((options?.headers as Record<string, string> | undefined)?.['Authorization']);
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-    const res = await fetch(targetUrl, {
-      ...options,
-      signal: controller.signal,
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        ...options?.headers,
-      },
-      ...(isNoCache
-        ? { cache: 'no-store', next: { revalidate: 0 } }
-        : { next: { revalidate: 60 } }),
-    });
+      const isNoCache =
+        options?.cache === 'no-store' ||
+        Boolean((options?.headers as Record<string, string> | undefined)?.['Authorization']);
 
-    clearTimeout(timeoutId);
+      const res = await fetch(targetUrl, {
+        ...options,
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          ...options?.headers,
+        },
+        ...(isNoCache
+          ? { cache: 'no-store', next: { revalidate: 0 } }
+          : { next: { revalidate: 60 } }),
+      });
 
-    if (!res.ok) {
-      if (typeof window === 'undefined') {
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data && typeof data === 'object' && 'results' in data && Array.isArray(data.results)) {
+          return data.results as T;
+        }
+        return data as T;
+      }
+
+      // If backend is restarting / warming up (502, 503, 504), pause and retry before falling back
+      if ((res.status === 502 || res.status === 503 || res.status === 504) && attempt < maxRetries) {
+        await new Promise((r) => setTimeout(r, 600));
+        continue;
+      }
+
+      if (isServer) {
         console.warn(`[SSR API Warning] ${targetUrl} returned HTTP ${res.status}. Falling back to cached data.`);
       }
       return fallback;
+    } catch (err: any) {
+      // If network refused / aborted during backend reload, retry before falling back to dummy data
+      if (attempt < maxRetries) {
+        await new Promise((r) => setTimeout(r, 600));
+        continue;
+      }
+      if (isServer) {
+        console.warn(`[SSR API Notice] Backend at ${targetUrl} not reached (${err?.message || err}). Using fallback.`);
+      }
+      return fallback;
     }
-
-    const data = await res.json();
-    if (data && typeof data === 'object' && 'results' in data && Array.isArray(data.results)) {
-      return data.results as T;
-    }
-    return data as T;
-  } catch (err: any) {
-    if (typeof window === 'undefined') {
-      console.warn(`[SSR API Notice] Backend at ${apiUrl(url)} not reached (${err?.message || err}). Using fallback.`);
-    }
-    return fallback;
   }
+
+  return fallback;
 }
 
 // ---------------- PUBLIC API ENDPOINTS ---------------- //

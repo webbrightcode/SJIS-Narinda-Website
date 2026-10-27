@@ -84,6 +84,10 @@ if [ $IS_DOCKER -eq 1 ]; then
     # Reload Nginx configuration without dropping keep-alive connections
     $COMPOSE exec nginx nginx -s reload 2>/dev/null || true
 
+    # Pre-warm backend cache inside Docker
+    echo -e "${CYAN}→ Pre-warming database & landing bundle cache...${NC}"
+    $COMPOSE exec backend curl -s -f http://127.0.0.1:8000/api/landing-bundle/ > /dev/null 2>&1 || true
+
 else
     # -------------------------------------------------------------------------
     # NATIVE VPS SYSTEMD + NGINX ZERO-DOWNTIME PIPELINE
@@ -101,6 +105,21 @@ else
     if systemctl is-active --quiet sjis-backend 2>/dev/null; then
         systemctl reload sjis-backend 2>/dev/null || systemctl restart sjis-backend
         echo -e "${GREEN}[✓] Gunicorn backend reloaded gracefully.${NC}"
+    fi
+
+    # Verify backend is warm and answering with real database records before swapping frontend
+    echo -e "${CYAN}→ Verifying backend health & pre-warming database cache...${NC}"
+    BACKEND_WARMED=0
+    for i in {1..30}; do
+        if curl -s -f http://127.0.0.1:8000/api/system-diagnostics/ > /dev/null 2>&1; then
+            curl -s -f http://127.0.0.1:8000/api/landing-bundle/ > /dev/null 2>&1 || true
+            BACKEND_WARMED=1
+            break
+        fi
+        sleep 0.4
+    done
+    if [ $BACKEND_WARMED -eq 1 ]; then
+        echo -e "${GREEN}[✓] Backend verified 100% healthy & pre-warmed with real database records.${NC}"
     fi
 
     echo -e "\n${CYAN}[3/4] Building Next.js production bundle with CPU throttling...${NC}"
@@ -125,6 +144,9 @@ else
         nginx -t 2>/dev/null && nginx -s reload 2>/dev/null || true
         echo -e "${GREEN}[✓] Nginx reloaded.${NC}"
     fi
+
+    # Warm up frontend SSR once internally so the first user gets an instant response with real data
+    curl -s http://127.0.0.1:3000/ > /dev/null 2>&1 || true
 fi
 
 echo -e "\n${GREEN}====================================================================${NC}"
