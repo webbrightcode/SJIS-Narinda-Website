@@ -1097,14 +1097,20 @@ export async function submitOnlineApplication(
 }
 
 /**
- * Public: Look up application status by application_id.
+ * Public: Look up application status by application_id or form_no with guardian mobile verification.
  */
 export async function trackApplicationStatus(
   applicationId: string,
-  full = false
-): Promise<{ success: boolean; data?: ApplicationStatusResult; error?: string }> {
+  full = false,
+  phone?: string
+): Promise<{ success: boolean; data?: ApplicationStatusResult; error?: string; requiresPhone?: boolean }> {
   try {
-    const url = `/applications/track/?id=${encodeURIComponent(applicationId)}${full ? '&full=1' : ''}`;
+    const params = new URLSearchParams();
+    params.set('id', applicationId.trim());
+    if (full) params.set('full', '1');
+    if (phone && phone.trim()) params.set('phone', phone.trim());
+
+    const url = `/applications/track/?${params.toString()}`;
     const res = await fetchWithTimeout(
       apiUrl(url),
       { headers: { Accept: 'application/json' } },
@@ -1112,7 +1118,11 @@ export async function trackApplicationStatus(
     );
     const json = await res.json();
     if (res.ok) return { success: true, data: json as ApplicationStatusResult };
-    return { success: false, error: (json as { error?: string }).error || 'Application not found.' };
+    return {
+      success: false,
+      error: (json as { error?: string }).error || 'Application not found.',
+      requiresPhone: (json as { requires_phone?: boolean }).requires_phone,
+    };
   } catch {
     return { success: false, error: 'Network error. Please try again.' };
   }

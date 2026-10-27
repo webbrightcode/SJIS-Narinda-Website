@@ -1,5 +1,6 @@
 import re
 import uuid
+from urllib.parse import quote
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.shortcuts import get_object_or_404, redirect
@@ -12,6 +13,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.authtoken.models import Token
+from rest_framework.throttling import SimpleRateThrottle
 from .models import (
     SliderSlide,
     AboutInfo,
@@ -1252,6 +1254,9 @@ class PaymentCallbackView(APIView):
         else:
             verified = (pay_status in ('valid', 'validated', 'success'))
 
+        phone_param = quote(app.contact_phone or app.father_phone or app.mother_phone or '')
+        phone_qs = f'&phone={phone_param}' if phone_param else ''
+
         if verified:
             app.confirm_payment(
                 transaction_id=tran_id or app.payment_transaction_id or 'SSL-CONFIRMED',
@@ -1260,19 +1265,19 @@ class PaymentCallbackView(APIView):
             )
             if is_ipn:
                 return Response({'status': 'VALID', 'message': 'Payment confirmed.'}, status=200)
-            return redirect(f'/admission/payment/result?status=success&id={app.application_id}&tran_id={tran_id or app.payment_transaction_id}')
+            return redirect(f'/admission/payment/result?status=success&id={app.application_id}&tran_id={tran_id or app.payment_transaction_id}{phone_qs}')
         elif pay_status in ('cancel', 'cancelled'):
             app.payment_status = 'pending'
             app.save(update_fields=['payment_status'])
             if is_ipn:
                 return Response({'status': 'CANCELLED'}, status=200)
-            return redirect(f'/admission/payment/result?status=cancelled&id={app.application_id}')
+            return redirect(f'/admission/payment/result?status=cancelled&id={app.application_id}{phone_qs}')
         else:
             app.payment_status = 'failed'
             app.save(update_fields=['payment_status'])
             if is_ipn:
                 return Response({'status': 'FAILED'}, status=200)
-            return redirect(f'/admission/payment/result?status=failed&id={app.application_id}')
+            return redirect(f'/admission/payment/result?status=failed&id={app.application_id}{phone_qs}')
 
     def get(self, request):
         return self._process_payment(request, is_ipn=False)
@@ -1309,24 +1314,107 @@ class PaymentManualConfirmView(APIView):
         })
 
 
+class ApplicationTrackRateThrottle(SimpleRateThrottle):
+    scope = 'application_track'
+    rate = '20/minute'
+
+    def get_cache_key(self, request, view):
+        if request.user and request.user.is_authenticated:
+            return None  # Authenticated staff/admins are not rate-limited
+        ident = request.META.get('HTTP_X_FORWARDED_FOR')
+        if ident:
+            ident = ident.split(',')[0].strip()
+        else:
+            ident = request.META.get('REMOTE_ADDR')
+        return self.cache_format % {
+            'scope': self.scope,
+            'ident': ident or 'anon'
+        }
+
+
 class ApplicationStatusLookupView(APIView):
     """
     Public: GET /api/applications/track/?id=SJIS-2026-00001&phone=01711XXXXXX
-    Lets applicants check their status without login.
-    Confidential dossier requires phone number verification.
+    Dual-Factor Verification: Requires Application ID / Form Number AND Guardian's registered phone.
+    Protects candidate PII from unauthorized guessing, scraping, and sequence enumeration.
+    Rate-limited to 20 attempts/minute per IP.
     """
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [ApplicationTrackRateThrottle]
 
     def get(self, request):
-        app_id = request.query_params.get('id', '').strip().upper()
+        raw_key = (request.query_params.get('id') or request.query_params.get('form_no') or '').strip()
         phone_param = (request.query_params.get('phone') or '').strip()
-        if not app_id:
-            return Response({'error': 'Please provide an application ID (e.g. ?id=SJIS-2026-00001)'}, status=400)
 
+        if not raw_key:
+            return Response(
+                {'error': 'Please provide your Application ID (e.g. SJIS-2026-00001) or Form Number.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        is_staff = bool(request.user and request.user.is_authenticated)
+
+        # Phone is required for public applicants to prevent unauthorized PII disclosure
+        if not is_staff and not phone_param:
+            return Response(
+                {
+                    'error': 'For student privacy, please enter the registered guardian mobile number.',
+                    'requires_phone': True
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Find application by application_id OR form_no
+        app = None
+        key_upper = raw_key.upper()
         try:
-            app = OnlineApplication.objects.get(application_id=app_id)
+            app = OnlineApplication.objects.get(application_id=key_upper)
         except OnlineApplication.DoesNotExist:
-            return Response({'error': 'No application found with that ID. Please check and try again.'}, status=404)
+            pass
+
+        if not app:
+            try:
+                app = OnlineApplication.objects.filter(form_no__iexact=raw_key).first()
+            except Exception:
+                pass
+
+        # Unified generic error to prevent user enumeration
+        GENERIC_NOT_FOUND = {
+            'error': 'No matching application found for this Application ID / Form Number and Mobile Number. Please verify your credentials or contact the admissions office.'
+        }
+
+        if not app:
+            return Response(GENERIC_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
+
+        # Verify phone number against contact_phone, father_phone, mother_phone
+        if not is_staff:
+            clean_input = re.sub(r'\D', '', phone_param)
+            if len(clean_input) < 6:
+                return Response(
+                    {'error': 'Please enter a valid mobile number (at least 6 digits).'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            applicant_phones = [
+                re.sub(r'\D', '', getattr(app, f) or '')
+                for f in ('contact_phone', 'father_phone', 'mother_phone')
+            ]
+
+            phone_matches = False
+            for ap in applicant_phones:
+                if not ap or len(ap) < 6:
+                    continue
+                # Match last 8 to 11 digits (handles 017XXXXXXXX vs +88017XXXXXXXX vs 88017XXXXXXXX)
+                match_len = min(len(clean_input), len(ap), 8)
+                if clean_input.endswith(ap[-match_len:]) or ap.endswith(clean_input[-match_len:]):
+                    phone_matches = True
+                    break
+                if len(clean_input) >= 10 and len(ap) >= 10 and clean_input[-10:] == ap[-10:]:
+                    phone_matches = True
+                    break
+
+            if not phone_matches:
+                return Response(GENERIC_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
 
         STATUS_MESSAGES = {
             'payment_pending': 'Application details recorded. Online payment is pending. Please complete your fee payment to generate your official form number and download your admit card.',
@@ -1344,7 +1432,6 @@ class ApplicationStatusLookupView(APIView):
         }
 
         adm_settings = AdmissionSettings.get_settings()
-        full_requested = request.query_params.get('full', '') == '1'
 
         slot_data = None
         if app.interview_slot:
@@ -1356,6 +1443,16 @@ class ApplicationStatusLookupView(APIView):
                 'label': app.interview_slot.label,
                 'reporting_venue': app.interview_slot.venue or 'Campus Auditorium, St. Joseph International School, 32 Shah Shaheb Lane, Narinda, Dhaka 1100',
             }
+
+        app_serialized = OnlineApplicationSerializer(app).data
+        if not is_staff:
+            # Mask confidential internal admin notes for public parents
+            app_serialized.pop('admin_notes', None)
+
+        can_download = (
+            app.status not in ('draft', 'payment_pending') or
+            app.payment_status == 'completed'
+        ) and bool(app.form_no)
 
         res_data = {
             'application_id': app.application_id,
@@ -1388,26 +1485,10 @@ class ApplicationStatusLookupView(APIView):
             'admission_test_time': adm_settings.admission_test_time,
             'admission_test_venue': adm_settings.admission_test_venue,
             'interview_slot': slot_data,
+            'can_download_admit_card': can_download,
+            'verified_session': True,
+            'application': app_serialized,
         }
-
-        # Secondary phone authentication to protect private parent and student PII
-        clean_input = re.sub(r'\D', '', phone_param)
-        applicant_phones = [
-            re.sub(r'\D', '', getattr(app, f) or '')
-            for f in ('contact_phone', 'father_phone', 'mother_phone')
-        ]
-        phone_matches = False
-        if clean_input and len(clean_input) >= 6:
-            for ap in applicant_phones:
-                if ap and (clean_input.endswith(ap[-8:]) or ap.endswith(clean_input[-8:])):
-                    phone_matches = True
-                    break
-
-        if full_requested and (phone_matches or request.user.is_authenticated):
-            res_data['application'] = OnlineApplicationSerializer(app).data
-            res_data['verified_session'] = True
-        elif full_requested:
-            res_data['verified_session'] = False
 
         return Response(res_data)
 

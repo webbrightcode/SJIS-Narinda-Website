@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import {
   Search, CheckCircle2, Clock, XCircle, AlertCircle, FileCheck2,
   GraduationCap, CalendarDays, Shield, RefreshCw, ArrowRight, Loader2, Printer,
-  Lock, CreditCard, ExternalLink,
+  Lock, CreditCard, ExternalLink, Phone, ShieldCheck, KeyRound,
 } from 'lucide-react';
 import { trackApplicationStatus, initiatePayment } from '@/lib/api';
 import type { ApplicationStatusResult, ApplicationStatus } from '@/lib/types';
@@ -382,77 +382,185 @@ function StatusResult({ data }: { data: ApplicationStatusResult }) {
 
 function StatusCheckerInner() {
   const searchParams = useSearchParams();
-  const [appId, setAppId] = useState(searchParams.get('id') || '');
-  const [inputId, setInputId] = useState(searchParams.get('id') || '');
+  const initialId = searchParams.get('id') || searchParams.get('form_no') || '';
+  const initialPhone = searchParams.get('phone') || '';
+
+  const [appId, setAppId] = useState(initialId);
+  const [phone, setPhone] = useState(initialPhone);
+  const [inputId, setInputId] = useState(initialId);
+  const [inputPhone, setInputPhone] = useState(initialPhone);
   const [loading, setLoading] = useState(false);
   const [statusData, setStatusData] = useState<ApplicationStatusResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleCheck = async (idToCheck = appId) => {
-    const trimmed = idToCheck.trim().toUpperCase();
-    if (!trimmed) { setError('Please enter your Application ID.'); return; }
+  const handleCheck = async (idToCheck = inputId, phoneToCheck = inputPhone) => {
+    const trimmedId = idToCheck.trim().toUpperCase();
+    const trimmedPhone = phoneToCheck.trim();
+
+    if (!trimmedId) {
+      setError('Please enter your Application Reference ID or Form Number.');
+      return;
+    }
+    if (!trimmedPhone) {
+      setError('Please enter the registered Guardian Mobile Number to verify credentials.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setStatusData(null);
-    const res = await trackApplicationStatus(trimmed, true);
+
+    const res = await trackApplicationStatus(trimmedId, true, trimmedPhone);
     setLoading(false);
+
     if (res.success && res.data) {
       setStatusData(res.data);
+      setAppId(trimmedId);
+      setPhone(trimmedPhone);
+
+      // Keep browser URL updated for easy sharing/refreshing without page reload
+      try {
+        const nextUrl = new URL(window.location.href);
+        nextUrl.searchParams.set('id', trimmedId);
+        nextUrl.searchParams.set('phone', trimmedPhone);
+        window.history.replaceState({}, '', nextUrl.toString());
+      } catch {
+        // Fallback silently if history API is restricted
+      }
     } else {
-      setError(res.error || 'Application not found. Please verify your Application ID.');
+      setError(
+        res.error ||
+        'No matching application found for this Application ID / Form Number and Mobile Number. Please verify your credentials or contact admissions desk.'
+      );
     }
   };
 
   useEffect(() => {
-    const id = searchParams.get('id');
-    if (id) {
-      setAppId(id);
-      setInputId(id);
-      handleCheck(id);
+    if (initialId && initialPhone) {
+      handleCheck(initialId, initialPhone);
+    } else if (initialId && !initialPhone) {
+      setError('For candidate privacy and security, please enter your registered mobile number to proceed.');
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <div className="max-w-lg w-full print:max-w-none print:w-full">
-      {/* Search Bar */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-lg p-6 mb-5 print:hidden">
-        <h2 className="text-base font-black text-[#00183F] mb-4">Enter Your Application ID</h2>
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              id="application-id-input"
-              value={inputId}
-              onChange={e => setInputId(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleCheck(inputId)}
-              placeholder="e.g. SJIS-2026-00001"
-              className="w-full pl-9 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00183F]/30 focus:border-[#00183F] text-sm font-mono text-slate-800 uppercase tracking-wider"
-            />
+      {/* Dual Credential Verification Card */}
+      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xl p-6 mb-5 print:hidden">
+        {/* Security Badge Header */}
+        <div className="flex items-center gap-2.5 pb-4 mb-5 border-b border-slate-100">
+          <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200/60 shadow-xs">
+            <ShieldCheck className="w-5 h-5 text-emerald-600" />
           </div>
-          <button
-            id="check-status-btn"
-            onClick={() => { setAppId(inputId); handleCheck(inputId); }}
-            disabled={loading}
-            className="px-5 py-3 rounded-xl bg-[#00183F] text-white text-sm font-bold hover:bg-[#C8102E] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-          >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-            {loading ? '' : 'Check'}
-          </button>
+          <div>
+            <h2 className="text-sm font-black text-[#00183F] leading-snug">
+              Secure Application Status Lookup
+            </h2>
+            <p className="text-[11px] text-slate-500 font-medium">
+              Dual-factor credential verification to protect applicant privacy
+            </p>
+          </div>
         </div>
-        <p className="text-[10px] text-slate-400 mt-2 text-center">
-          Your Application ID was provided in your confirmation after submission (format: SJIS-YYYY-NNNNN)
-        </p>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleCheck(inputId, inputPhone);
+          }}
+          className="space-y-4"
+        >
+          {/* Field 1: Application ID or Form Number */}
+          <div>
+            <label
+              htmlFor="application-id-input"
+              className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5"
+            >
+              Application ID or Form No. <span className="text-rose-500">*</span>
+            </label>
+            <div className="relative">
+              <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                id="application-id-input"
+                value={inputId}
+                onChange={(e) => setInputId(e.target.value)}
+                placeholder="e.g. SJIS-2026-00001 or 270001"
+                className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00183F]/30 focus:border-[#00183F] text-sm font-mono text-slate-900 uppercase tracking-wider placeholder:normal-case placeholder:font-sans placeholder:text-slate-400 transition-all bg-slate-50/50 focus:bg-white"
+              />
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1">
+              Found on your confirmation slip or acknowledgment email
+            </p>
+          </div>
+
+          {/* Field 2: Registered Mobile Number */}
+          <div>
+            <label
+              htmlFor="guardian-phone-input"
+              className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5"
+            >
+              Registered Guardian Mobile <span className="text-rose-500">*</span>
+            </label>
+            <div className="relative">
+              <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="tel"
+                id="guardian-phone-input"
+                value={inputPhone}
+                onChange={(e) => setInputPhone(e.target.value)}
+                placeholder="e.g. 01712-345678 or +8801..."
+                className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00183F]/30 focus:border-[#00183F] text-sm font-mono text-slate-900 tracking-wider placeholder:normal-case placeholder:font-sans placeholder:text-slate-400 transition-all bg-slate-50/50 focus:bg-white"
+              />
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1">
+              The primary, father&apos;s, or mother&apos;s mobile number provided on the application
+            </p>
+          </div>
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            id="check-status-btn"
+            disabled={loading}
+            className="w-full mt-2 py-3.5 px-6 rounded-xl bg-gradient-to-r from-[#00183F] to-[#002B66] hover:from-[#C8102E] hover:to-[#A00D24] text-white text-sm font-black shadow-lg shadow-[#00183F]/20 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Verifying Credentials...</span>
+              </>
+            ) : (
+              <>
+                <Search className="w-4 h-4" />
+                <span>Verify & Track Status</span>
+              </>
+            )}
+          </button>
+        </form>
+
+        {/* Security Notice Footer */}
+        <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-start gap-2 text-[11px] text-slate-500 leading-relaxed">
+          <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+          <span>
+            Candidate PII, admit cards, and interview dates are strictly protected under institutional data privacy policy.
+          </span>
+        </div>
       </div>
 
-      {/* Error */}
+      {/* Error Card */}
       {error && (
-        <div className="flex items-start gap-3 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm mb-5 print:hidden">
-          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-          <div>
-            <p className="font-bold">Application Not Found</p>
-            <p className="text-xs mt-0.5">{error}</p>
+        <div className="flex items-start gap-3 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm mb-5 print:hidden animate-fade-in shadow-xs">
+          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-rose-600" />
+          <div className="space-y-1">
+            <p className="font-black text-rose-900">Verification Notice</p>
+            <p className="text-xs text-rose-700 leading-relaxed">{error}</p>
+            <p className="text-[11px] text-rose-600 font-medium pt-1">
+              Need assistance? Call Admissions Desk:{' '}
+              <a href="tel:+8801746866393" className="font-bold underline hover:text-rose-900">
+                +880 1746-866393
+              </a>
+            </p>
           </div>
         </div>
       )}
@@ -463,10 +571,10 @@ function StatusCheckerInner() {
       {/* Refresh */}
       {statusData && (
         <button
-          onClick={() => handleCheck(appId)}
-          className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 text-xs text-slate-500 hover:text-[#00183F] transition-colors font-semibold print:hidden"
+          onClick={() => handleCheck(appId, phone)}
+          className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 text-xs text-slate-500 hover:text-[#00183F] transition-colors font-bold print:hidden cursor-pointer"
         >
-          <RefreshCw className="w-3.5 h-3.5" /> Refresh Status
+          <RefreshCw className="w-3.5 h-3.5" /> Refresh Application Status
         </button>
       )}
     </div>
@@ -483,7 +591,7 @@ export default function ApplicationStatusPage() {
           </span>
           <h1 className="text-3xl sm:text-4xl font-black tracking-tight">Track Your Application</h1>
           <p className="mt-3 text-slate-300 text-sm max-w-xl mx-auto leading-relaxed">
-            Enter your Application Reference ID to check the current status of your admission application.
+            Enter your Application Reference ID or Form Number along with your registered mobile number to securely view application progress and download official documents.
           </p>
         </div>
       </section>

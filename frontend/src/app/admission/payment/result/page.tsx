@@ -27,6 +27,7 @@ function PaymentResultInner() {
   const searchParams = useSearchParams();
   const rawStatus = (searchParams.get('status') || 'pending').toLowerCase();
   const appId = (searchParams.get('id') || searchParams.get('app_id') || '').toUpperCase();
+  const phone = (searchParams.get('phone') || '').trim();
   const tranId = searchParams.get('tran_id') || '';
 
   const [loading, setLoading] = useState(Boolean(appId));
@@ -46,7 +47,7 @@ function PaymentResultInner() {
         return;
       }
       try {
-        const res = await trackApplicationStatus(appId, true);
+        const res = await trackApplicationStatus(appId, true, phone);
         if (res.success && res.data) {
           setAppData(res.data);
         }
@@ -57,7 +58,7 @@ function PaymentResultInner() {
       }
     }
     loadApp();
-  }, [appId]);
+  }, [appId, phone]);
 
   const handleRetryPayment = async () => {
     if (!appId) return;
@@ -190,7 +191,7 @@ function PaymentResultInner() {
               </button>
 
               <Link
-                href={`/admission/status?id=${appId}`}
+                href={`/admission/status?id=${appId}${phone || appData?.application?.contact_phone ? `&phone=${encodeURIComponent(phone || appData?.application?.contact_phone || '')}` : ''}`}
                 className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-[#00183F] text-amber-300 font-bold text-sm hover:bg-[#002257] transition-all shadow-md cursor-pointer"
               >
                 <FileCheck2 className="w-4 h-4" />
@@ -226,7 +227,7 @@ function PaymentResultInner() {
                 </button>
 
                 <Link
-                  href={`/admission/status?id=${appId}`}
+                  href={`/admission/status?id=${appId}${phone || appData?.application?.contact_phone ? `&phone=${encodeURIComponent(phone || appData?.application?.contact_phone || '')}` : ''}`}
                   className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl border border-slate-300 bg-white text-slate-700 font-bold text-sm hover:bg-slate-50 transition-all cursor-pointer"
                 >
                   <span>View Status</span>
