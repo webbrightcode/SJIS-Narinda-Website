@@ -440,12 +440,12 @@ export default function FacultyPage() {
                   Office & Administrative Staff
                 </h2>
               </div>
-              <span className="text-xs font-semibold text-slate-500">
+              <span className="text-xs font-semibold text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200 shadow-2xs">
                 {officeMembers.length} {officeMembers.length === 1 ? 'Officer' : 'Officers'}
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {officeMembers.map((member, idx) => (
                 <ScrollReveal
                   key={member.id}
@@ -532,64 +532,90 @@ export default function FacultyPage() {
             <div className="flex items-end justify-between border-b border-slate-200 pb-3">
               <div>
                 <div className="inline-flex items-center gap-2 text-xs font-bold tracking-widest text-[#00183F] uppercase">
-                  <span className="w-6 h-0.5 bg-[#00183F]" />
+                  <span className="w-6 h-0.5 bg-[#D4AF37]" />
                   Operational Excellence
                 </div>
                 <h2 className="text-2xl sm:text-3xl font-extrabold text-[#00183F] tracking-tight mt-1">
                   Support & Operations Staff
                 </h2>
               </div>
-              <span className="text-xs font-semibold text-slate-500">
-                {staffMembers.length} {staffMembers.length === 1 ? 'Staff' : 'Staff Members'}
+              <span className="text-xs font-semibold text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200 shadow-2xs">
+                {staffMembers.length} {staffMembers.length === 1 ? 'Staff Member' : 'Staff Members'}
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {staffMembers.map((member, idx) => (
                 <ScrollReveal
                   key={member.id}
                   direction="up"
                   distance={20}
-                  delay={idx * 50}
+                  delay={idx * 40}
                   duration={500}
                 >
                   <div
                     onClick={() => setSelectedMember(member)}
-                    className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer flex items-start gap-4 group"
+                    className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 cursor-pointer flex flex-col justify-between group relative overflow-hidden"
                   >
-                    <div className="relative w-18 h-18 sm:w-20 sm:h-20 rounded-2xl overflow-hidden shadow-sm shrink-0 bg-slate-100 border border-slate-200">
-                      <img
-                        src={member.image_url || 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=80&w=800&auto=format&fit=crop'}
-                        alt={member.name}
-                        loading="lazy"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          if (target.src !== 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=80&w=800&auto=format&fit=crop') {
-                            target.src = 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=80&w=800&auto=format&fit=crop';
-                          }
-                        }}
-                        className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
-                      />
-                    </div>
+                    <div>
+                      {/* Photo */}
+                      <div className="relative aspect-[4/4.5] w-full rounded-2xl overflow-hidden shadow-md mb-4 bg-slate-100 border border-slate-100">
+                        <img
+                          src={getMemberPhoto(member)}
+                          alt={member.name}
+                          loading="lazy"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            const fallback = '/sjis-crest-logo.png';
+                            if (target.src !== fallback) {
+                              target.src = fallback;
+                            }
+                          }}
+                          className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#00183F]/85 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                          <span className="text-xs font-bold text-white flex items-center gap-1">
+                            <span>View Profile</span>
+                            <ChevronRight className="w-3.5 h-3.5 text-amber-400 group-hover:translate-x-1 transition-transform" />
+                          </span>
+                        </div>
 
-                    <div className="space-y-1 flex-1 min-w-0">
-                      {member.department && (
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block truncate">
-                          {member.department}
-                        </span>
-                      )}
-                      <h3 className="text-base font-black text-[#00183F] group-hover:text-[#C8102E] transition-colors leading-snug truncate">
+                        {/* Operational Role Badge */}
+                        <div className="absolute top-2.5 left-2.5">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#00183F]/90 backdrop-blur-md text-amber-300 text-[10px] font-bold uppercase tracking-wider border border-amber-300/30 shadow-xs">
+                            <Briefcase className="w-2.5 h-2.5 text-amber-400" />
+                            <span>{member.department || 'Operations'}</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Name & Title below image */}
+                      <h3
+                        className="text-base font-black text-[#00183F] group-hover:text-[#C8102E] transition-colors leading-snug line-clamp-1"
+                        title={member.name}
+                      >
                         {member.name}
                       </h3>
-                      <p className="text-xs font-bold text-[#C8102E] leading-snug">
+                      <p className="text-xs font-bold text-[#C8102E] mt-1 leading-snug">
                         {member.designation}
                       </p>
 
+                      {/* Qualification / Specialty */}
                       {member.qualification && (
-                        <p className="text-[11px] text-slate-500 truncate pt-0.5">
-                          {member.qualification}
+                        <p className="text-[11px] text-slate-500 mt-2 flex items-start gap-1 leading-relaxed">
+                          <Briefcase className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                          <span className="line-clamp-2">{member.qualification}</span>
                         </p>
                       )}
+                    </div>
+
+                    {/* Bottom Action Strip */}
+                    <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+                      <span className="text-[11px] font-medium text-slate-400">Campus Services</span>
+                      <span className="text-[11px] font-bold text-[#00183F] group-hover:text-[#C8102E] flex items-center gap-0.5 transition-colors">
+                        Details
+                        <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                      </span>
                     </div>
                   </div>
                 </ScrollReveal>
