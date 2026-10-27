@@ -124,6 +124,31 @@ import { OnlineApplicationsManager } from '@/components/admin/OnlineApplications
 import { AdmissionSettingsManager } from '@/components/admin/AdmissionSettingsManager';
 import { InterviewSlotsManager } from '@/components/admin/InterviewSlotsManager';
 
+const VALID_ADMIN_TABS = [
+  'overview',
+  'about_page',
+  'slides',
+  'news',
+  'notices',
+  'clubs',
+  'facilities',
+  'gallery',
+  'inquiries',
+  'admission_guide',
+  'settings',
+  'site_settings',
+  'testimonials',
+  'faqs',
+  'faculty',
+  'syllabus',
+  'publications',
+] as const;
+
+export type AdminTab = (typeof VALID_ADMIN_TABS)[number];
+
+const VALID_PIPELINE_SUBTABS = ['applications', 'settings', 'slots', 'inquiries'] as const;
+export type PipelineSubTab = (typeof VALID_PIPELINE_SUBTABS)[number];
+
 export default function AdminDashboardPage() {
   // Authentication State
   const [token, setToken] = useState<string | null>(null);
@@ -137,26 +162,10 @@ export default function AdminDashboardPage() {
   // Mobile sidebar state
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
-  // Active Tab
-  const [activeTab, setActiveTab] = useState<
-    | 'overview'
-    | 'about_page'
-    | 'slides'
-    | 'news'
-    | 'notices'
-    | 'clubs'
-    | 'facilities'
-    | 'gallery'
-    | 'inquiries'
-    | 'admission_guide'
-    | 'settings'
-    | 'site_settings'
-    | 'testimonials'
-    | 'faqs'
-    | 'faculty'
-    | 'syllabus'
-    | 'publications'
-  >('overview');
+  // Active Tab & Subtab State (persisted across page refresh via URL & LocalStorage)
+  const [activeTab, setActiveTab] = useState<AdminTab>('overview');
+  const [admissionPipelineSubTab, setAdmissionPipelineSubTab] = useState<PipelineSubTab>('applications');
+  const [isTabRestored, setIsTabRestored] = useState(false);
 
   // Search & Filter state for lists
   const [noticeSearch, setNoticeSearch] = useState('');
@@ -169,7 +178,6 @@ export default function AdminDashboardPage() {
 
   const [inquirySearch, setInquirySearch] = useState('');
   const [inquiryStatusFilter, setInquiryStatusFilter] = useState('all');
-  const [admissionPipelineSubTab, setAdmissionPipelineSubTab] = useState<'applications' | 'settings' | 'slots' | 'inquiries'>('applications');
 
   // Activity Audit Log
   const [activityLogs, setActivityLogs] = useState<Array<{ id: string; action: string; time: string; type: string }>>([
@@ -292,7 +300,7 @@ export default function AdminDashboardPage() {
     reader.readAsDataURL(file);
   };
 
-  // Check stored auth
+  // 1. Check stored auth & restore active tab + subtab on mount
   useEffect(() => {
     const savedToken = localStorage.getItem('sjis_admin_token');
     const savedUser = localStorage.getItem('sjis_admin_user');
@@ -304,6 +312,98 @@ export default function AdminDashboardPage() {
         } catch (e) {}
       }
     }
+
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const urlTab = params.get('tab') as AdminTab | null;
+      const urlSubTab = params.get('subtab') as PipelineSubTab | null;
+      const storedTab = localStorage.getItem('sjis_admin_active_tab') as AdminTab | null;
+      const storedSubTab = localStorage.getItem('sjis_admin_pipeline_subtab') as PipelineSubTab | null;
+
+      let targetTab: AdminTab = 'overview';
+      if (urlTab && VALID_ADMIN_TABS.includes(urlTab)) {
+        targetTab = urlTab;
+      } else if (storedTab && VALID_ADMIN_TABS.includes(storedTab)) {
+        targetTab = storedTab;
+      }
+
+      let targetSubTab: PipelineSubTab = 'applications';
+      if (urlSubTab && VALID_PIPELINE_SUBTABS.includes(urlSubTab)) {
+        targetSubTab = urlSubTab;
+      } else if (storedSubTab && VALID_PIPELINE_SUBTABS.includes(storedSubTab)) {
+        targetSubTab = storedSubTab;
+      }
+
+      setActiveTab(targetTab);
+      setAdmissionPipelineSubTab(targetSubTab);
+      setIsTabRestored(true);
+
+      // Normalize URL with query parameters without full reload
+      params.set('tab', targetTab);
+      if (targetTab === 'inquiries') {
+        params.set('subtab', targetSubTab);
+      } else {
+        params.delete('subtab');
+      }
+      const newUrl = `${window.location.pathname}?${params.toString()}`;
+      window.history.replaceState({ tab: targetTab, subTab: targetSubTab }, '', newUrl);
+    }
+  }, []);
+
+  // 2. Synchronize active tab and subtab with URL query & LocalStorage
+  useEffect(() => {
+    if (!isTabRestored || typeof window === 'undefined') return;
+
+    try {
+      localStorage.setItem('sjis_admin_active_tab', activeTab);
+      if (activeTab === 'inquiries') {
+        localStorage.setItem('sjis_admin_pipeline_subtab', admissionPipelineSubTab);
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      const currentTab = params.get('tab');
+      const currentSubTab = params.get('subtab');
+
+      const isChanged =
+        currentTab !== activeTab ||
+        (activeTab === 'inquiries' && currentSubTab !== admissionPipelineSubTab);
+
+      if (isChanged) {
+        params.set('tab', activeTab);
+        if (activeTab === 'inquiries') {
+          params.set('subtab', admissionPipelineSubTab);
+        } else {
+          params.delete('subtab');
+        }
+        const newUrl = `${window.location.pathname}?${params.toString()}`;
+        window.history.pushState({ tab: activeTab, subTab: admissionPipelineSubTab }, '', newUrl);
+      }
+    } catch (e) {
+      // Storage unavailable
+    }
+  }, [activeTab, admissionPipelineSubTab, isTabRestored]);
+
+  // 3. Handle browser Back/Forward (popstate)
+  useEffect(() => {
+    const handlePopState = () => {
+      if (typeof window === 'undefined') return;
+      const params = new URLSearchParams(window.location.search);
+      const urlTab = params.get('tab') as AdminTab | null;
+      const urlSubTab = params.get('subtab') as PipelineSubTab | null;
+
+      if (urlTab && VALID_ADMIN_TABS.includes(urlTab)) {
+        setActiveTab(urlTab);
+      } else {
+        setActiveTab('overview');
+      }
+
+      if (urlSubTab && VALID_PIPELINE_SUBTABS.includes(urlSubTab)) {
+        setAdmissionPipelineSubTab(urlSubTab);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   // Sync staff notes draft when selected inquiry changes
@@ -424,8 +524,14 @@ export default function AdminDashboardPage() {
   const handleLogout = () => {
     localStorage.removeItem('sjis_admin_token');
     localStorage.removeItem('sjis_admin_user');
+    localStorage.removeItem('sjis_admin_active_tab');
+    localStorage.removeItem('sjis_admin_pipeline_subtab');
     setToken(null);
     setUser(null);
+    setActiveTab('overview');
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', window.location.pathname);
+    }
     showToast('Logged out securely.', 'info');
   };
 
@@ -1293,8 +1399,22 @@ export default function AdminDashboardPage() {
               <span className="font-semibold text-slate-400 hidden sm:inline">Portal</span>
               <ChevronRight className="w-3.5 h-3.5 text-slate-400 hidden sm:inline" />
               <span className="font-bold text-[#00183F] capitalize">
-                {activeTab.replace('_', ' ')}
+                {activeTab === 'inquiries' ? 'Admissions Pipeline' : activeTab.replace('_', ' ')}
               </span>
+              {activeTab === 'inquiries' && (
+                <>
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400 hidden md:inline" />
+                  <span className="font-semibold text-indigo-700 hidden md:inline">
+                    {admissionPipelineSubTab === 'applications'
+                      ? 'Online Applications'
+                      : admissionPipelineSubTab === 'settings'
+                      ? 'Admission Settings & Grades'
+                      : admissionPipelineSubTab === 'slots'
+                      ? 'Interview & Exam Slots'
+                      : 'Quick Inquiries'}
+                  </span>
+                </>
+              )}
               <span className="hidden lg:inline-flex ml-3 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
                 ● Connected to {diagnostics?.system?.db_engine || 'SQLite (Dev) / PostgreSQL (Prod)'}
               </span>
