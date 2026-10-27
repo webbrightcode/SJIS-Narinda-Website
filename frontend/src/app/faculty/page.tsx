@@ -348,8 +348,11 @@ export default function FacultyPage() {
                 >
                   <div
                     onClick={() => setSelectedMember(member)}
-                    className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 cursor-pointer flex flex-col justify-between group relative overflow-hidden"
+                    className="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-[0_4px_20px_-4px_rgba(0,24,63,0.06)] hover:shadow-[0_16px_36px_-6px_rgba(0,24,63,0.16)] transition-all duration-300 hover:-translate-y-1.5 cursor-pointer flex flex-col justify-between group relative overflow-hidden"
                   >
+                    {/* Top tri-color hover accent line */}
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#00183F] via-[#D4AF37] to-[#C8102E] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
                     <div>
                       {/* Photo */}
                       <div className="relative aspect-[4/4.5] w-full rounded-2xl overflow-hidden shadow-md mb-4 bg-slate-100">
@@ -456,8 +459,11 @@ export default function FacultyPage() {
                 >
                   <div
                     onClick={() => setSelectedMember(member)}
-                    className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 cursor-pointer flex flex-col justify-between group relative overflow-hidden"
+                    className="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-[0_4px_20px_-4px_rgba(0,24,63,0.06)] hover:shadow-[0_16px_36px_-6px_rgba(0,24,63,0.16)] transition-all duration-300 hover:-translate-y-1.5 cursor-pointer flex flex-col justify-between group relative overflow-hidden"
                   >
+                    {/* Top tri-color hover accent line */}
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#00183F] via-[#D4AF37] to-[#C8102E] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
                     <div>
                       {/* Photo */}
                       <div className="relative aspect-[4/4] w-full rounded-2xl overflow-hidden shadow-md mb-4 bg-slate-100 border border-slate-200">
@@ -555,8 +561,11 @@ export default function FacultyPage() {
                 >
                   <div
                     onClick={() => setSelectedMember(member)}
-                    className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 cursor-pointer flex flex-col justify-between group relative overflow-hidden"
+                    className="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-[0_4px_20px_-4px_rgba(0,24,63,0.06)] hover:shadow-[0_16px_36px_-6px_rgba(0,24,63,0.16)] transition-all duration-300 hover:-translate-y-1.5 cursor-pointer flex flex-col justify-between group relative overflow-hidden"
                   >
+                    {/* Top tri-color hover accent line */}
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#00183F] via-[#D4AF37] to-[#C8102E] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
                     <div>
                       {/* Photo */}
                       <div className="relative aspect-[4/4.5] w-full rounded-2xl overflow-hidden shadow-md mb-4 bg-slate-100 border border-slate-100">
