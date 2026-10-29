@@ -54,6 +54,7 @@ EOF
 fi
 
 echo "Applying database migrations..."
+python manage.py makemigrations core --noinput || true
 python manage.py migrate --noinput
 
 echo "Setting up administrator superuser credentials..."

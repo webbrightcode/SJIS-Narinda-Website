@@ -74,6 +74,7 @@ if [ $IS_DOCKER -eq 1 ]; then
 
     # Run DB migrations in a standalone ephemeral container
     echo -e "\n${CYAN}[3/4] Running database migrations...${NC}"
+    $COMPOSE run --rm --no-deps backend python manage.py makemigrations core --noinput || true
     $COMPOSE run --rm --no-deps backend python manage.py migrate --noinput || true
 
     # Atomic container swap (<0.5 second rolling swap, Nginx retries seamlessly)

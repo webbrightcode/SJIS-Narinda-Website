@@ -21,7 +21,13 @@ echo -e "${CYAN}================================================================
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# 1. Verify Docker and Docker Compose
+# 1. Verify Git synchronization, Docker and Docker Compose
+if [ -d .git ] && command -v git &> /dev/null; then
+    CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+    echo -e "${CYAN}→ Synchronizing repository with origin/${CURRENT_BRANCH}...${NC}"
+    git pull origin "${CURRENT_BRANCH}" || true
+fi
+
 if ! command -v docker &> /dev/null; then
     echo -e "${RED}[ERROR] Docker is not installed. Please install Docker first.${NC}"
     exit 1
@@ -114,14 +120,16 @@ else
         echo -e "${CYAN}→ Pre-building backend container...${NC}"
         $NICE_CMD $COMPOSE build backend
         echo -e "${CYAN}→ Running database migrations...${NC}"
+        $COMPOSE run --rm --no-deps backend python manage.py makemigrations core --noinput || true
         $COMPOSE run --rm --no-deps backend python manage.py migrate --noinput
         echo -e "${CYAN}→ Seamlessly swapping backend container...${NC}"
         $COMPOSE up -d --no-deps --remove-orphans backend
     else
         echo -e "${CYAN}→ Pre-building frontend & backend containers (CPU throttled to prevent VPS freeze)...${NC}"
-        $NICE_CMD $COMPOSE build frontend backend
+        $NICE_CMD $COMPOSE build backend frontend
         
         echo -e "${CYAN}→ Running database migrations...${NC}"
+        $COMPOSE run --rm --no-deps backend python manage.py makemigrations core --noinput || true
         $COMPOSE run --rm --no-deps backend python manage.py migrate --noinput || true
         
         echo -e "${CYAN}→ Performing atomic container swap (<1s rolling transition)...${NC}"
