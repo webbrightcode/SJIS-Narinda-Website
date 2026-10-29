@@ -1053,6 +1053,45 @@ export interface SubmitApplicationResponse {
   application_fee?: string;
   payment_currency?: string;
   payment_gateway?: string;
+  is_duplicate?: boolean;
+  existing_application_id?: string;
+  existing_status?: string;
+  existing_form_no?: string | null;
+  submitted_at?: string;
+  track_url?: string;
+}
+
+/**
+ * Public: Pre-submission Duplicate Guard check.
+ */
+export async function checkDuplicateApplication(params: {
+  birth_certificate_no?: string;
+  passport_no?: string;
+  student_first_name?: string;
+  student_last_name?: string;
+  date_of_birth?: string;
+  contact_phone?: string;
+  academic_year?: string;
+}): Promise<{
+  is_duplicate: boolean;
+  existing_application_id?: string;
+  existing_status?: string;
+  existing_form_no?: string | null;
+  candidate_name?: string;
+  reason?: string;
+  track_url?: string;
+}> {
+  try {
+    const res = await fetchWithTimeout(apiUrl('/applications/check-duplicate/'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(params),
+    }, 5000);
+    if (!res.ok) return { is_duplicate: false };
+    return res.json();
+  } catch {
+    return { is_duplicate: false };
+  }
 }
 
 /**
@@ -1087,6 +1126,18 @@ export async function submitOnlineApplication(
         application_fee: json.application_fee,
         payment_currency: json.payment_currency,
         payment_gateway: json.payment_gateway,
+      };
+    }
+    if (res.status === 409 || json.error === 'DUPLICATE_APPLICATION') {
+      return {
+        success: false,
+        is_duplicate: true,
+        message: json.message || 'An admission application has already been submitted for this child.',
+        existing_application_id: json.existing_application_id,
+        existing_status: json.existing_status,
+        existing_form_no: json.existing_form_no,
+        submitted_at: json.submitted_at,
+        track_url: json.track_url || `/admission/status?id=${json.existing_application_id}`,
       };
     }
     const errMsg = Object.entries(json as Record<string, unknown>)

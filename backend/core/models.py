@@ -679,6 +679,103 @@ class InterviewSlot(models.Model):
         return self.display_label
 
 
+class FormSerialCounter(models.Model):
+    """
+    Automatic Form Serial Counter Lock.
+    Guarantees thread-safe, strictly increasing, collision-proof form numbers
+    under concurrent online payments, gateway IPNs, and bulk admin operations.
+    """
+    prefix = models.CharField(max_length=10, unique=True, default="27", help_text="e.g. 27 for academic session 2027")
+    last_serial = models.PositiveIntegerField(default=270000, help_text="Last issued integer serial")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Form Serial Counter"
+        verbose_name_plural = "Form Serial Counters"
+
+    def __str__(self):
+        return f"FormSerialCounter [{self.prefix}] -> #{self.last_serial}"
+
+    @classmethod
+    def get_next_serial(cls, prefix="27"):
+        """
+        Atomically increments and returns the next form serial string.
+        Uses SELECT ... FOR UPDATE to hold an exclusive database row lock.
+        """
+        from django.db import transaction
+        with transaction.atomic():
+            counter, _ = cls.objects.select_for_update().get_or_create(
+                prefix=prefix,
+                defaults={'last_serial': int(f"{prefix}0000")}
+            )
+
+            # Sync counter with existing database records if any are higher
+            existing_serials = []
+            for fn in OnlineApplication.objects.filter(form_no__startswith=prefix).values_list('form_no', flat=True):
+                try:
+                    num = int(fn)
+                    if num >= int(f"{prefix}0001") and len(fn.strip()) == 6:
+                        existing_serials.append(num)
+                except (ValueError, TypeError):
+                    pass
+
+            if existing_serials:
+                max_existing = max(existing_serials)
+                if max_existing > counter.last_serial:
+                    counter.last_serial = max_existing
+
+            counter.last_serial += 1
+            counter.save(update_fields=['last_serial', 'updated_at'])
+            return str(counter.last_serial)
+
+
+class ApplicationIdCounter(models.Model):
+    """
+    Atomic Application ID Counter Lock (SJIS-{year}-{seq:05d}).
+    Prevents race collisions under simultaneous submissions.
+    """
+    year = models.PositiveIntegerField(unique=True)
+    last_seq = models.PositiveIntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Application ID Counter"
+        verbose_name_plural = "Application ID Counters"
+
+    def __str__(self):
+        return f"ApplicationIdCounter [{self.year}] -> #{self.last_seq}"
+
+    @classmethod
+    def get_next_id(cls, year=None):
+        import datetime
+        from django.db import transaction
+        if not year:
+            year = datetime.date.today().year
+
+        with transaction.atomic():
+            counter, _ = cls.objects.select_for_update().get_or_create(
+                year=year,
+                defaults={'last_seq': 0}
+            )
+
+            existing_seqs = []
+            for app_id in OnlineApplication.objects.filter(application_id__startswith=f"SJIS-{year}-").values_list('application_id', flat=True):
+                try:
+                    seq = int(app_id.split('-')[-1])
+                    existing_seqs.append(seq)
+                except (ValueError, IndexError):
+                    pass
+
+            if existing_seqs:
+                max_existing = max(existing_seqs)
+                if max_existing > counter.last_seq:
+                    counter.last_seq = max_existing
+
+            counter.last_seq += 1
+            counter.save(update_fields=['last_seq', 'updated_at'])
+            return f"SJIS-{year}-{counter.last_seq:05d}"
+
+
 class OnlineApplication(models.Model):
     """Full online admission application (multi-step form)."""
 
@@ -906,43 +1003,57 @@ class OnlineApplication(models.Model):
         verbose_name = "Online Admission Application"
         verbose_name_plural = "Online Admission Applications"
 
+    @classmethod
+    def find_duplicate(cls, birth_certificate_no='', passport_no='', first_name='', last_name='', dob=None, phone='', academic_year='2026-2027'):
+        """
+        Duplicate Submission Guard:
+        Searches for active duplicate application within the same academic cycle.
+        Returns (existing_application, reason) or (None, None).
+        """
+        import re
+        academic_year = academic_year or "2026-2027"
+        qs = cls.objects.filter(academic_year=academic_year).exclude(status='withdrawn')
+
+        # Rule 1: Birth Certificate match (min 6 digits)
+        clean_birth_no = re.sub(r'[\s\-]', '', birth_certificate_no or '')
+        if clean_birth_no and len(clean_birth_no) >= 6:
+            for app in qs.exclude(birth_certificate_no=''):
+                app_birth = re.sub(r'[\s\-]', '', app.birth_certificate_no or '')
+                if app_birth and app_birth.lower() == clean_birth_no.lower():
+                    return app, f"Birth Registration Number '{birth_certificate_no}' is already on file."
+
+        # Rule 2: Passport match (min 6 chars)
+        clean_passport = re.sub(r'[\s\-]', '', passport_no or '')
+        if clean_passport and len(clean_passport) >= 6:
+            for app in qs.exclude(passport_no=''):
+                app_pass = re.sub(r'[\s\-]', '', app.passport_no or '')
+                if app_pass and app_pass.lower() == clean_passport.lower():
+                    return app, f"Passport Number '{passport_no}' is already registered."
+
+        # Rule 3: First Name + Last Name + Date of Birth + Contact Phone
+        if first_name and last_name and dob and phone:
+            clean_phone = re.sub(r'[^\d]', '', phone)
+            name_match_qs = qs.filter(
+                student_first_name__iexact=first_name.strip(),
+                student_last_name__iexact=last_name.strip(),
+                date_of_birth=dob
+            )
+            for app in name_match_qs:
+                app_phone = re.sub(r'[^\d]', '', app.contact_phone or '')
+                if clean_phone and (clean_phone == app_phone or (len(clean_phone) >= 10 and clean_phone[-10:] == app_phone[-10:])):
+                    return app, f"Student '{first_name} {last_name}' with the same date of birth and guardian phone is already registered."
+
+        return None, None
+
     def save(self, *args, **kwargs):
-        import datetime
-
+        # Atomic Application ID generation with lock
         if not self.application_id:
-            year = datetime.date.today().year
-            last = OnlineApplication.objects.filter(
-                application_id__startswith=f"SJIS-{year}-"
-            ).order_by('-id').first()
-            seq = 1
-            if last and last.application_id:
-                try:
-                    seq = int(last.application_id.split('-')[-1]) + 1
-                except (ValueError, IndexError):
-                    seq = (last.id + 1) if last.id else 1
-            elif last and last.id:
-                seq = last.id + 1
-            self.application_id = f"SJIS-{year}-{seq:05d}"
+            self.application_id = ApplicationIdCounter.get_next_id()
 
-        # form_no starts with 270001 and proceeds sequentially (e.g. 270001, 270002, 270003...)
-        # Prefix 27 = Academic Year 2027. Assigned ONLY when payment is not required OR payment is completed.
+        # Automatic Form Serial Counter Lock
+        # Prefix 27 = Academic Year 2027. Assigned ONLY when payment is completed or not required.
         if not self.form_no and self.payment_status in ('not_required', 'completed'):
-            # Only count valid sequential form numbers: exactly 6 digits starting with 27
-            existing_numbers = []
-            for fn in OnlineApplication.objects.values_list('form_no', flat=True):
-                try:
-                    num = int(fn)
-                    if num >= 270001 and len(fn.strip()) == 6:
-                        existing_numbers.append(num)
-                except (ValueError, TypeError):
-                    pass
-
-            if existing_numbers:
-                next_val = max(existing_numbers) + 1
-            else:
-                next_val = 270001
-
-            self.form_no = str(next_val)
+            self.form_no = FormSerialCounter.get_next_serial(prefix="27")
 
         # Track if we are newly assigning an interview slot
         is_new_slot = False

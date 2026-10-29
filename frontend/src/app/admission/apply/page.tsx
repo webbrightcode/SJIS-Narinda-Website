@@ -44,10 +44,12 @@ import {
   Smartphone,
   KeyRound,
   RefreshCw,
+  ShieldAlert,
 } from 'lucide-react';
 import { BANGLADESH_DIVISIONS, findGeoByDistrict } from '@/lib/bangladeshGeoData';
 import {
   submitOnlineApplication,
+  checkDuplicateApplication,
   uploadMediaFile,
   getAdmissionGuide,
   getAdmissionSettings,
@@ -238,6 +240,18 @@ export default function OnlineApplicationPage() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const [draftSavedToast, setDraftSavedToast] = useState(false);
+
+  // Duplicate Submission Guard State
+  const [duplicateWarning, setDuplicateWarning] = useState<{
+    is_duplicate: boolean;
+    existing_application_id?: string;
+    existing_status?: string;
+    existing_form_no?: string | null;
+    candidate_name?: string;
+    reason?: string;
+    track_url?: string;
+  } | null>(null);
+  const [checkingDuplicate, setCheckingDuplicate] = useState(false);
 
   // Cloud Draft State (cross-device save & resume)
   const [cloudDraftKey, setCloudDraftKey] = useState<string | null>(null);
@@ -441,6 +455,44 @@ export default function OnlineApplicationPage() {
     setSameAsPresentAddress(checked);
     if (checked) {
       set('permanent_address', form.present_address);
+    }
+  };
+
+  // Early Duplicate Guard trigger
+  const checkDuplicateEarly = async (
+    birthNo?: string,
+    fname?: string,
+    lname?: string,
+    dob?: string,
+    phone?: string
+  ) => {
+    const bNo = (birthNo !== undefined ? birthNo : form.birth_certificate_no).trim();
+    const fName = (fname !== undefined ? fname : form.student_first_name).trim();
+    const lName = (lname !== undefined ? lname : form.student_last_name).trim();
+    const dB = dob !== undefined ? dob : form.date_of_birth;
+    const ph = (phone !== undefined ? phone : form.contact_phone).trim();
+
+    if ((bNo && bNo.length >= 6) || (fName && lName && dB && ph && ph.length >= 10)) {
+      setCheckingDuplicate(true);
+      try {
+        const res = await checkDuplicateApplication({
+          birth_certificate_no: bNo,
+          student_first_name: fName,
+          student_last_name: lName,
+          date_of_birth: dB,
+          contact_phone: ph,
+          academic_year: form.academic_year,
+        });
+        if (res.is_duplicate) {
+          setDuplicateWarning(res);
+        } else {
+          setDuplicateWarning(null);
+        }
+      } catch {
+        // ignore
+      } finally {
+        setCheckingDuplicate(false);
+      }
     }
   };
 
@@ -944,6 +996,88 @@ export default function OnlineApplicationPage() {
       setPaying(false);
     }
   };
+
+  // DUPLICATE SUBMISSION GUARD VIEW
+  if (result?.is_duplicate) {
+    return (
+      <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6">
+        <div className="max-w-2xl mx-auto space-y-6">
+          <div className="bg-white rounded-3xl p-8 border border-amber-300 shadow-xl text-center space-y-5 animate-in fade-in">
+            <div className="w-16 h-16 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto shadow-inner">
+              <ShieldAlert className="w-8 h-8 text-amber-600" />
+            </div>
+
+            <div className="space-y-2">
+              <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-bold uppercase tracking-wider inline-block">
+                Duplicate Submission Guard
+              </span>
+              <h2 className="text-2xl font-black text-[#00183F]">
+                Application Already Registered
+              </h2>
+              <p className="text-sm text-slate-600 max-w-lg mx-auto leading-relaxed">
+                {result.message}
+              </p>
+            </div>
+
+            {/* Existing Application Dossier Box */}
+            <div className="bg-[#00183F] text-white rounded-2xl p-6 text-center space-y-3 shadow-lg relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#D4AF37]/10 rounded-full blur-2xl pointer-events-none" />
+              <span className="text-xs text-slate-300 uppercase tracking-widest font-semibold block">
+                Existing Application Reference ID
+              </span>
+              <div className="font-mono text-2xl sm:text-3xl font-black text-[#D4AF37] tracking-wider">
+                {result.existing_application_id}
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-4 text-xs pt-2 border-t border-white/10 text-slate-300">
+                {result.existing_status && (
+                  <span>
+                    Status: <strong className="text-white">{result.existing_status}</strong>
+                  </span>
+                )}
+                {result.existing_form_no && (
+                  <span>
+                    Form Serial: <strong className="text-white font-mono">#{result.existing_form_no}</strong>
+                  </span>
+                )}
+                {result.submitted_at && (
+                  <span>
+                    Submitted on: <strong className="text-white">{result.submitted_at}</strong>
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="p-4 bg-amber-50/80 rounded-2xl border border-amber-200 text-left text-xs text-amber-950 space-y-1">
+              <p className="font-bold flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Your candidate records are already secure in our admissions registry.</span>
+              </p>
+              <p className="text-slate-600 pl-5">
+                You do not need to register again or pay duplicate fees. You can view your candidate profile, download your Admit Slip, or check assessment dates using your reference ID.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              <a
+                href={result.track_url || `/admission/status?id=${result.existing_application_id}`}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-[#00183F] hover:bg-[#002661] text-amber-300 font-bold text-sm shadow-md transition-all cursor-pointer"
+              >
+                <span>Track Application & View Admit Slip</span>
+                <ArrowRight className="w-4 h-4" />
+              </a>
+              <button
+                type="button"
+                onClick={() => setResult(null)}
+                className="w-full sm:w-auto px-5 py-3 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs transition-colors cursor-pointer"
+              >
+                Review Form Entries
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // SUCCESS CONFIRMATION VIEW
   if (result?.success) {
@@ -1492,6 +1626,31 @@ export default function OnlineApplicationPage() {
                     </div>
                   </div>
 
+                  {/* Early Duplicate Submission Guard Alert */}
+                  {duplicateWarning?.is_duplicate && (
+                    <div className="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-xs animate-in fade-in">
+                      <div className="flex items-start gap-3">
+                        <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-bold text-amber-900 text-sm">
+                            Existing Application Detected!
+                          </p>
+                          <p className="text-amber-800 text-xs mt-0.5">
+                            An application for this student has already been registered with Reference ID:{' '}
+                            <strong className="font-mono">{duplicateWarning.existing_application_id}</strong> ({duplicateWarning.existing_status}).
+                            {duplicateWarning.reason ? ` ${duplicateWarning.reason}` : ''}
+                          </p>
+                        </div>
+                      </div>
+                      <a
+                        href={duplicateWarning.track_url || `/admission/status?id=${duplicateWarning.existing_application_id}`}
+                        className="px-4 py-2 rounded-xl bg-[#00183F] text-amber-300 hover:text-white font-bold text-xs shrink-0 transition-colors shadow-xs"
+                      >
+                        Track Status & Admit Card →
+                      </a>
+                    </div>
+                  )}
+
                   {/* ── Student Photo Upload Area ─────────────────────────── */}
                   <div className="p-6 rounded-2xl bg-slate-50 border-2 border-dashed border-slate-300 hover:border-[#00183F]/50 transition-all">
                     <div className="flex flex-col sm:flex-row items-center gap-6">
@@ -1725,6 +1884,7 @@ export default function OnlineApplicationPage() {
                         value={form.birth_certificate_no}
                         placeholder="e.g. 20181234567890123"
                         onChange={(e) => set('birth_certificate_no', e.target.value)}
+                        onBlur={() => checkDuplicateEarly(form.birth_certificate_no)}
                       />
                     </Field>
 
@@ -1735,6 +1895,7 @@ export default function OnlineApplicationPage() {
                         value={form.passport_no}
                         placeholder="e.g. A01234567"
                         onChange={(e) => set('passport_no', e.target.value)}
+                        onBlur={() => checkDuplicateEarly(undefined, undefined, undefined, undefined, undefined)}
                       />
                     </Field>
                   </div>

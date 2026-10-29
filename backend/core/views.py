@@ -799,7 +799,7 @@ class OnlineApplicationViewSet(viewsets.ModelViewSet):
     """
 
     def get_permissions(self):
-        if self.action in ('create',):
+        if self.action in ('create', 'check_duplicate'):
             return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
 
@@ -839,6 +839,28 @@ class OnlineApplicationViewSet(viewsets.ModelViewSet):
         # Determine if payment is required
         adm_settings = AdmissionSettings.get_settings()
         payment_required = adm_settings.payment_required
+        academic_year = data.get('academic_year') or adm_settings.academic_year or '2026-2027'
+
+        # Duplicate Submission Guard
+        duplicate, reason = OnlineApplication.find_duplicate(
+            birth_certificate_no=data.get('birth_certificate_no', ''),
+            passport_no=data.get('passport_no', ''),
+            first_name=data.get('student_first_name', ''),
+            last_name=data.get('student_last_name', ''),
+            dob=data.get('date_of_birth'),
+            phone=data.get('contact_phone', ''),
+            academic_year=academic_year
+        )
+        if duplicate:
+            return Response({
+                'error': 'DUPLICATE_APPLICATION',
+                'message': f"An admission application for {duplicate.student_full_name} is already registered for academic session {duplicate.academic_year}. {reason}",
+                'existing_application_id': duplicate.application_id,
+                'existing_status': duplicate.get_status_display(),
+                'existing_form_no': duplicate.form_no or None,
+                'submitted_at': duplicate.created_at.strftime('%d %b %Y') if duplicate.created_at else '',
+                'track_url': f"/admission/status?id={duplicate.application_id}",
+            }, status=status.HTTP_409_CONFLICT)
 
         serializer = OnlineApplicationSerializer(data=data)
         serializer.is_valid(raise_exception=True)
@@ -1230,6 +1252,41 @@ class OnlineApplicationViewSet(viewsets.ModelViewSet):
         app = self.get_object()
         logs = app.audit_logs.all()
         return Response(ApplicationAuditLogSerializer(logs, many=True).data)
+
+    @action(detail=False, methods=['post'], url_path='check-duplicate', permission_classes=[permissions.AllowAny])
+    def check_duplicate(self, request):
+        """
+        Public pre-submission check:
+        Informs parents early if an application is already registered for this child.
+        """
+        birth_no = request.data.get('birth_certificate_no', '')
+        passport_no = request.data.get('passport_no', '')
+        first_name = request.data.get('student_first_name', '')
+        last_name = request.data.get('student_last_name', '')
+        dob = request.data.get('date_of_birth')
+        phone = request.data.get('contact_phone', '')
+        year = request.data.get('academic_year') or '2026-2027'
+
+        duplicate, reason = OnlineApplication.find_duplicate(
+            birth_certificate_no=birth_no,
+            passport_no=passport_no,
+            first_name=first_name,
+            last_name=last_name,
+            dob=dob,
+            phone=phone,
+            academic_year=year
+        )
+        if duplicate:
+            return Response({
+                'is_duplicate': True,
+                'existing_application_id': duplicate.application_id,
+                'existing_status': duplicate.get_status_display(),
+                'existing_form_no': duplicate.form_no or None,
+                'candidate_name': duplicate.student_full_name,
+                'reason': reason,
+                'track_url': f"/admission/status?id={duplicate.application_id}",
+            })
+        return Response({'is_duplicate': False})
 
     @action(detail=False, methods=['get'], url_path='stats')
     def stats(self, request):
@@ -1811,7 +1868,7 @@ class ApplicationDocumentViewSet(viewsets.ModelViewSet):
     serializer_class = ApplicationDocumentSerializer
 
     def get_permissions(self):
-        if self.action in ('create',):
+        if self.action in ('create', 'check_duplicate'):
             return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
 

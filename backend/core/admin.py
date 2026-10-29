@@ -14,6 +14,8 @@ from .models import (
     OnlineApplication,
     ApplicationDocument,
     ApplicationAuditLog,
+    FormSerialCounter,
+    ApplicationIdCounter,
     AdmissionSettings,
     InterviewSlot,
     ApplicationDraft,
@@ -298,4 +300,16 @@ class ApplicationAuditLogAdmin(admin.ModelAdmin):
     readonly_fields = ('application', 'action', 'performed_by', 'performed_by_role', 'details', 'ip_address', 'created_at')
     date_hierarchy = 'created_at'
     list_per_page = 50
+
+
+@admin.register(FormSerialCounter)
+class FormSerialCounterAdmin(admin.ModelAdmin):
+    list_display = ('prefix', 'last_serial', 'updated_at')
+    readonly_fields = ('updated_at',)
+
+
+@admin.register(ApplicationIdCounter)
+class ApplicationIdCounterAdmin(admin.ModelAdmin):
+    list_display = ('year', 'last_seq', 'updated_at')
+    readonly_fields = ('updated_at',)
 
