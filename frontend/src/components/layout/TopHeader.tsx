@@ -70,7 +70,7 @@ export const TopHeader: React.FC = () => {
 
           <span className="inline-flex items-center gap-1.5 pl-4 xl:pl-6 text-slate-400 hidden 2xl:inline-flex">
             <Clock className="w-3.5 h-3.5 text-slate-500" />
-            <span>{site.office_hours || 'Sun – Thu · 7:30 AM – 4:30 PM'}</span>
+            <span>{site.office_hours || 'Sun – Thu · 08:00 AM – 2:00 PM'}</span>
           </span>
         </div>
 

@@ -454,7 +454,7 @@ export const SiteSettingsPanel: React.FC<{ token?: string }> = ({ token }) => {
           <Field label="WhatsApp Number" hint="Digits only with country code, e.g. 8801711234567">
             <input className={inputCls} value={form.whatsapp_number} onChange={(e) => set('whatsapp_number', e.target.value)} />
           </Field>
-          <Field label="Office Hours *" hint="e.g. Sun – Thu · 7:30 AM – 4:30 PM">
+          <Field label="Office Hours *" hint="e.g. Sun – Thu · 08:00 AM – 2:00 PM">
             <input required className={inputCls} value={form.office_hours} onChange={(e) => set('office_hours', e.target.value)} />
           </Field>
           <Field label="Weekend / Holiday Note">

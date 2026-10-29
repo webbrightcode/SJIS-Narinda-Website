@@ -721,7 +721,7 @@ export default function ApplicationStatusPage() {
               <p>Contact our Admissions Desk:</p>
               <a href="tel:+8801746866393" className="block font-bold text-amber-900 hover:underline">+880 1746-866393</a>
               <a href="mailto:sjisnarinda2021@gmail.com" className="block font-bold text-amber-900 hover:underline">sjisnarinda2021@gmail.com</a>
-              <p className="text-amber-700 mt-2">Office Hours: Sun-Thu, 7:30 AM - 4:30 PM</p>
+              <p className="text-amber-700 mt-2">Office Hours: Sun-Thu, 08:00 AM - 2:00 PM</p>
             </div>
           </div>
         </div>

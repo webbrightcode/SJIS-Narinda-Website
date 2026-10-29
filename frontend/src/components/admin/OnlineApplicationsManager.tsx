@@ -264,10 +264,49 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
     }
   };
 
+  const handleQuickConfirmPayment = async (app: OnlineApplication) => {
+    const tranId = `COUNTER-${Date.now().toString().slice(-6)}`;
+    setConfirmingPayment(true);
+    const res = await manualConfirmPayment(token, app.application_id, tranId);
+    setConfirmingPayment(false);
+    if (res.success) {
+      onToast?.(`Payment confirmed! Form #${res.form_no} assigned to ${app.application_id}.`);
+      setApplications((prev) =>
+        prev.map((a) =>
+          a.id === app.id
+            ? {
+                ...a,
+                payment_status: 'completed',
+                form_no: res.form_no || a.form_no,
+                status: a.status === 'payment_pending' ? 'submitted' : a.status,
+              }
+            : a
+        )
+      );
+      if (selectedApp?.id === app.id) {
+        setSelectedApp((prev) =>
+          prev
+            ? {
+                ...prev,
+                payment_status: 'completed',
+                form_no: res.form_no || prev.form_no,
+                status: prev.status === 'payment_pending' ? 'submitted' : prev.status,
+              }
+            : null
+        );
+      }
+    } else {
+      onToast?.(res.error || 'Failed to confirm payment.');
+    }
+  };
+
   // Open application and load full dossier including documents & parent details
-  const handleSelectApp = async (app: OnlineApplication) => {
+  const handleSelectApp = async (
+    app: OnlineApplication,
+    initialTab: 'profile' | 'documents' | 'workflow' | 'slip' = 'profile'
+  ) => {
     setSelectedApp(app);
-    setActiveModalTab('profile');
+    setActiveModalTab(initialTab);
     setLoadingDetail(true);
     try {
       const fullApp = await getApplication(app.id, token);
@@ -626,7 +665,17 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
                               <Lock className="w-3 h-3 text-amber-600" />
                               No Form No
                             </span>
-                            <span className="block text-[10px] text-amber-600 mt-1 font-medium">Payment Pending</span>
+                            <span className="block text-[10px] text-amber-600 mt-0.5 font-medium">Payment Pending</span>
+                            <button
+                              type="button"
+                              onClick={() => handleQuickConfirmPayment(app)}
+                              disabled={confirmingPayment}
+                              className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-950 bg-amber-300 hover:bg-amber-400 px-2 py-0.5 rounded-md mt-1 transition-colors cursor-pointer border border-amber-400 shadow-xs"
+                              title="Click to mark student as Paid and assign Form Number"
+                            >
+                              <CreditCard className="w-3 h-3 text-amber-900" />
+                              Mark as Paid
+                            </button>
                           </div>
                         )}
                       </td>
@@ -726,11 +775,26 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
                       <td className="px-5 py-4 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
-                            onClick={() => handleSelectApp(app)}
+                            onClick={() => handleSelectApp(app, 'profile')}
                             className="px-3 py-1.5 rounded-xl bg-[#00183F] text-amber-300 hover:bg-[#002257] text-xs font-bold transition-colors inline-flex items-center gap-1 cursor-pointer"
+                            title="Review full application details"
                           >
                             <Eye className="w-3.5 h-3.5" />
                             <span>Review</span>
+                          </button>
+                          <button
+                            onClick={() => handleSelectApp(app, 'documents')}
+                            className="p-1.5 rounded-xl text-slate-500 hover:text-[#00183F] hover:bg-slate-100 transition-colors cursor-pointer"
+                            title={`View Submitted Documents (${app.documents_count || 0})`}
+                          >
+                            <FileText className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleSelectApp(app, 'slip')}
+                            className="p-1.5 rounded-xl text-slate-500 hover:text-[#00183F] hover:bg-slate-100 transition-colors cursor-pointer"
+                            title="View / Print Admit Card"
+                          >
+                            <Printer className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => setDeleteConfirmId(app.id)}
@@ -784,12 +848,13 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
           onClose={() => setSelectedApp(null)}
           title={`Application Details · ${selectedApp.application_id}`}
           maxWidth="4xl"
+          noPadding
         >
-          <div className="flex flex-col max-h-[85vh]">
-            {/* Modal Header Card */}
-            <div className="p-6 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 overflow-hidden flex items-center justify-center shrink-0 shadow-sm">
+          <div className="flex flex-col h-[85vh] max-h-[85vh] overflow-hidden bg-slate-50">
+            {/* 1. Modal Top Banner (Candidate Summary) - FIXED AT TOP */}
+            <div className="px-6 py-4 bg-white border-b border-slate-200 shrink-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="w-14 h-14 rounded-2xl bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0 shadow-sm relative group">
                   {selectedApp.student_photo_url ? (
                     <img
                       src={selectedApp.student_photo_url}
@@ -797,28 +862,55 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <User className="w-8 h-8 text-slate-300" />
+                    <User className="w-7 h-7 text-slate-300" />
                   )}
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-lg font-black text-[#00183F]">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="text-base sm:text-lg font-black text-[#00183F] truncate">
                       {selectedApp.student_first_name} {selectedApp.student_last_name}
                     </h4>
-                    <span className="font-mono text-xs px-2 py-0.5 rounded bg-slate-200 text-slate-800 font-bold">
+                    <span className="font-mono text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-800 font-bold border border-slate-200">
                       {selectedApp.application_id}
                     </span>
+                    {selectedApp.form_no ? (
+                      <span className="font-mono text-xs px-2 py-0.5 rounded bg-red-50 text-red-700 font-bold border border-red-200">
+                        Form #{selectedApp.form_no}
+                      </span>
+                    ) : (
+                      <span className="text-[11px] px-2 py-0.5 rounded bg-amber-50 text-amber-800 font-semibold border border-amber-200">
+                        Unpaid (Form Locked)
+                      </span>
+                    )}
                   </div>
                   {selectedApp.student_name_bangla && (
                     <p className="text-xs text-slate-500 font-serif">{selectedApp.student_name_bangla}</p>
                   )}
                   <p className="text-xs text-slate-600 mt-0.5">
-                    Applying for <strong className="text-[#C8102E]">{selectedApp.grade_applying}</strong> • Session {selectedApp.academic_year || '2026-2027'}
+                    Applying for <strong className="text-[#C8102E]">{selectedApp.grade_applying}</strong> • Session {selectedApp.academic_year || '2026-2027'} • DOB: {selectedApp.date_of_birth}
                   </p>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
+              {/* Status Badge & Header Quick Action */}
+              <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                {selectedApp.payment_status !== 'completed' ? (
+                  <button
+                    type="button"
+                    onClick={() => handleQuickConfirmPayment(selectedApp)}
+                    disabled={confirmingPayment}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-amber-950 font-black text-xs shadow-xs transition-colors cursor-pointer"
+                    title="Change payment status from Unpaid to Paid"
+                  >
+                    <CreditCard className="w-3.5 h-3.5" />
+                    <span>{confirmingPayment ? 'Processing...' : 'Mark Paid & Assign Form #'}</span>
+                  </button>
+                ) : (
+                  <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold inline-flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    Paid
+                  </span>
+                )}
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-bold border ${
                     STATUS_COLORS[selectedApp.status]?.bg || 'bg-slate-100'
@@ -837,13 +929,13 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
               </div>
             </div>
 
-            {/* Modal Navigation Tabs */}
-            <div className="flex border-b border-slate-200 bg-white px-6 gap-2 shrink-0">
+            {/* 2. Modal Navigation Tabs - PINNED / STICKY AT TOP */}
+            <div className="flex border-b border-slate-200 bg-white px-6 gap-2 shrink-0 overflow-x-auto z-10 shadow-xs">
               {[
-                { id: 'profile', label: 'Candidate Bio & Academics', icon: User },
-                { id: 'documents', label: `Documents (${selectedApp.documents?.length || 0})`, icon: FileText },
-                { id: 'workflow', label: 'Evaluation & Decision', icon: ShieldCheck },
-                { id: 'slip', label: 'Admission Slip / Admit Card', icon: Printer },
+                { id: 'profile', label: 'Candidate Profile & Academics', icon: User, count: null },
+                { id: 'documents', label: 'Submitted Documents & Photos', icon: FileText, count: selectedApp.documents?.length ?? 0 },
+                { id: 'workflow', label: 'Actions, Evaluation & Payment', icon: ShieldCheck, count: null },
+                { id: 'slip', label: 'Admit Card & Form', icon: Printer, count: null },
               ].map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeModalTab === tab.id;
@@ -851,24 +943,93 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
                   <button
                     key={tab.id}
                     onClick={() => setActiveModalTab(tab.id as any)}
-                    className={`px-4 py-3 text-xs font-bold border-b-2 flex items-center gap-2 transition-colors cursor-pointer ${
+                    className={`px-4 py-3 text-xs font-bold border-b-2 flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap ${
                       isActive
-                        ? 'border-[#00183F] text-[#00183F]'
-                        : 'border-transparent text-slate-500 hover:text-slate-800'
+                        ? 'border-[#00183F] text-[#00183F] bg-slate-50'
+                        : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-200'
                     }`}
                   >
                     <Icon className="w-4 h-4" />
                     <span>{tab.label}</span>
+                    {tab.count !== null && (
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        tab.count > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        {tab.count}
+                      </span>
+                    )}
                   </button>
                 );
               })}
             </div>
 
-            {/* Modal Body Content */}
+            {/* 3. Modal Body Content - INDEPENDENT SCROLL */}
             <div className="p-6 overflow-y-auto space-y-6 flex-1">
               {/* TAB 1: Profile & Academics */}
               {activeModalTab === 'profile' && (
                 <div className="space-y-6">
+                  {/* Quick Action & Fast-Track Bar */}
+                  <div className="bg-gradient-to-r from-slate-900 to-[#00183F] text-white p-4 rounded-2xl shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs">
+                    <div className="space-y-1">
+                      <div className="font-bold flex items-center gap-2 flex-wrap">
+                        <span>Application Status:</span>
+                        <span className="px-2 py-0.5 rounded-full bg-white/20 text-white font-mono text-[11px]">
+                          {selectedApp.status_display || STATUS_LABELS[selectedApp.status]}
+                        </span>
+                        {selectedApp.payment_status === 'completed' ? (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-400/30">
+                            Paid (Form #{selectedApp.form_no})
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-400/30">
+                            Payment Pending
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-slate-300 text-[11px]">
+                        {selectedApp.documents?.length || 0} document(s) uploaded • Photo: {selectedApp.student_photo_url ? 'Attached' : 'Pending'}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {selectedApp.payment_status !== 'completed' && (
+                        <button
+                          type="button"
+                          onClick={() => handleQuickConfirmPayment(selectedApp)}
+                          disabled={confirmingPayment}
+                          className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+                        >
+                          <CreditCard className="w-3.5 h-3.5 text-slate-950" />
+                          <span>Mark as Paid</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setActiveModalTab('documents')}
+                        className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold flex items-center gap-1.5 border border-white/20 transition-colors cursor-pointer"
+                      >
+                        <FileText className="w-3.5 h-3.5 text-amber-300" />
+                        <span>View Documents ({selectedApp.documents?.length || 0})</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveModalTab('workflow')}
+                        className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold flex items-center gap-1.5 border border-white/20 transition-colors cursor-pointer"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5 text-blue-300" />
+                        <span>Actions & Decision</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveModalTab('slip')}
+                        className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold flex items-center gap-1.5 border border-white/20 transition-colors cursor-pointer"
+                      >
+                        <Printer className="w-3.5 h-3.5 text-emerald-300" />
+                        <span>Admit Card</span>
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Student Details Grid */}
                   <div>
                     <h5 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
@@ -990,6 +1151,31 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
                       )}
                     </div>
                   </div>
+
+                  {/* Bottom Navigation on Profile Tab */}
+                  <div className="pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                    <span className="text-xs text-slate-500">
+                      Done inspecting particulars? Proceed to view uploaded files or make admission decisions:
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setActiveModalTab('documents')}
+                        icon={<FileText className="w-4 h-4" />}
+                      >
+                        Check Documents ({selectedApp.documents?.length || 0}) →
+                      </Button>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => setActiveModalTab('workflow')}
+                        icon={<ShieldCheck className="w-4 h-4" />}
+                      >
+                        Actions & Decision Tab →
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -1000,7 +1186,7 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
                     <div>
                       <h5 className="text-sm font-bold text-[#00183F]">Submitted Verification Documents</h5>
                       <p className="text-xs text-slate-500">
-                        Inspect official birth certificates, past transcripts, and parent identity cards. Mark each as verified.
+                        Inspect official birth certificates, student photos, past transcripts, and parent identity cards. Mark each as verified.
                       </p>
                     </div>
                     <span className="text-xs font-bold px-3 py-1 rounded-full bg-slate-100 text-slate-700">
@@ -1008,11 +1194,66 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
                     </span>
                   </div>
 
+                  {/* Student Photograph Preview Card */}
+                  {selectedApp.student_photo_url && (
+                    <div className="p-4 rounded-2xl border border-slate-200 bg-white shadow-xs flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3.5">
+                        <div className="w-16 h-16 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0 shadow-sm">
+                          <img
+                            src={selectedApp.student_photo_url}
+                            alt={selectedApp.student_first_name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                            Student Passport Photograph
+                          </span>
+                          <p className="text-xs font-bold text-slate-800 mt-0.5">
+                            {selectedApp.student_first_name} {selectedApp.student_last_name}
+                          </p>
+                          <span className="text-[10px] text-emerald-600 font-semibold block mt-0.5">
+                            Attached to Application Dossier & Admit Card
+                          </span>
+                        </div>
+                      </div>
+                      <a
+                        href={selectedApp.student_photo_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-bold text-[#00183F] hover:text-[#C8102E] inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span>View Photo</span>
+                      </a>
+                    </div>
+                  )}
+
                   {(!selectedApp.documents || selectedApp.documents.length === 0) ? (
-                    <div className="p-8 text-center text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                      <FileText className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                      <p className="font-semibold text-sm">No documents attached yet.</p>
-                      <p className="text-xs">Candidate can upload documents via their application tracker link.</p>
+                    <div className="p-8 text-center bg-white rounded-2xl border border-amber-200 shadow-xs space-y-3">
+                      <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto">
+                        <FileText className="w-6 h-6" />
+                      </div>
+                      <h6 className="font-bold text-sm text-slate-800">No Digital Documents Uploaded by Candidate</h6>
+                      <p className="text-xs text-slate-600 max-w-md mx-auto">
+                        The candidate completed online registration without attaching digital files (e.g. Birth Certificate photo, past report card). 
+                        {selectedApp.birth_certificate_no && (
+                          <span className="block mt-1 font-medium text-slate-700">
+                            Birth Registration Number submitted: <strong className="font-mono">{selectedApp.birth_certificate_no}</strong>.
+                          </span>
+                        )}
+                        Physical photocopies brought to the admissions office can be verified in the <strong>Actions & Decision</strong> tab.
+                      </p>
+                      <div className="pt-2 flex justify-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setActiveModalTab('workflow')}
+                          icon={<ShieldCheck className="w-4 h-4 text-[#00183F]" />}
+                        >
+                          Go to Actions & Mark Documents Verified
+                        </Button>
+                      </div>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1077,6 +1318,17 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
                       ))}
                     </div>
                   )}
+
+                  <div className="pt-4 border-t border-slate-200 flex justify-end">
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => setActiveModalTab('workflow')}
+                      icon={<ShieldCheck className="w-4 h-4" />}
+                    >
+                      Proceed to Actions & Decision Tab →
+                    </Button>
+                  </div>
                 </div>
               )}
 
@@ -1116,7 +1368,7 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
                               </span>
                             ) : (
                               <span>
-                                Expected Fee: <strong>৳{selectedApp.payment_amount || admSettings?.application_fee || 500}</strong>. Online payment has not been received. The candidate cannot access or print their Form & Admit card until payment is confirmed.
+                                Expected Fee: <strong>৳{selectedApp.payment_amount || admSettings?.application_fee || 500}</strong>. Online payment has not been received. Click the button below to confirm payment and issue official form serial number.
                               </span>
                             )}
                           </p>
@@ -1306,15 +1558,16 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
                       <div className="flex items-center gap-2">
                         <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
                         <span>
-                          <strong>Note:</strong> Online payment has not been confirmed for this applicant yet. The Form Serial number is currently unassigned. You can confirm payment manually in the "Evaluation & Decision" tab to generate an official form serial.
+                          <strong>Note:</strong> Online payment has not been confirmed for this applicant yet. The Form Serial number is currently unassigned. You can confirm payment manually to unlock and generate an official form serial.
                         </span>
                       </div>
                       <button
                         type="button"
-                        onClick={() => setActiveModalTab('workflow')}
-                        className="px-3 py-1 bg-amber-200 hover:bg-amber-300 text-amber-900 font-bold rounded-lg text-xs whitespace-nowrap cursor-pointer"
+                        onClick={() => handleQuickConfirmPayment(selectedApp)}
+                        disabled={confirmingPayment}
+                        className="px-3 py-1 bg-amber-400 hover:bg-amber-500 text-amber-950 font-black rounded-lg text-xs whitespace-nowrap cursor-pointer shadow-xs"
                       >
-                        Go to Payment
+                        {confirmingPayment ? 'Confirming...' : 'Mark Paid Now'}
                       </button>
                     </div>
                   )}
@@ -1402,6 +1655,85 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* 4. Modal Sticky Bottom Action Footer (ALWAYS VISIBLE) */}
+            <div className="px-6 py-3.5 bg-white border-t border-slate-200 shrink-0 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md z-10">
+              <div className="flex items-center gap-2.5 text-xs">
+                {selectedApp.payment_status === 'completed' ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold border border-emerald-300">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    Paid • Form #{selectedApp.form_no}
+                  </span>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-900 font-bold border border-amber-300">
+                      <Lock className="w-3.5 h-3.5 text-amber-700" />
+                      Status: Unpaid (Admit Slip Locked)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleQuickConfirmPayment(selectedApp)}
+                      disabled={confirmingPayment}
+                      className="px-3 py-1 rounded-xl bg-amber-500 hover:bg-amber-600 text-amber-950 font-black text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                    >
+                      <CreditCard className="w-3.5 h-3.5" />
+                      <span>{confirmingPayment ? 'Processing...' : 'Mark as Paid & Issue Form #'}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {activeModalTab !== 'documents' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setActiveModalTab('documents')}
+                    icon={<FileText className="w-3.5 h-3.5 text-[#00183F]" />}
+                  >
+                    View Documents ({selectedApp.documents?.length || 0})
+                  </Button>
+                )}
+                {activeModalTab !== 'workflow' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setActiveModalTab('workflow')}
+                    icon={<ShieldCheck className="w-3.5 h-3.5 text-[#00183F]" />}
+                  >
+                    Actions & Decision
+                  </Button>
+                )}
+                {activeModalTab !== 'slip' && (
+                  <Button
+                    variant="gold"
+                    size="sm"
+                    onClick={() => setActiveModalTab('slip')}
+                    icon={<Printer className="w-3.5 h-3.5 text-[#00183F]" />}
+                  >
+                    Admit Card
+                  </Button>
+                )}
+                {activeModalTab === 'workflow' && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleSaveWorkflow}
+                    disabled={updating}
+                    icon={<Check className="w-4 h-4" />}
+                  >
+                    {updating ? 'Saving...' : 'Save Application Status'}
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedApp(null)}
+                >
+                  Close
+                </Button>
+              </div>
             </div>
           </div>
         </Modal>

@@ -291,7 +291,7 @@ class SiteSettings(models.Model):
     email = models.EmailField(default="sjisnarinda2021@gmail.com")
     whatsapp_number = models.CharField(max_length=30, blank=True, default="", help_text="Digits only with country code, e.g. 8801711234567")
     address = models.TextField(default="32 Shah Shaheb Lane, Narinda, Dhaka-1100, Bangladesh")
-    office_hours = models.CharField(max_length=255, default="Sun \u2013 Thu \u00b7 7:30 AM \u2013 4:30 PM")
+    office_hours = models.CharField(max_length=255, default="Sun \u2013 Thu \u00b7 08:00 AM \u2013 2:00 PM")
     weekend_note = models.CharField(max_length=255, blank=True, default="Friday \u2013 Saturday: Academic Recess (Registrar by Appointment)")
     accreditation_label = models.CharField(max_length=255, blank=True, default="Cambridge International Curriculum")
     admissions_open = models.BooleanField(default=True)

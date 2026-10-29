@@ -919,6 +919,15 @@ class OnlineApplicationViewSet(viewsets.ModelViewSet):
             app.offer_letter_sent = bool(offer_letter_sent)
         if docs_verified is not None:
             app.documents_verified = bool(docs_verified)
+        pay_status = request.data.get('payment_status')
+        if pay_status:
+            if pay_status == 'completed' and app.payment_status != 'completed':
+                app.confirm_payment(
+                    transaction_id=request.data.get('payment_transaction_id') or 'MANUAL',
+                    gateway_ref='admin-change-status',
+                )
+            else:
+                app.payment_status = pay_status
         if slot_id is not None:
             # Unlink old slot
             if app.interview_slot_id:

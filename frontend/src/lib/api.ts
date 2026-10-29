@@ -43,7 +43,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   email: 'sjisnarinda2021@gmail.com',
   whatsapp_number: '',
   address: '32 Shah Shaheb Lane, Narinda, Dhaka-1100, Bangladesh',
-  office_hours: 'Sun \u2013 Thu \u00b7 7:30 AM \u2013 4:30 PM',
+  office_hours: 'Sun \u2013 Thu \u00b7 08:00 AM \u2013 2:00 PM',
   weekend_note: 'Friday \u2013 Saturday: Academic Recess (Registrar by Appointment)',
   accreditation_label: 'Cambridge International Curriculum',
   admissions_open: true,

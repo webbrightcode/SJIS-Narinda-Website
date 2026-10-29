@@ -15,6 +15,8 @@ export interface ModalProps {
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
   accentBar?: boolean;
   closeOnBackdrop?: boolean;
+  noPadding?: boolean;
+  contentClassName?: string;
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -29,6 +31,8 @@ export const Modal: React.FC<ModalProps> = ({
   maxWidth = 'lg',
   accentBar = true,
   closeOnBackdrop = true,
+  noPadding = false,
+  contentClassName = '',
 }) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -124,9 +128,15 @@ export const Modal: React.FC<ModalProps> = ({
         )}
 
         {/* Modal Content */}
-        <div className="p-6 sm:p-8 max-h-[calc(85vh-9rem)] overflow-y-auto overscroll-contain">
-          {children}
-        </div>
+        {noPadding ? (
+          <div className={`flex flex-col max-h-[calc(88vh-5rem)] overflow-hidden ${contentClassName}`}>
+            {children}
+          </div>
+        ) : (
+          <div className={`p-6 sm:p-8 max-h-[calc(85vh-9rem)] overflow-y-auto overscroll-contain ${contentClassName}`}>
+            {children}
+          </div>
+        )}
 
         {/* Optional Modal Footer */}
         {footer && (

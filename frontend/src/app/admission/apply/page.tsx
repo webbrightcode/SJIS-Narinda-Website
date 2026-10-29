@@ -3105,7 +3105,7 @@ export default function OnlineApplicationPage() {
             </a>
           </p>
           <p className="text-[11px] text-slate-400">
-            Office Hours: Sunday – Thursday · 7:30 AM – 4:30 PM • 32 Shah Shaheb Lane, Narinda, Dhaka-1100
+            Office Hours: Sunday – Thursday · 08:00 AM – 2:00 PM • 32 Shah Shaheb Lane, Narinda, Dhaka-1100
           </p>
         </div>
       </div>
