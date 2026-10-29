@@ -24,6 +24,7 @@ import {
   Pencil,
   Check,
   X,
+  Power,
 } from 'lucide-react';
 import {
   getAdmissionSettings,
@@ -51,6 +52,8 @@ export const AdmissionSettingsManager: React.FC<Props> = ({ token, onToast }) =>
 
   // Form state
   const [formData, setFormData] = useState<{
+    admissions_open: boolean;
+    admissions_closed_message: string;
     payment_required: boolean;
     payment_gateway: 'manual' | 'sslcommerz' | 'bkash' | 'nagad';
     application_fee: string;
@@ -76,6 +79,8 @@ export const AdmissionSettingsManager: React.FC<Props> = ({ token, onToast }) =>
     admission_test_time: string;
     admission_test_venue: string;
   }>({
+    admissions_open: true,
+    admissions_closed_message: '',
     payment_required: false,
     payment_gateway: 'manual',
     application_fee: '1000.00',
@@ -109,6 +114,8 @@ export const AdmissionSettingsManager: React.FC<Props> = ({ token, onToast }) =>
       if (data) {
         setSettings(data);
         setFormData({
+          admissions_open: data.admissions_open !== false,
+          admissions_closed_message: data.admissions_closed_message || '',
           payment_required: Boolean(data.payment_required),
           payment_gateway: data.payment_gateway || 'manual',
           application_fee: data.application_fee || '1000.00',
@@ -341,6 +348,74 @@ export const AdmissionSettingsManager: React.FC<Props> = ({ token, onToast }) =>
 
       {/* Grid of Settings Panels */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* PANEL: Master Admission Portal Switch (On/Off) */}
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+            <div className="flex items-center gap-3.5">
+              <div
+                className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-colors ${
+                  formData.admissions_open
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : 'bg-rose-50 text-rose-700 border border-rose-200'
+                }`}
+              >
+                <Power className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-black text-[#00183F]">
+                    Online Admissions Portal Master Switch
+                  </h3>
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider ${
+                      formData.admissions_open
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-rose-100 text-rose-800'
+                    }`}
+                  >
+                    {formData.admissions_open ? '● FORM ACTIVE (OPEN)' : '● FORM PAUSED (CLOSED)'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Controls whether the public admission form at <span className="font-mono text-slate-700">/admission/apply</span> is accepting student applications or paused.
+                </p>
+              </div>
+            </div>
+
+            <label className="relative inline-flex items-center cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={formData.admissions_open}
+                onChange={(e) => setFormData((prev) => ({ ...prev, admissions_open: e.target.checked }))}
+                className="sr-only peer"
+              />
+              <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[4px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-500"></div>
+              <span className="ml-3 text-xs font-black text-slate-800">
+                {formData.admissions_open ? 'Accepting Applications' : 'Applications Stopped'}
+              </span>
+            </label>
+          </div>
+
+          {!formData.admissions_open && (
+            <div className="p-4 rounded-xl bg-amber-50/80 border border-amber-200 text-xs text-amber-950 space-y-2 animate-in fade-in">
+              <div className="flex items-center gap-2 font-bold text-amber-900">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Notice Displayed to Parents When Applications Are Paused</span>
+              </div>
+              <textarea
+                rows={2}
+                value={formData.admissions_closed_message}
+                onChange={(e) => setFormData((prev) => ({ ...prev, admissions_closed_message: e.target.value }))}
+                placeholder="Online admission applications for the current academic session are currently closed. For inquiries, please contact our Admissions Desk."
+                className="w-full text-xs p-3 rounded-xl border border-amber-300 focus:outline-none focus:ring-2 focus:ring-[#00183F] bg-white text-slate-800"
+              />
+              <p className="text-[11px] text-amber-800/80">
+                Existing applicants can still look up their application, check review status, and download Admit Slips via <span className="font-mono font-bold">/admission/status</span>.
+              </p>
+            </div>
+          )}
+        </div>
+
         {/* PANEL: Field 7 - Classes & Grades for Online Application */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">

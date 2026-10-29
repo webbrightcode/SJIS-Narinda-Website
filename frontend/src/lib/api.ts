@@ -1054,6 +1054,7 @@ export interface SubmitApplicationResponse {
   payment_currency?: string;
   payment_gateway?: string;
   is_duplicate?: boolean;
+  admissions_closed?: boolean;
   existing_application_id?: string;
   existing_status?: string;
   existing_form_no?: string | null;
@@ -1126,6 +1127,13 @@ export async function submitOnlineApplication(
         application_fee: json.application_fee,
         payment_currency: json.payment_currency,
         payment_gateway: json.payment_gateway,
+      };
+    }
+    if (res.status === 403 || json.error === 'ADMISSIONS_CLOSED') {
+      return {
+        success: false,
+        admissions_closed: true,
+        message: json.message || 'Online admission applications are currently closed.',
       };
     }
     if (res.status === 409 || json.error === 'DUPLICATE_APPLICATION') {

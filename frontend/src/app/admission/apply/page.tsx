@@ -1079,6 +1079,124 @@ export default function OnlineApplicationPage() {
     );
   }
 
+  // ADMISSIONS CLOSED / PAUSED PORTAL VIEW
+  if ((admSettings && admSettings.admissions_open === false) || result?.admissions_closed) {
+    const closedNotice =
+      admSettings?.admissions_closed_message?.trim() ||
+      result?.message?.trim() ||
+      "Online admission applications for the current academic session are currently closed. For inquiries or special assistance, please contact our Admissions Desk.";
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-[#00183F] to-slate-950 py-16 px-4 sm:px-6 flex items-center justify-center">
+        <div className="max-w-3xl w-full space-y-8 animate-in fade-in duration-300">
+          {/* Header Branding */}
+          <div className="text-center space-y-3">
+            <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-500/20 text-rose-300 text-xs font-bold tracking-widest uppercase border border-rose-500/30">
+              <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping" />
+              Portal Status: Inactive / Closed
+            </span>
+            <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+              Online Admissions Portal
+            </h1>
+            <p className="text-sm text-slate-300 max-w-xl mx-auto">
+              St. Joseph International School, Narinda • Cambridge Assessment International Education
+            </p>
+          </div>
+
+          {/* Central Announcement Card */}
+          <div className="bg-white/95 backdrop-blur-md rounded-3xl p-6 sm:p-10 shadow-2xl border border-white/20 space-y-6">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
+              <div className="w-16 h-16 rounded-2xl bg-amber-50 border-2 border-amber-200 flex items-center justify-center text-amber-600 shrink-0 shadow-sm">
+                <Lock className="w-8 h-8" />
+              </div>
+              <div className="text-center sm:text-left space-y-2">
+                <h2 className="text-xl sm:text-2xl font-black text-[#00183F]">
+                  Applications Are Currently Paused
+                </h2>
+                <p className="text-sm sm:text-base text-slate-700 leading-relaxed font-medium">
+                  {closedNotice}
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Action Pillars */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+              {/* Pillar 1: Existing Applicants Track Status */}
+              <div className="p-5 rounded-2xl bg-gradient-to-br from-blue-50/80 to-indigo-50/50 border border-blue-100 flex flex-col justify-between space-y-4">
+                <div>
+                  <div className="flex items-center gap-2 text-[#00183F] font-bold text-sm mb-1.5">
+                    <BookmarkCheck className="w-4 h-4 text-emerald-600" />
+                    <span>Already Submitted an Application?</span>
+                  </div>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    Existing applicants can still verify payment status, view application progress, and download official Admit Slips.
+                  </p>
+                </div>
+                <a
+                  href="/admission/status"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#00183F] hover:bg-[#002661] text-amber-300 font-bold text-xs shadow-md transition-all cursor-pointer"
+                >
+                  <span>Track Application & Admit Slip</span>
+                  <ArrowRight className="w-4 h-4" />
+                </a>
+              </div>
+
+              {/* Pillar 2: Admissions Desk & Office Contact */}
+              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col justify-between space-y-4">
+                <div>
+                  <div className="flex items-center gap-2 text-slate-900 font-bold text-sm mb-1.5">
+                    <Building2 className="w-4 h-4 text-amber-600" />
+                    <span>Admissions Helpdesk</span>
+                  </div>
+                  <div className="text-xs text-slate-600 space-y-1.5">
+                    <p className="flex items-center gap-2">
+                      <Phone className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                      <span className="font-semibold text-slate-800">+880 1746-866393</span>
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <Clock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                      <span>Sun – Thu · 08:00 AM – 2:00 PM</span>
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                      <span>32 Shah Shaheb Lane, Narinda, Dhaka-1100</span>
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <a
+                    href="/admission"
+                    className="flex-1 text-center px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-white font-bold text-xs transition-colors cursor-pointer"
+                  >
+                    Admission Guide
+                  </a>
+                  <a
+                    href="/"
+                    className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-white font-bold text-xs transition-colors cursor-pointer"
+                  >
+                    Home
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Refresh portal check button */}
+            <div className="text-center pt-2">
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 font-medium cursor-pointer transition-colors"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Check If Admissions Have Re-Opened</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // SUCCESS CONFIRMATION VIEW
   if (result?.success) {
     const isPaymentRequired = result.payment_required === true;

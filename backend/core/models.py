@@ -521,6 +521,17 @@ class AdmissionSettings(models.Model):
         ('manual', 'Manual (admin assigns per application)'),
     ]
 
+    # ── Master Portal Control (Start / Stop Online Admission Form) ───────────
+    admissions_open = models.BooleanField(
+        default=True,
+        help_text="Master on/off switch for online admission applications. When OFF, the apply form is closed and submissions are blocked."
+    )
+    admissions_closed_message = models.TextField(
+        blank=True,
+        default="Online admission applications for the current academic session are currently closed. For inquiries or special assistance, please contact our Admissions Desk at +880 1746-866393 or visit our campus office.",
+        help_text="Custom announcement message displayed to applicants on the application page when admissions are closed."
+    )
+
     # ── Classes & Grades (Field 7 on Apply Form) ──────────────────────────────
     available_grades = models.JSONField(
         default=list, blank=True,
@@ -610,6 +621,14 @@ class AdmissionSettings(models.Model):
         # Enforce singleton pattern
         self.__class__.objects.exclude(pk=self.pk).delete()
         super().save(*args, **kwargs)
+        # Keep SiteSettings.admissions_open synchronized across the platform
+        try:
+            site_settings = SiteSettings.objects.first()
+            if site_settings and site_settings.admissions_open != self.admissions_open:
+                site_settings.admissions_open = self.admissions_open
+                site_settings.save(update_fields=['admissions_open'])
+        except Exception:
+            pass
 
     @classmethod
     def get_settings(cls):

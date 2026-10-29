@@ -383,6 +383,9 @@ export interface DocumentChecklistItem {
 
 export interface AdmissionSettings {
   id?: number;
+  // Master On / Off Portal Switch
+  admissions_open?: boolean;
+  admissions_closed_message?: string;
   // Payment
   payment_required: boolean;
   payment_gateway: 'manual' | 'sslcommerz' | 'bkash' | 'nagad';

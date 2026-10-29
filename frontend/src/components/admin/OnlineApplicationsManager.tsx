@@ -35,6 +35,7 @@ import {
   ShieldAlert,
   Tag,
   Paperclip,
+  Power,
 } from 'lucide-react';
 import {
   OnlineApplication,
@@ -53,6 +54,7 @@ import {
   manualConfirmPayment,
   listInterviewSlots,
   getAdmissionSettings,
+  updateAdmissionSettings,
   bulkApplicationAction,
   uploadApplicationDocumentOnBehalf,
   deleteApplicationDocument,
@@ -141,6 +143,48 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'completed' | 'pending' | 'not_required'>('all');
   const [slotFilter, setSlotFilter] = useState('all');
   const [printPageSize, setPrintPageSize] = useState<'A4' | 'Legal'>('Legal');
+
+  // Master On / Off Portal State
+  const [showToggleModal, setShowToggleModal] = useState(false);
+  const [toggleSaving, setToggleSaving] = useState(false);
+  const [toggleNoticeMessage, setToggleNoticeMessage] = useState('');
+  const isAdmissionsOpen = admSettings?.admissions_open !== false;
+
+  const handleOpenToggleModal = () => {
+    setToggleNoticeMessage(
+      admSettings?.admissions_closed_message ||
+      "Online admission applications for the current academic session are currently closed. For inquiries or special assistance, please contact our Admissions Desk at +880 1746-866393 or visit our campus office."
+    );
+    setShowToggleModal(true);
+  };
+
+  const handleConfirmToggleAdmissions = async () => {
+    const nextState = !isAdmissionsOpen;
+    setToggleSaving(true);
+    try {
+      const res = await updateAdmissionSettings(token, {
+        admissions_open: nextState,
+        admissions_closed_message: toggleNoticeMessage.trim(),
+      });
+      if (res.success && res.data) {
+        setAdmSettings(res.data);
+        setShowToggleModal(false);
+        if (onToast) {
+          onToast(
+            nextState
+              ? '🟢 Online Admission Portal is now OPEN and accepting parent submissions!'
+              : '🔴 Online Admission Portal is now PAUSED. Public application form is closed.'
+          );
+        }
+      } else {
+        if (onToast) onToast(res.error || 'Failed to update admissions portal state.');
+      }
+    } catch {
+      if (onToast) onToast('Network error while toggling portal status.');
+    } finally {
+      setToggleSaving(false);
+    }
+  };
 
   // Workflow update form state
   const [workflowState, setWorkflowState] = useState<{
@@ -620,7 +664,45 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Master Admissions Portal On / Off Control Button */}
+          <button
+            type="button"
+            onClick={handleOpenToggleModal}
+            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all shadow-xs cursor-pointer group ${
+              isAdmissionsOpen
+                ? 'border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-900'
+                : 'border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-900'
+            }`}
+            title={
+              isAdmissionsOpen
+                ? 'Admissions are OPEN. Click to pause/stop online admission applications.'
+                : 'Admissions are CLOSED. Click to start/open online admission applications.'
+            }
+          >
+            {isAdmissionsOpen ? (
+              <span className="relative flex h-2.5 w-2.5 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </span>
+            ) : (
+              <span className="h-2.5 w-2.5 rounded-full bg-rose-500 shrink-0 inline-block"></span>
+            )}
+            <span className="hidden md:inline font-medium text-slate-500">Portal:</span>
+            <span className="font-extrabold tracking-wide">
+              {isAdmissionsOpen ? 'FORM ACTIVE' : 'FORM PAUSED'}
+            </span>
+            <span
+              className={`text-[10px] font-black uppercase px-1.5 py-0.5 rounded transition-colors ${
+                isAdmissionsOpen
+                  ? 'bg-emerald-200 text-emerald-800 group-hover:bg-rose-100 group-hover:text-rose-700'
+                  : 'bg-rose-200 text-rose-800 group-hover:bg-emerald-100 group-hover:text-emerald-700'
+              }`}
+            >
+              {isAdmissionsOpen ? 'Stop / Turn Off' : 'Start / Turn On'}
+            </span>
+          </button>
+
           <Button
             variant="outline"
             size="sm"
@@ -1205,6 +1287,137 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
                 className="px-4 py-2 rounded-xl bg-rose-600 text-white hover:bg-rose-700 text-xs font-bold transition-colors cursor-pointer"
               >
                 Delete Record
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Master Admissions Portal On / Off Control Modal */}
+      {showToggleModal && (
+        <Modal
+          isOpen={true}
+          onClose={() => !toggleSaving && setShowToggleModal(false)}
+          title={
+            isAdmissionsOpen
+              ? "Pause Online Admission Applications"
+              : "Activate Online Admission Applications"
+          }
+          maxWidth="lg"
+        >
+          <div className="p-6 space-y-5">
+            {/* Context Badge & Status Alert */}
+            <div
+              className={`p-4 rounded-2xl border text-xs space-y-2 ${
+                isAdmissionsOpen
+                  ? "bg-rose-50/80 border-rose-200 text-rose-950"
+                  : "bg-emerald-50/80 border-emerald-200 text-emerald-950"
+              }`}
+            >
+              <div className="flex items-center gap-2 font-black text-sm">
+                <Power
+                  className={`w-4 h-4 ${
+                    isAdmissionsOpen ? "text-rose-600" : "text-emerald-600"
+                  }`}
+                />
+                <span>
+                  {isAdmissionsOpen
+                    ? "You are about to PAUSE / STOP online admission submissions"
+                    : "You are about to ACTIVATE / OPEN online admission submissions"}
+                </span>
+              </div>
+              <p className="leading-relaxed">
+                {isAdmissionsOpen ? (
+                  <>
+                    When paused, the public admission form at{" "}
+                    <code className="px-1.5 py-0.5 rounded bg-rose-100 font-mono text-[11px]">
+                      /admission/apply
+                    </code>{" "}
+                    will be blocked. Parents visiting the page will see the
+                    courteous announcement message below.
+                  </>
+                ) : (
+                  <>
+                    When activated, the public admission form at{" "}
+                    <code className="px-1.5 py-0.5 rounded bg-emerald-100 font-mono text-[11px]">
+                      /admission/apply
+                    </code>{" "}
+                    will immediately open for parents and accept new student
+                    registrations and payment submissions.
+                  </>
+                )}
+              </p>
+            </div>
+
+            {/* Note on Existing Applications */}
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-xs space-y-1">
+              <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
+                <span>Existing applicant access remains fully intact:</span>
+              </span>
+              <p className="text-[11px] text-slate-600 pl-5">
+                Already registered candidates can still track their application,
+                verify payment status, and download Admit Slips via{" "}
+                <span className="font-mono text-slate-800">/admission/status</span>.
+                Admins can still review, verify documents, and issue admit cards.
+              </p>
+            </div>
+
+            {/* Custom Public Announcement Notice (When Paused) */}
+            {isAdmissionsOpen && (
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-800">
+                  Custom Notice Displayed to Parents on Application Page
+                </label>
+                <textarea
+                  rows={3}
+                  value={toggleNoticeMessage}
+                  onChange={(e) => setToggleNoticeMessage(e.target.value)}
+                  placeholder="e.g. Online admission applications for the current academic session are currently closed. For inquiries, please contact our Admissions Desk."
+                  className="w-full text-xs p-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#00183F] bg-white text-slate-800"
+                />
+                <p className="text-[10px] text-slate-400">
+                  This message is immediately displayed on the public website when admissions are paused.
+                </p>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={toggleSaving}
+                onClick={() => setShowToggleModal(false)}
+              >
+                Cancel
+              </Button>
+              <button
+                type="button"
+                disabled={toggleSaving}
+                onClick={handleConfirmToggleAdmissions}
+                className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black text-white shadow-md transition-all cursor-pointer ${
+                  isAdmissionsOpen
+                    ? "bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300"
+                    : "bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300"
+                }`}
+              >
+                {toggleSaving ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Updating Portal Status...</span>
+                  </>
+                ) : isAdmissionsOpen ? (
+                  <>
+                    <Power className="w-3.5 h-3.5" />
+                    <span>Confirm & Turn Off Admissions</span>
+                  </>
+                ) : (
+                  <>
+                    <Power className="w-3.5 h-3.5" />
+                    <span>Confirm & Turn On Admissions</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

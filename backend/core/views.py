@@ -836,10 +836,16 @@ class OnlineApplicationViewSet(viewsets.ModelViewSet):
         data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
         documents_data = data.pop('documents', []) if isinstance(data, dict) else []
 
-        # Determine if payment is required
+        # Determine if admission portal is currently active & open
         adm_settings = AdmissionSettings.get_settings()
+        if not adm_settings.admissions_open:
+            return Response({
+                'error': 'ADMISSIONS_CLOSED',
+                'message': adm_settings.admissions_closed_message or "Online admission applications for the current academic session are currently closed. For inquiries, please contact our Admissions Desk."
+            }, status=status.HTTP_403_FORBIDDEN)
+
         payment_required = adm_settings.payment_required
-        academic_year = data.get('academic_year') or adm_settings.academic_year or '2026-2027'
+        academic_year = data.get('academic_year') or getattr(adm_settings, 'academic_year', '2026-2027') or '2026-2027'
 
         # Duplicate Submission Guard
         duplicate, reason = OnlineApplication.find_duplicate(
@@ -1909,6 +1915,13 @@ class DraftSaveView(APIView):
 
     def post(self, request):
         import datetime as dt
+        adm_settings = AdmissionSettings.get_settings()
+        if not adm_settings.admissions_open:
+            return Response({
+                'error': 'ADMISSIONS_CLOSED',
+                'message': adm_settings.admissions_closed_message or "Online admission applications are currently closed."
+            }, status=status.HTTP_403_FORBIDDEN)
+
         phone        = (request.data.get('phone') or '').strip()
         draft_data   = request.data.get('draft_data') or {}
         documents    = request.data.get('documents') or []
