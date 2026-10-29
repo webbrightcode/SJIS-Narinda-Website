@@ -50,6 +50,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { PrintableApplicationForm } from '@/components/admission/PrintableApplicationForm';
 import { printDocumentElement } from '@/lib/printUtils';
+import { downloadElementAsPdf } from '@/lib/pdfUtils';
 
 interface Props {
   token: string;
@@ -1610,6 +1611,21 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
                         variant="gold"
                         size="sm"
                         onClick={() =>
+                          downloadElementAsPdf(
+                            'physical-admission-document',
+                            `SJIS-AdmitCard-${selectedApp.form_no || selectedApp.application_id}.pdf`,
+                            { pageSize: printPageSize, scale: 2.5 }
+                          )
+                        }
+                        icon={<Download className="w-4 h-4 text-[#00183F]" />}
+                      >
+                        Download PDF ({printPageSize})
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
                           printDocumentElement(
                             'physical-admission-document',
                             `SJIS Admission Form - ${selectedApp.form_no || selectedApp.application_id}`,
@@ -1618,7 +1634,7 @@ export const OnlineApplicationsManager: React.FC<Props> = ({ token, onToast }) =
                         }
                         icon={<Printer className="w-4 h-4 text-[#00183F]" />}
                       >
-                        Print Form & Admit Card ({printPageSize})
+                        Print
                       </Button>
                     </div>
                   </div>

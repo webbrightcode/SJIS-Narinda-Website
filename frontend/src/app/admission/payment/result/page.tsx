@@ -17,11 +17,13 @@ import {
   Clock,
   Loader2,
   Lock,
+  Download,
 } from 'lucide-react';
 import { trackApplicationStatus, initiatePayment } from '@/lib/api';
 import type { ApplicationStatusResult } from '@/lib/types';
 import { PrintableApplicationForm } from '@/components/admission/PrintableApplicationForm';
 import { printDocumentElement } from '@/lib/printUtils';
+import { downloadElementAsPdf } from '@/lib/pdfUtils';
 
 function PaymentResultInner() {
   const searchParams = useSearchParams();
@@ -35,10 +37,31 @@ function PaymentResultInner() {
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [retryError, setRetryError] = useState<string | null>(null);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   const isSuccess = rawStatus === 'success' || appData?.payment_status === 'completed';
   const isCancelled = rawStatus === 'cancel' || rawStatus === 'cancelled';
   const isFailed = rawStatus === 'fail' || rawStatus === 'failed';
+
+  const handleDownloadPdf = async () => {
+    if (!appData?.form_no) return;
+    setGeneratingPdf(true);
+    try {
+      const filename = `SJIS-AdmitCard-${appData.form_no || appData.application_id}.pdf`;
+      const ok = await downloadElementAsPdf('direct-payment-result-admit-card', filename, {
+        pageSize: 'A4',
+        scale: 2.5,
+      });
+      if (!ok) {
+        setShowPrintModal(true);
+      }
+    } catch (e) {
+      console.error(e);
+      setShowPrintModal(true);
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
 
   useEffect(() => {
     async function loadApp() {
@@ -180,23 +203,48 @@ function PaymentResultInner() {
         {/* Action Buttons */}
         <div className="space-y-3 pt-2">
           {isSuccess && appData?.form_no ? (
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                type="button"
-                onClick={() => setShowPrintModal(true)}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-black text-sm shadow-lg shadow-emerald-700/25 active:scale-[0.98] transition-all cursor-pointer"
-              >
-                <Printer className="w-4 h-4" />
-                <span>Print Official Form & Admit Card</span>
-              </button>
+            <div className="space-y-2.5">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  type="button"
+                  onClick={handleDownloadPdf}
+                  disabled={generatingPdf}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white font-black text-sm shadow-lg shadow-emerald-700/25 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-60"
+                >
+                  {generatingPdf ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-white" />
+                      <span>Generating Admit Card PDF...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 text-emerald-200" />
+                      <span>Download Admit Card (PDF)</span>
+                    </>
+                  )}
+                </button>
 
-              <Link
-                href={`/admission/status?id=${appId}${phone || appData?.application?.contact_phone ? `&phone=${encodeURIComponent(phone || appData?.application?.contact_phone || '')}` : ''}`}
-                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-[#00183F] text-amber-300 font-bold text-sm hover:bg-[#002257] transition-all shadow-md cursor-pointer"
-              >
-                <FileCheck2 className="w-4 h-4" />
-                <span>Track Status</span>
-              </Link>
+                <button
+                  type="button"
+                  onClick={() => setShowPrintModal(true)}
+                  className="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 font-bold text-xs sm:text-sm shadow-xs transition-all cursor-pointer"
+                >
+                  <Printer className="w-4 h-4 text-slate-500" />
+                  <span>Full Form</span>
+                </button>
+
+                <Link
+                  href={`/admission/status?id=${appId}${phone || appData?.application?.contact_phone ? `&phone=${encodeURIComponent(phone || appData?.application?.contact_phone || '')}` : ''}`}
+                  className="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-[#00183F] text-amber-300 font-bold text-xs sm:text-sm hover:bg-[#002257] transition-all shadow-md cursor-pointer"
+                >
+                  <FileCheck2 className="w-4 h-4" />
+                  <span>Track Status</span>
+                </Link>
+              </div>
+
+              <p className="text-[11px] text-center text-slate-500">
+                💡 Tap <strong>Download Admit Card (PDF)</strong> on your mobile phone to save the official PDF directly to your device.
+              </p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -261,7 +309,21 @@ function PaymentResultInner() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => {
+                  downloadElementAsPdf(
+                    'physical-admission-document',
+                    `SJIS-ApplicationForm-${appData.form_no || appData.application_id}.pdf`,
+                    { pageSize: appData.print_page_size || 'A4', scale: 2.5 }
+                  );
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-md transition-all cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download PDF</span>
+              </button>
               <button
                 type="button"
                 onClick={() =>
@@ -271,10 +333,10 @@ function PaymentResultInner() {
                     appData.print_page_size || 'A4'
                   )
                 }
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#D4AF37] hover:bg-[#c59f2e] text-[#00183F] font-black text-xs sm:text-sm shadow-md transition-all cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#D4AF37] hover:bg-[#c59f2e] text-[#00183F] font-black text-xs sm:text-sm shadow-md transition-all cursor-pointer"
               >
                 <Printer className="w-4 h-4" />
-                <span>Print / Save PDF ({appData.print_page_size || 'A4'})</span>
+                <span>Print</span>
               </button>
               <button
                 type="button"
@@ -293,6 +355,41 @@ function PaymentResultInner() {
               formNo={appData.form_no}
               submittedAt={appData.submitted_at}
               pageSize={appData.print_page_size || 'Legal'}
+              documentChecklist={appData.document_checklist || []}
+              reportingInstructions={appData.reporting_instructions || ''}
+              paymentStatus={appData.payment_status}
+              paymentTransactionId={appData.payment_transaction_id}
+              interviewSlot={appData.interview_slot}
+              admissionTestDate={(appData as any).admission_test_date || (appData as any).entrance_exam_date}
+              admissionTestTime={(appData as any).admission_test_time || (appData as any).interview_time}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Off-screen direct Admit Card render target (rendered only when payment is confirmed) */}
+      {isSuccess && appData?.form_no && (
+        <div
+          id="direct-payment-admit-card-container"
+          style={{
+            position: 'fixed',
+            left: '-9999px',
+            top: '0',
+            width: '210mm',
+            background: '#ffffff',
+            zIndex: -50,
+          }}
+          aria-hidden="true"
+        >
+          <div id="direct-payment-result-admit-card">
+            <PrintableApplicationForm
+              form={formData}
+              applicationId={appData.application_id}
+              formNo={appData.form_no}
+              submittedAt={appData.submitted_at}
+              admitCardOnly={true}
+              defaultYellowPaper={false}
+              pageSize="A4"
               documentChecklist={appData.document_checklist || []}
               reportingInstructions={appData.reporting_instructions || ''}
               paymentStatus={appData.payment_status}

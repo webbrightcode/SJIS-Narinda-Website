@@ -5,12 +5,13 @@ import { useSearchParams } from 'next/navigation';
 import {
   Search, CheckCircle2, Clock, XCircle, AlertCircle, FileCheck2,
   GraduationCap, CalendarDays, Shield, RefreshCw, ArrowRight, Loader2, Printer,
-  Lock, CreditCard, ExternalLink, Phone, ShieldCheck, KeyRound,
+  Lock, CreditCard, ExternalLink, Phone, ShieldCheck, KeyRound, Download,
 } from 'lucide-react';
 import { trackApplicationStatus, initiatePayment } from '@/lib/api';
 import type { ApplicationStatusResult, ApplicationStatus } from '@/lib/types';
 import { PrintableApplicationForm } from '@/components/admission/PrintableApplicationForm';
 import { printDocumentElement } from '@/lib/printUtils';
+import { downloadElementAsPdf } from '@/lib/pdfUtils';
 
 const STATUS_CONFIG: Record<ApplicationStatus, {
   color: string; bg: string; border: string; icon: React.ReactNode; label: string; step: number;
@@ -43,11 +44,51 @@ function StatusResult({ data }: { data: ApplicationStatusResult }) {
   const [printModalMode, setPrintModalMode] = useState<'admit_card' | 'full_form' | null>(null);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
-  // Payment gating checks
+  // Payment gating checks - strictly enforced: only once payment is confirmed and form_no is assigned
   const isPaymentRequired = data.payment_required !== false;
   const isPaid = data.payment_status === 'completed' || data.payment_status === 'not_required' || !isPaymentRequired;
   const canDownload = isPaid && Boolean(data.form_no);
+
+  const handleDownloadAdmitCardPdf = async () => {
+    if (!canDownload) return;
+    setGeneratingPdf(true);
+    try {
+      const filename = `SJIS-AdmitCard-${data.form_no || data.application_id}.pdf`;
+      const ok = await downloadElementAsPdf('direct-admit-card-element', filename, {
+        pageSize: 'A4',
+        scale: 2.5,
+      });
+      if (!ok) {
+        setPrintModalMode('admit_card');
+      }
+    } catch (e) {
+      console.error('PDF generation error:', e);
+      setPrintModalMode('admit_card');
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
+
+  const handleDownloadFromModal = async () => {
+    if (!canDownload) return;
+    setGeneratingPdf(true);
+    try {
+      const filename =
+        printModalMode === 'admit_card'
+          ? `SJIS-AdmitCard-${data.form_no || data.application_id}.pdf`
+          : `SJIS-ApplicationForm-${data.form_no || data.application_id}.pdf`;
+      await downloadElementAsPdf('physical-admission-document', filename, {
+        pageSize: data.print_page_size || 'A4',
+        scale: 2.5,
+      });
+    } catch (e) {
+      console.error('PDF modal download error:', e);
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
 
   const handlePayNow = async () => {
     setPaying(true);
@@ -271,30 +312,63 @@ function StatusResult({ data }: { data: ApplicationStatusResult }) {
 
       {/* Primary Action Buttons: Admit Card & Full Form */}
       {canDownload ? (
-        <div className="flex flex-col sm:flex-row gap-3 pt-1 print:hidden">
-          <button
-            type="button"
-            onClick={() => setPrintModalMode('admit_card')}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-[#00183F] hover:bg-[#002257] text-[#D4AF37] font-bold text-xs sm:text-sm shadow-md transition-all cursor-pointer"
-          >
-            <Printer className="w-4 h-4" />
-            <span>Print Candidate Admit Card</span>
-          </button>
+        <div className="space-y-2.5 pt-1 print:hidden">
+          <div className="flex flex-col sm:flex-row gap-3">
+            {/* Mobile-First Direct PDF Download Button */}
+            <button
+              type="button"
+              onClick={handleDownloadAdmitCardPdf}
+              disabled={generatingPdf}
+              className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white font-black text-xs sm:text-sm shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-60"
+            >
+              {generatingPdf ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  <span>Generating Official PDF...</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 text-emerald-200" />
+                  <span>Download Admit Card (PDF)</span>
+                </>
+              )}
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setPrintModalMode('full_form')}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 font-bold text-xs sm:text-sm shadow-xs transition-all cursor-pointer"
-          >
-            <Printer className="w-4 h-4 text-slate-500" />
-            <span>Print Full Form + Tear-Off Admit Card</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setPrintModalMode('admit_card')}
+              className="inline-flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl bg-[#00183F] hover:bg-[#002257] text-[#D4AF37] font-bold text-xs sm:text-sm shadow-sm transition-all cursor-pointer"
+            >
+              <Printer className="w-4 h-4" />
+              <span>Print Preview</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setPrintModalMode('full_form')}
+              className="inline-flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 font-bold text-xs sm:text-sm shadow-xs transition-all cursor-pointer"
+            >
+              <Printer className="w-4 h-4 text-slate-500" />
+              <span>Full Form</span>
+            </button>
+          </div>
+
+          <p className="text-[11px] text-center text-slate-500">
+            💡 Tap <strong>Download Admit Card (PDF)</strong> on your mobile phone to save the official PDF directly to your device or WhatsApp.
+          </p>
         </div>
       ) : (
         <div className="print:hidden">
-          <div className="p-3 rounded-xl bg-slate-100 border border-slate-200 text-center text-xs text-slate-500 font-semibold flex items-center justify-center gap-2">
-            <Lock className="w-4 h-4 text-slate-400" />
-            <span>Form & Admit Card downloads are disabled until payment is confirmed.</span>
+          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs sm:text-sm flex items-start sm:items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+              <Lock className="w-5 h-5" />
+            </div>
+            <div className="flex-1">
+              <div className="font-bold text-amber-950">Admit Card & Form Download Locked</div>
+              <p className="text-amber-800 text-xs mt-0.5">
+                Official PDF downloads will automatically unlock immediately once application payment is confirmed.
+              </p>
+            </div>
           </div>
         </div>
       )}
@@ -315,6 +389,41 @@ function StatusResult({ data }: { data: ApplicationStatusResult }) {
       </div>
       </div>
 
+      {/* Direct PDF Off-Screen Render Container (rendered only when payment is confirmed) */}
+      {canDownload && (
+        <div
+          id="direct-admit-card-container"
+          style={{
+            position: 'fixed',
+            left: '-9999px',
+            top: '0',
+            width: '210mm',
+            background: '#ffffff',
+            zIndex: -50,
+          }}
+          aria-hidden="true"
+        >
+          <div id="direct-admit-card-element">
+            <PrintableApplicationForm
+              form={formData}
+              applicationId={data.application_id}
+              formNo={data.form_no}
+              submittedAt={data.submitted_at}
+              admitCardOnly={true}
+              defaultYellowPaper={false}
+              pageSize="A4"
+              documentChecklist={data.document_checklist || []}
+              reportingInstructions={data.reporting_instructions || ''}
+              paymentStatus={data.payment_status}
+              paymentTransactionId={data.payment_transaction_id}
+              interviewSlot={data.interview_slot}
+              admissionTestDate={(data as any).admission_test_date || (data as any).entrance_exam_date}
+              admissionTestTime={(data as any).admission_test_time || (data as any).interview_time}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Print & PDF Modal */}
       {printModalMode && (
         <div className="fixed inset-0 z-50 bg-slate-900/85 backdrop-blur-sm overflow-y-auto p-3 sm:p-6 flex flex-col items-center print-modal-backdrop print:static print:inset-auto print:z-auto print:bg-transparent print:p-0 print:m-0 print:overflow-visible print:block print:w-full">
@@ -327,11 +436,25 @@ function StatusResult({ data }: { data: ApplicationStatusResult }) {
                   {printModalMode === 'admit_card' ? 'Official Candidate Admit Card' : 'Official Admission Form with Tear-Off Admit Card'}
                 </h3>
                 <p className="text-[11px] text-slate-300">
-                  Select <strong>"Save as PDF"</strong> or print directly on {data.print_page_size || 'A4'} paper.
+                  Select <strong>"Save as PDF"</strong> or tap Download PDF.
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={handleDownloadFromModal}
+                disabled={generatingPdf}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-md transition-all cursor-pointer disabled:opacity-60"
+              >
+                {generatingPdf ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                <span>Download PDF File</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() =>
@@ -341,10 +464,10 @@ function StatusResult({ data }: { data: ApplicationStatusResult }) {
                     data.print_page_size || 'A4'
                   )
                 }
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#D4AF37] hover:bg-[#c59f2e] text-[#00183F] font-black text-xs sm:text-sm shadow-md transition-all cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#D4AF37] hover:bg-[#c59f2e] text-[#00183F] font-black text-xs sm:text-sm shadow-md transition-all cursor-pointer"
               >
                 <Printer className="w-4 h-4" />
-                <span>Print / Save PDF</span>
+                <span>Print</span>
               </button>
               <button
                 type="button"
