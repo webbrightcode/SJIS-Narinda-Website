@@ -999,6 +999,33 @@ class OnlineApplication(models.Model):
         self.status = 'submitted'
         self.save()
 
+    def log_activity(self, action, performed_by='System', details='', role='Admissions Staff', request=None):
+        """Record an immutable staff activity / event audit log entry for this application."""
+        ip = None
+        user_name = performed_by
+        user_role = role
+        if request is not None:
+            if hasattr(request, 'user') and request.user and request.user.is_authenticated:
+                user_name = request.user.get_full_name() or request.user.username
+                if request.user.is_superuser:
+                    user_role = "Super Admin"
+                elif request.user.is_staff:
+                    user_role = "Admissions Staff"
+            x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+            if x_forwarded_for:
+                ip = x_forwarded_for.split(',')[0].strip()
+            else:
+                ip = request.META.get('REMOTE_ADDR')
+
+        return ApplicationAuditLog.objects.create(
+            application=self,
+            action=action,
+            performed_by=user_name or 'System Admin',
+            performed_by_role=user_role,
+            details=details,
+            ip_address=ip
+        )
+
     @property
     def student_full_name(self):
         return f"{self.student_first_name} {self.student_last_name}".strip()
@@ -1016,8 +1043,11 @@ class ApplicationDocument(models.Model):
         ('transfer_certificate', 'Transfer Certificate (TC)'),
         ('student_photo', 'Student Passport-size Photo'),
         ('parent_nid', 'Parent / Guardian NID'),
+        ('father_nid', 'Father National ID (NID)'),
+        ('mother_nid', 'Mother National ID (NID)'),
         ('immunization_record', 'Immunization / Health Record'),
         ('recommendation_letter', 'Recommendation Letter'),
+        ('medical_report', 'Medical / Special Needs Record'),
         ('other', 'Other Supporting Document'),
     ]
 
@@ -1030,6 +1060,9 @@ class ApplicationDocument(models.Model):
     file_url = models.TextField(help_text="Uploaded file URL")
     original_filename = models.CharField(max_length=255, blank=True, default="")
     file_size = models.CharField(max_length=50, blank=True, default="")
+    uploaded_by = models.CharField(max_length=150, blank=True, default="Applicant")
+    is_staff_upload = models.BooleanField(default=False, help_text="True if uploaded on applicant's behalf by staff at admissions desk")
+    notes = models.TextField(blank=True, default="", help_text="Staff or verification notes")
     verified = models.BooleanField(default=False)
     verified_by = models.CharField(max_length=100, blank=True, default="")
     uploaded_at = models.DateTimeField(auto_now_add=True)
@@ -1041,6 +1074,46 @@ class ApplicationDocument(models.Model):
 
     def __str__(self):
         return f"{self.get_doc_type_display()} for {self.application.application_id}"
+
+
+class ApplicationAuditLog(models.Model):
+    """Staff Activity and Event Audit Trail for Admission Applications."""
+
+    ACTION_CHOICES = [
+        ('application_created', 'Application Created'),
+        ('status_changed', 'Status Changed'),
+        ('payment_confirmed', 'Payment Confirmed & Form Serial Issued'),
+        ('payment_updated', 'Payment Details Updated'),
+        ('slot_assigned', 'Interview / Test Slot Assigned'),
+        ('slot_unlinked', 'Interview / Test Slot Unlinked'),
+        ('document_uploaded', 'Document Uploaded (On-Behalf)'),
+        ('document_verified', 'Document Verified'),
+        ('document_unverified', 'Document Verification Revoked'),
+        ('document_deleted', 'Document Removed'),
+        ('note_added', 'Staff Note Added / Updated'),
+        ('bulk_action', 'Bulk Action Executed'),
+        ('details_updated', 'Candidate Details Updated'),
+    ]
+
+    application = models.ForeignKey(
+        OnlineApplication,
+        on_delete=models.CASCADE,
+        related_name='audit_logs'
+    )
+    action = models.CharField(max_length=50, choices=ACTION_CHOICES)
+    performed_by = models.CharField(max_length=150, default="System Admin")
+    performed_by_role = models.CharField(max_length=100, blank=True, default="Admissions Staff")
+    details = models.TextField(blank=True, default="")
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Application Audit Log"
+        verbose_name_plural = "Application Audit Logs"
+
+    def __str__(self):
+        return f"[{self.application.application_id}] {self.get_action_display()} by {self.performed_by}"
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -13,6 +13,7 @@ from .models import (
     Publication,
     OnlineApplication,
     ApplicationDocument,
+    ApplicationAuditLog,
     AdmissionSettings,
     InterviewSlot,
     ApplicationDraft,
@@ -129,8 +130,17 @@ class PublicationAdmin(admin.ModelAdmin):
 class ApplicationDocumentInline(admin.TabularInline):
     model = ApplicationDocument
     extra = 0
-    fields = ('doc_type', 'file_url', 'original_filename', 'file_size', 'verified', 'verified_by', 'uploaded_at')
+    fields = ('doc_type', 'file_url', 'original_filename', 'file_size', 'uploaded_by', 'is_staff_upload', 'verified', 'verified_by', 'uploaded_at')
     readonly_fields = ('uploaded_at',)
+
+
+class ApplicationAuditLogInline(admin.TabularInline):
+    model = ApplicationAuditLog
+    extra = 0
+    fields = ('action', 'performed_by', 'performed_by_role', 'details', 'ip_address', 'created_at')
+    readonly_fields = ('action', 'performed_by', 'performed_by_role', 'details', 'ip_address', 'created_at')
+    can_delete = False
+    show_change_link = True
 
 
 @admin.register(OnlineApplication)
@@ -145,7 +155,7 @@ class OnlineApplicationAdmin(admin.ModelAdmin):
         'contact_email', 'contact_phone', 'father_name', 'mother_name', 'payment_transaction_id',
     )
     readonly_fields = ('application_id', 'created_at', 'updated_at', 'submitted_at')
-    inlines = [ApplicationDocumentInline]
+    inlines = [ApplicationDocumentInline, ApplicationAuditLogInline]
     list_per_page = 30
     date_hierarchy = 'created_at'
 
@@ -278,4 +288,14 @@ class ApplicationDraftAdmin(admin.ModelAdmin):
     search_fields = ('draft_key', 'phone', 'candidate_name', 'grade_applying')
     list_filter = ('current_step', 'created_at', 'expires_at')
     readonly_fields = ('draft_key', 'created_at', 'updated_at')
+
+
+@admin.register(ApplicationAuditLog)
+class ApplicationAuditLogAdmin(admin.ModelAdmin):
+    list_display = ('application', 'action', 'performed_by', 'performed_by_role', 'created_at')
+    list_filter = ('action', 'performed_by_role', 'created_at')
+    search_fields = ('application__application_id', 'performed_by', 'details', 'ip_address')
+    readonly_fields = ('application', 'action', 'performed_by', 'performed_by_role', 'details', 'ip_address', 'created_at')
+    date_hierarchy = 'created_at'
+    list_per_page = 50
 

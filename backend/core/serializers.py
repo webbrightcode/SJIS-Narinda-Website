@@ -16,6 +16,7 @@ from .models import (
     Publication,
     OnlineApplication,
     ApplicationDocument,
+    ApplicationAuditLog,
     AdmissionSettings,
     InterviewSlot,
 )
@@ -172,7 +173,22 @@ class ApplicationDocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = ApplicationDocument
         fields = '__all__'
-        read_only_fields = ['uploaded_at', 'verified', 'verified_by']
+        read_only_fields = ['uploaded_at', 'verified_by']
+
+
+class ApplicationAuditLogSerializer(serializers.ModelSerializer):
+    action_display = serializers.CharField(source='get_action_display', read_only=True)
+    created_at_formatted = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ApplicationAuditLog
+        fields = [
+            'id', 'action', 'action_display', 'performed_by', 'performed_by_role',
+            'details', 'ip_address', 'created_at', 'created_at_formatted'
+        ]
+
+    def get_created_at_formatted(self, obj):
+        return obj.created_at.strftime('%d %b %Y, %I:%M %p') if obj.created_at else ''
 
 
 class AdmissionSettingsSerializer(serializers.ModelSerializer):
@@ -218,6 +234,7 @@ class OnlineApplicationSerializer(serializers.ModelSerializer):
     documents = ApplicationDocumentSerializer(many=True, read_only=True)
     documents_count = serializers.SerializerMethodField()
     verified_docs_count = serializers.SerializerMethodField()
+    audit_logs = ApplicationAuditLogSerializer(many=True, read_only=True)
     interview_slot_detail = InterviewSlotSerializer(source='interview_slot', read_only=True)
 
     class Meta:

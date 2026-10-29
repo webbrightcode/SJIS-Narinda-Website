@@ -5,7 +5,7 @@ from urllib.parse import quote
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.shortcuts import get_object_or_404, redirect
-from django.db import models
+from django.db import models, transaction
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from rest_framework import viewsets, generics, status, permissions
@@ -32,6 +32,7 @@ from .models import (
     Publication,
     OnlineApplication,
     ApplicationDocument,
+    ApplicationAuditLog,
     AdmissionSettings,
     InterviewSlot,
     ApplicationDraft,
@@ -54,6 +55,7 @@ from .serializers import (
     OnlineApplicationSerializer,
     OnlineApplicationListSerializer,
     ApplicationDocumentSerializer,
+    ApplicationAuditLogSerializer,
     AdmissionSettingsSerializer,
     AdmissionSettingsFullSerializer,
     InterviewSlotSerializer,
@@ -867,7 +869,18 @@ class OnlineApplicationViewSet(viewsets.ModelViewSet):
                         file_url=doc.get('file_url'),
                         original_filename=doc.get('original_filename', ''),
                         file_size=doc.get('file_size', ''),
+                        uploaded_by='Applicant',
+                        is_staff_upload=False,
                     )
+
+        # Record initial audit entry
+        instance.log_activity(
+            action='application_created',
+            performed_by='Applicant',
+            role='Online Applicant',
+            details=f"Application submitted online via public admission portal (Initial Status: {instance.get_status_display()}).",
+            request=request
+        )
 
         return Response(
             {
@@ -887,8 +900,15 @@ class OnlineApplicationViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['patch'], url_path='change-status')
     def change_status(self, request, pk=None):
-        """Admin: change application status and optionally add notes."""
+        """Admin: change application status, assign slots, confirm payment, and log staff audit trail."""
         app = self.get_object()
+        old_status = app.status
+        old_status_disp = app.get_status_display()
+        old_pay_status = app.payment_status
+        old_notes = app.admin_notes
+        old_docs_verified = app.documents_verified
+        old_offer_letter = app.offer_letter_sent
+
         new_status = request.data.get('status')
         notes = request.data.get('admin_notes')
         exam_date = request.data.get('entrance_exam_date')
@@ -903,10 +923,14 @@ class OnlineApplicationViewSet(viewsets.ModelViewSet):
         if new_status and new_status not in valid_statuses:
             return Response({'error': f'Invalid status: {new_status}'}, status=400)
 
-        if new_status:
+        changes = []
+
+        if new_status and new_status != old_status:
             app.status = new_status
-        if notes is not None:
+            changes.append(f"Status changed from '{old_status_disp}' to '{app.get_status_display()}'")
+        if notes is not None and notes != old_notes:
             app.admin_notes = notes
+            changes.append("Updated internal staff notes")
         if exam_date is not None:
             app.entrance_exam_date = exam_date or None
         if exam_venue is not None:
@@ -915,10 +939,13 @@ class OnlineApplicationViewSet(viewsets.ModelViewSet):
             app.interview_date = interview_dt or None
         if interview_time is not None:
             app.interview_time = interview_time
-        if offer_letter_sent is not None:
+        if offer_letter_sent is not None and bool(offer_letter_sent) != old_offer_letter:
             app.offer_letter_sent = bool(offer_letter_sent)
-        if docs_verified is not None:
+            changes.append("Marked offer letter sent" if app.offer_letter_sent else "Unmarked offer letter sent")
+        if docs_verified is not None and bool(docs_verified) != old_docs_verified:
             app.documents_verified = bool(docs_verified)
+            changes.append("Marked all documents as verified" if app.documents_verified else "Unmarked documents verification")
+
         pay_status = request.data.get('payment_status')
         if pay_status:
             if pay_status == 'completed' and app.payment_status != 'completed':
@@ -926,8 +953,11 @@ class OnlineApplicationViewSet(viewsets.ModelViewSet):
                     transaction_id=request.data.get('payment_transaction_id') or 'MANUAL',
                     gateway_ref='admin-change-status',
                 )
-            else:
+                changes.append(f"Payment marked COMPLETED. Official Form Serial #{app.form_no} allocated.")
+            elif pay_status != old_pay_status:
                 app.payment_status = pay_status
+                changes.append(f"Payment status updated to '{pay_status}'")
+
         if slot_id is not None:
             # Unlink old slot
             if app.interview_slot_id:
@@ -941,13 +971,265 @@ class OnlineApplicationViewSet(viewsets.ModelViewSet):
                     InterviewSlot.objects.filter(pk=slot_id).update(
                         booked_count=models.F('booked_count') + 1
                     )
+                    changes.append(f"Assigned interview slot: {new_slot.display_label}")
                 except InterviewSlot.DoesNotExist:
                     pass
             else:
                 app.interview_slot = None
+                changes.append("Unlinked interview slot")
+
         app.save()
 
+        # Log Activity Audit Trail
+        if changes:
+            app.log_activity(
+                action='status_changed' if (new_status and new_status != old_status) else 'details_updated',
+                details="; ".join(changes),
+                request=request
+            )
+
         return Response(OnlineApplicationSerializer(app).data)
+
+    @action(detail=False, methods=['post'], url_path='bulk-action')
+    def bulk_action(self, request):
+        """
+        Admin Batch / Bulk Actions:
+        - action_type: 'confirm_payment' | 'assign_slot' | 'change_status'
+        - application_ids: [1, 2, 3...]
+        - params: { slot_id, status, notes, transaction_id }
+        """
+        import django.utils.timezone as tz
+        app_ids = request.data.get('application_ids', [])
+        action_type = request.data.get('action_type')
+        params = request.data.get('params', {}) or {}
+
+        if not app_ids or not isinstance(app_ids, list):
+            return Response({'error': 'application_ids must be a non-empty list of application IDs.'}, status=400)
+
+        apps = list(OnlineApplication.objects.filter(id__in=app_ids))
+        if not apps:
+            return Response({'error': 'No matching applications found.'}, status=404)
+
+        updated_ids = []
+        errors = []
+
+        with transaction.atomic():
+            if action_type == 'confirm_payment':
+                tran_prefix = params.get('transaction_id') or f"BULK-PAY-{tz.now().strftime('%Y%m%d')}"
+                for app in apps:
+                    if app.payment_status != 'completed':
+                        app.confirm_payment(
+                            transaction_id=f"{tran_prefix}-{app.id}",
+                            gateway_ref='bulk-action-desk',
+                        )
+                        app.log_activity(
+                            action='payment_confirmed',
+                            details=f"Bulk payment confirmation executed. Official Form Serial #{app.form_no} assigned.",
+                            request=request
+                        )
+                    updated_ids.append(app.id)
+
+            elif action_type == 'assign_slot':
+                slot_id = params.get('slot_id')
+                if not slot_id:
+                    return Response({'error': 'slot_id is required for assign_slot.'}, status=400)
+                try:
+                    slot = InterviewSlot.objects.get(pk=slot_id)
+                except InterviewSlot.DoesNotExist:
+                    return Response({'error': 'Interview slot not found.'}, status=404)
+
+                for app in apps:
+                    if app.interview_slot_id != slot.id:
+                        if app.interview_slot_id:
+                            InterviewSlot.objects.filter(pk=app.interview_slot_id).update(
+                                booked_count=models.F('booked_count') - 1
+                            )
+                        app.interview_slot = slot
+                        if slot.date:
+                            app.entrance_exam_date = slot.date
+                            import datetime as dt
+                            app.interview_date = dt.datetime.combine(slot.date, slot.start_time or dt.time(9, 0))
+                        if slot.start_time:
+                            app.interview_time = slot.start_time.strftime('%I:%M %p').lstrip('0')
+                        if slot.venue:
+                            app.entrance_exam_venue = slot.venue
+                        if app.status in ('payment_pending', 'submitted', 'under_review'):
+                            app.status = 'shortlisted'
+                        app.save()
+                        InterviewSlot.objects.filter(pk=slot.id).update(
+                            booked_count=models.F('booked_count') + 1
+                        )
+                        app.log_activity(
+                            action='slot_assigned',
+                            details=f"Bulk slot assignment: assigned to '{slot.display_label}' (Venue: {slot.venue or 'Campus'}). Status updated to '{app.get_status_display()}'.",
+                            request=request
+                        )
+                    updated_ids.append(app.id)
+
+            elif action_type == 'change_status':
+                new_status = params.get('status')
+                valid_statuses = [s[0] for s in OnlineApplication.STATUS_CHOICES]
+                if new_status not in valid_statuses:
+                    return Response({'error': f'Invalid status: {new_status}'}, status=400)
+                notes = params.get('notes', '')
+                for app in apps:
+                    old_disp = app.get_status_display()
+                    app.status = new_status
+                    if notes:
+                        app.admin_notes = f"{app.admin_notes}\n[Bulk Note {tz.now().strftime('%d/%m/%Y')}]: {notes}".strip()
+                    app.save()
+                    app.log_activity(
+                        action='status_changed',
+                        details=f"Bulk status update from '{old_disp}' to '{app.get_status_display()}'. Notes: {notes or 'N/A'}",
+                        request=request
+                    )
+                    updated_ids.append(app.id)
+
+            else:
+                return Response({'error': f'Unsupported action_type: {action_type}'}, status=400)
+
+        return Response({
+            'success': True,
+            'action_type': action_type,
+            'updated_count': len(updated_ids),
+            'updated_ids': updated_ids,
+            'message': f"Successfully executed bulk {action_type} on {len(updated_ids)} applications."
+        })
+
+    @action(detail=True, methods=['post'], url_path='upload-document', parser_classes=[MultiPartParser, FormParser])
+    def upload_document(self, request, pk=None):
+        """
+        Admin On-Behalf Document Upload:
+        Admissions staff uploads paper scans / certificates on applicant's behalf.
+        Accepts multipart file upload or file_url, doc_type, and notes.
+        """
+        import os
+        from django.core.files.storage import default_storage
+        from django.core.files.base import ContentFile
+        from PIL import Image
+        import io
+
+        app = self.get_object()
+        doc_type = request.data.get('doc_type', 'other')
+        notes = request.data.get('notes', '')
+        file_obj = request.FILES.get('file')
+        file_url = request.data.get('file_url')
+
+        staff_name = "Staff Admin"
+        if request.user and request.user.is_authenticated:
+            staff_name = request.user.get_full_name() or request.user.username
+
+        if not file_obj and not file_url:
+            return Response({'error': 'Please provide either a file upload or a file_url.'}, status=400)
+
+        if file_obj:
+            orig_name = file_obj.name
+            size_kb = f"{round(file_obj.size / 1024, 1)} KB"
+            ext = os.path.splitext(orig_name)[1].lower()
+            safe_id = app.application_id or f"APP_{app.id}"
+            filename = f"onbehalf_{safe_id}_{doc_type}_{uuid.uuid4().hex[:8]}{ext}"
+            content = file_obj
+
+            if ext in ('.jpg', '.jpeg', '.png') and Image:
+                try:
+                    img = Image.open(file_obj)
+                    if img.mode in ('RGBA', 'LA'):
+                        bg = Image.new('RGB', img.size, (255, 255, 255))
+                        bg.paste(img, mask=img.split()[-1])
+                        img = bg
+                    out = io.BytesIO()
+                    img.save(out, format='WEBP', quality=85, optimize=True)
+                    webp_bytes = out.getvalue()
+                    content = ContentFile(webp_bytes)
+                    filename = f"onbehalf_{safe_id}_{doc_type}_{uuid.uuid4().hex[:8]}.webp"
+                    size_kb = f"{round(len(webp_bytes) / 1024, 1)} KB"
+                except Exception:
+                    file_obj.seek(0)
+
+            save_path = os.path.join('application_documents', filename)
+            actual_path = default_storage.save(save_path, content)
+            file_url = f"{settings.MEDIA_URL}{actual_path}"
+        else:
+            orig_name = request.data.get('original_filename') or f"{doc_type}_{uuid.uuid4().hex[:6]}"
+            size_kb = request.data.get('file_size') or "External link"
+
+        doc = ApplicationDocument.objects.create(
+            application=app,
+            doc_type=doc_type,
+            file_url=file_url,
+            original_filename=orig_name,
+            file_size=size_kb,
+            uploaded_by=f"Staff ({staff_name})",
+            is_staff_upload=True,
+            notes=notes or "Physical document verified at admissions desk",
+            verified=True,
+            verified_by=staff_name,
+        )
+
+        app.log_activity(
+            action='document_uploaded',
+            details=f"Document '{doc.get_doc_type_display()}' ({orig_name}) uploaded and verified on applicant's behalf. Notes: {notes or 'Physical paper verified in person'}.",
+            request=request
+        )
+
+        docs = app.documents.all()
+        return Response({
+            'success': True,
+            'message': f"Document '{doc.get_doc_type_display()}' uploaded and verified successfully.",
+            'document': ApplicationDocumentSerializer(doc).data,
+            'documents': ApplicationDocumentSerializer(docs, many=True).data,
+        }, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['delete'], url_path='documents/(?P<doc_id>[^/.]+)')
+    def delete_document(self, request, pk=None, doc_id=None):
+        """Staff removes an uploaded document from candidate profile."""
+        app = self.get_object()
+        doc = get_object_or_404(ApplicationDocument, pk=doc_id, application=app)
+        doc_disp = doc.get_doc_type_display()
+        doc_filename = doc.original_filename
+        doc.delete()
+
+        app.log_activity(
+            action='document_deleted',
+            details=f"Document '{doc_disp}' ({doc_filename}) deleted by staff.",
+            request=request
+        )
+
+        return Response({
+            'success': True,
+            'message': f"Document '{doc_disp}' removed.",
+            'documents': ApplicationDocumentSerializer(app.documents.all(), many=True).data,
+        })
+
+    @action(detail=True, methods=['patch'], url_path='verify-document/(?P<doc_id>[^/.]+)')
+    def verify_document(self, request, pk=None, doc_id=None):
+        """Toggle document verification status."""
+        app = self.get_object()
+        doc = get_object_or_404(ApplicationDocument, pk=doc_id, application=app)
+        staff_name = request.user.get_full_name() or request.user.username if request.user.is_authenticated else "Staff"
+
+        doc.verified = not doc.verified
+        doc.verified_by = staff_name if doc.verified else ""
+        doc.save()
+
+        app.log_activity(
+            action='document_verified' if doc.verified else 'document_unverified',
+            details=f"Document '{doc.get_doc_type_display()}' ({doc.original_filename}) marked as {'VERIFIED' if doc.verified else 'UNVERIFIED'}.",
+            request=request
+        )
+
+        return Response({
+            'success': True,
+            'document': ApplicationDocumentSerializer(doc).data,
+            'documents': ApplicationDocumentSerializer(app.documents.all(), many=True).data,
+        })
+
+    @action(detail=True, methods=['get'], url_path='audit-trail')
+    def audit_trail(self, request, pk=None):
+        """Retrieve staff activity and event audit logs for this application."""
+        app = self.get_object()
+        logs = app.audit_logs.all()
+        return Response(ApplicationAuditLogSerializer(logs, many=True).data)
 
     @action(detail=False, methods=['get'], url_path='stats')
     def stats(self, request):

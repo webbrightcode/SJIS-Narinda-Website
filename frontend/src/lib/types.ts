@@ -547,6 +547,7 @@ export interface OnlineApplication extends OnlineApplicationFormData {
   admin_notes?: string;
   offer_letter_sent?: boolean;
   documents?: ApplicationDocument[];
+  audit_logs?: ApplicationAuditLog[];
 }
 
 export interface ApplicationDocument {
@@ -557,9 +558,24 @@ export interface ApplicationDocument {
   file_url: string;
   original_filename: string;
   file_size: string;
+  uploaded_by?: string;
+  is_staff_upload?: boolean;
+  notes?: string;
   verified: boolean;
   verified_by: string;
   uploaded_at: string;
+}
+
+export interface ApplicationAuditLog {
+  id: number;
+  action: string;
+  action_display: string;
+  performed_by: string;
+  performed_by_role: string;
+  details: string;
+  ip_address?: string;
+  created_at: string;
+  created_at_formatted?: string;
 }
 
 export interface ApplicationStatusResult {

@@ -18,6 +18,8 @@ import {
   Publication,
   OnlineApplicationFormData,
   OnlineApplication,
+  ApplicationDocument,
+  ApplicationAuditLog,
   ApplicationStatusResult,
   AdmissionSettings,
   InterviewSlot,
@@ -1320,6 +1322,117 @@ export async function deleteApplication(
     return res.ok;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Admin: Execute bulk / batch actions across multiple admission applications.
+ */
+export async function bulkApplicationAction(
+  token: string,
+  payload: {
+    action_type: 'confirm_payment' | 'assign_slot' | 'change_status';
+    application_ids: number[];
+    params?: Record<string, any>;
+  }
+): Promise<{ success: boolean; updated_count?: number; updated_ids?: number[]; message?: string; error?: string }> {
+  try {
+    const res = await fetchWithTimeout(apiUrl('/applications/bulk-action/'), {
+      method: 'POST',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (res.ok) return { success: true, ...json };
+    return { success: false, error: (json as { error?: string }).error || 'Bulk operation failed.' };
+  } catch {
+    return { success: false, error: 'Network error executing bulk action.' };
+  }
+}
+
+/**
+ * Admin: Upload document on candidate's behalf at admissions desk.
+ */
+export async function uploadApplicationDocumentOnBehalf(
+  token: string,
+  appId: number,
+  formData: FormData
+): Promise<{ success: boolean; document?: ApplicationDocument; documents?: ApplicationDocument[]; error?: string }> {
+  try {
+    const res = await fetchWithTimeout(apiUrl(`/applications/${appId}/upload-document/`), {
+      method: 'POST',
+      headers: {
+        Authorization: `Token ${token}`,
+        Accept: 'application/json',
+      },
+      body: formData,
+    });
+    const json = await res.json();
+    if (res.ok) return { success: true, ...json };
+    return { success: false, error: (json as { error?: string }).error || 'Document upload failed.' };
+  } catch {
+    return { success: false, error: 'Network error uploading document.' };
+  }
+}
+
+/**
+ * Admin: Delete an uploaded application document.
+ */
+export async function deleteApplicationDocument(
+  token: string,
+  appId: number,
+  docId: number
+): Promise<{ success: boolean; documents?: ApplicationDocument[]; error?: string }> {
+  try {
+    const res = await fetchWithTimeout(apiUrl(`/applications/${appId}/documents/${docId}/`), {
+      method: 'DELETE',
+      headers: getAuthHeaders(token),
+    });
+    const json = await res.json();
+    if (res.ok) return { success: true, ...json };
+    return { success: false, error: (json as { error?: string }).error || 'Failed to remove document.' };
+  } catch {
+    return { success: false, error: 'Network error removing document.' };
+  }
+}
+
+/**
+ * Admin: Toggle document verification status and record audit log.
+ */
+export async function toggleApplicationDocumentVerification(
+  token: string,
+  appId: number,
+  docId: number
+): Promise<{ success: boolean; document?: ApplicationDocument; documents?: ApplicationDocument[]; error?: string }> {
+  try {
+    const res = await fetchWithTimeout(apiUrl(`/applications/${appId}/verify-document/${docId}/`), {
+      method: 'PATCH',
+      headers: getAuthHeaders(token),
+    });
+    const json = await res.json();
+    if (res.ok) return { success: true, ...json };
+    return { success: false, error: (json as { error?: string }).error || 'Failed to update document verification.' };
+  } catch {
+    return { success: false, error: 'Network error updating document verification.' };
+  }
+}
+
+/**
+ * Admin: Retrieve immutable staff activity audit trail for an application.
+ */
+export async function getApplicationAuditTrail(
+  token: string,
+  appId: number
+): Promise<ApplicationAuditLog[]> {
+  try {
+    const res = await fetchWithTimeout(apiUrl(`/applications/${appId}/audit-trail/`), {
+      headers: getAuthHeaders(token),
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data) ? (data as ApplicationAuditLog[]) : [];
+  } catch {
+    return [];
   }
 }
 
