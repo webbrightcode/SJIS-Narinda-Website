@@ -115,6 +115,7 @@ import { CommandPalette } from '@/components/admin/CommandPalette';
 import { AdmissionSlipModal } from '@/components/admin/AdmissionSlipModal';
 import { DatabaseRestoreModal } from '@/components/admin/DatabaseRestoreModal';
 import { ImageHelper } from '@/components/admin/ImageHelper';
+import { BulkPhotoUploader } from '@/components/admin/BulkPhotoUploader';
 import { SiteSettingsPanel, TestimonialsManager, FaqManager, FacultyManager, SyllabusManager } from '@/components/admin/SiteContentPanels';
 import { FacilitiesManager } from '@/components/admin/FacilitiesManager';
 import { AboutPageManager } from '@/components/admin/AboutPageManager';
@@ -2315,9 +2316,9 @@ export default function AdminDashboardPage() {
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-xl font-black text-[#00183F]">Media & Photo Gallery</h3>
+                  <h3 className="text-xl font-black text-[#00183F]">Media & Photo Albums</h3>
                   <p className="text-xs text-slate-500">
-                    Upload and manage high-resolution photos and moments across campus and events.
+                    Upload and manage multi-photo event albums and campus chronicles (e.g. Sports Day, Class Sessions, Annual Science Fair).
                   </p>
                 </div>
 
@@ -2331,6 +2332,7 @@ export default function AdminDashboardPage() {
                       category: 'campus',
                       media_type: 'image',
                       image_url: 'https://images.unsplash.com/photo-1546422904-90eab23c3d7e?q=80&w=1200&auto=format&fit=crop',
+                      gallery_images: [],
                       caption: '',
                       is_featured: true,
                       order: gallery.length + 1,
@@ -2338,56 +2340,72 @@ export default function AdminDashboardPage() {
                     setGalleryModalOpen(true);
                   }}
                 >
-                  Upload Media
+                  Create New Album
                 </Button>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
-                {filteredGallery.map((g) => (
-                  <div
-                    key={g.id}
-                    className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm flex flex-col justify-between"
-                  >
-                    <div className="relative h-44 w-full bg-slate-900">
-                      <Image
-                        src={g.image_url}
-                        alt={g.title}
-                        fill
-                        className="object-cover"
-                      />
-                      {g.category ? (
-                        <div className="absolute top-2 left-2 flex gap-1">
-                          <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-black/70 text-white backdrop-blur-md">
-                            {g.category_display || g.category}
+                {filteredGallery.map((g) => {
+                  const photoCount = (g.image_url ? 1 : 0) + (g.gallery_images?.length || 0);
+
+                  return (
+                    <div
+                      key={g.id}
+                      className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm flex flex-col justify-between"
+                    >
+                      <div className="relative h-44 w-full bg-slate-900">
+                        <Image
+                          src={g.image_url}
+                          alt={g.title}
+                          fill
+                          className="object-cover"
+                        />
+                        {g.category ? (
+                          <div className="absolute top-2 left-2 flex gap-1">
+                            <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-black/70 text-white backdrop-blur-md">
+                              {g.category_display || g.category}
+                            </span>
+                          </div>
+                        ) : null}
+
+                        <div className="absolute top-2 right-2 flex gap-1">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#D4AF37] text-[#00183F] shadow-xs flex items-center gap-1 backdrop-blur-md">
+                            <Layers className="w-3 h-3" />
+                            <span>{photoCount} {photoCount === 1 ? 'Photo' : 'Photos'}</span>
                           </span>
                         </div>
-                      ) : null}
-                    </div>
+                      </div>
 
-                    <div className="p-3">
-                      <h5 className="font-bold text-xs text-[#00183F] line-clamp-1">{g.title}</h5>
-                      {g.caption && <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">{g.caption}</p>}
-                    </div>
+                      <div className="p-3">
+                        <h5 className="font-bold text-xs text-[#00183F] line-clamp-1">{g.title}</h5>
+                        {g.caption && <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">{g.caption}</p>}
+                        {photoCount > 1 && (
+                          <div className="mt-1 text-[10px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded w-fit">
+                            Album with {photoCount} photos
+                          </div>
+                        )}
+                      </div>
 
-                    <div className="px-3 py-2 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                      <button
-                        onClick={() => {
-                          setEditingGallery(g);
-                          setGalleryModalOpen(true);
-                        }}
-                        className="font-bold text-[#00183F] hover:text-[#C8102E]"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => confirmDeleteGallery(g.id, g.title)}
-                        className="font-bold text-rose-600 hover:text-rose-800"
-                      >
-                        Delete
-                      </button>
+                      <div className="px-3 py-2 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                        <button
+                          onClick={() => {
+                            setEditingGallery(g);
+                            setGalleryModalOpen(true);
+                          }}
+                          className="font-bold text-[#00183F] hover:text-[#C8102E]"
+                        >
+                          Edit Album
+                        </button>
+                        <button
+                          onClick={() => confirmDeleteGallery(g.id, g.title)}
+                          className="font-bold text-rose-600 hover:text-rose-800"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -4839,7 +4857,7 @@ export default function AdminDashboardPage() {
         </Modal>
       )}
 
-      {/* ---------------- MODAL: GALLERY CRUD (With Live Preview) ---------------- */}
+      {/* ---------------- MODAL: GALLERY ALBUM CRUD ---------------- */}
       {galleryModalOpen && editingGallery && (
         <Modal
           isOpen={galleryModalOpen}
@@ -4847,64 +4865,88 @@ export default function AdminDashboardPage() {
             setGalleryModalOpen(false);
             setEditingGallery(null);
           }}
-          title={editingGallery.id ? 'Edit Gallery Photo' : 'Upload Gallery Photo'}
-          maxWidth="md"
+          title={editingGallery.id ? 'Edit Photo Album' : 'Create New Photo Album'}
+          maxWidth="xl"
         >
-          <form onSubmit={handleSaveGallery} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                Media Title *
-              </label>
-              <input
-                type="text"
-                required
-                value={editingGallery.title || ''}
-                onChange={(e) => setEditingGallery({ ...editingGallery, title: e.target.value })}
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm"
-                placeholder="e.g. Historic Quadrangle Lawn"
-              />
+          <form onSubmit={handleSaveGallery} className="space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Album / Event Title *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editingGallery.title || ''}
+                  onChange={(e) => setEditingGallery({ ...editingGallery, title: e.target.value })}
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-[#00183F] outline-none"
+                  placeholder="e.g. Sports Day Activities"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Category / Tag <span className="text-[10px] text-slate-400 font-normal lowercase">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  list="gallery-existing-categories"
+                  value={editingGallery.category || ''}
+                  onChange={(e) => setEditingGallery({ ...editingGallery, category: e.target.value })}
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-[#00183F] outline-none"
+                  placeholder="e.g. Sports Club, Classroom, Annual Events..."
+                />
+                <datalist id="gallery-existing-categories">
+                  {Array.from(new Set(gallery.map((g) => (g.category || '').trim()).filter(Boolean))).map((cat) => (
+                    <option key={cat} value={cat} />
+                  ))}
+                </datalist>
+              </div>
             </div>
 
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                Category / Tag <span className="text-[10px] text-slate-400 font-normal lowercase">(optional)</span>
+                Event Date <span className="text-[10px] text-slate-400 font-normal lowercase">(optional)</span>
               </label>
               <input
-                type="text"
-                list="gallery-existing-categories"
-                value={editingGallery.category || ''}
-                onChange={(e) => setEditingGallery({ ...editingGallery, category: e.target.value })}
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-[#00183F] outline-none"
-                placeholder="Type new category or pick existing..."
+                type="date"
+                value={editingGallery.event_date || ''}
+                onChange={(e) => setEditingGallery({ ...editingGallery, event_date: e.target.value })}
+                className="w-full sm:w-1/2 px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-[#00183F] outline-none"
               />
-              <datalist id="gallery-existing-categories">
-                {Array.from(new Set(gallery.map((g) => (g.category || '').trim()).filter(Boolean))).map((cat) => (
-                  <option key={cat} value={cat} />
-                ))}
-              </datalist>
             </div>
 
             <ImageHelper
               value={editingGallery.image_url || ''}
               onChange={(url) => setEditingGallery({ ...editingGallery, image_url: url })}
-              label="Gallery Photo / Asset"
+              label="Album Cover / Thumbnail Photo"
               required
             />
 
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                Caption / Description
+                Caption / Story Description
               </label>
               <textarea
                 rows={2}
                 value={editingGallery.caption || ''}
                 onChange={(e) => setEditingGallery({ ...editingGallery, caption: e.target.value })}
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm"
-                placeholder="Brief description..."
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-[#00183F] outline-none"
+                placeholder="Brief highlights or description of this event..."
               />
             </div>
 
-            <div className="flex items-center gap-2 pt-2">
+            {/* ---------------- BULK PHOTO UPLOADER (PRO) ---------------- */}
+            <BulkPhotoUploader
+              images={editingGallery.gallery_images || []}
+              coverImage={editingGallery.image_url || ''}
+              onImagesChange={(imgs) => setEditingGallery({ ...editingGallery, gallery_images: imgs })}
+              onCoverChange={(coverUrl) => setEditingGallery({ ...editingGallery, image_url: coverUrl })}
+              token={token || undefined}
+              showToast={showToast}
+            />
+
+            <div className="flex items-center gap-2 pt-1">
               <input
                 type="checkbox"
                 id="gallery-feat"
@@ -4927,7 +4969,7 @@ export default function AdminDashboardPage() {
                 Cancel
               </Button>
               <Button type="submit" variant="primary" size="sm">
-                Save Media
+                Save Album
               </Button>
             </div>
           </form>

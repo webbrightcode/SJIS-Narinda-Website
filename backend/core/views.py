@@ -736,55 +736,66 @@ class FileUploadView(APIView):
         import uuid
         import os
         from django.core.files.storage import default_storage
-
-        file_obj = request.FILES.get('file') or request.FILES.get('image')
-        if not file_obj:
-            return Response({'error': 'No file uploaded'}, status=status.HTTP_400_BAD_REQUEST)
-
-        ext = os.path.splitext(file_obj.name)[1].lower()
-        allowed_extensions = ['.jpg', '.jpeg', '.png', '.webp', '.pdf']
-        if ext not in allowed_extensions:
-            return Response(
-                {'error': f'Unsupported file type {ext}. Allowed: {", ".join(allowed_extensions)}'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        max_size = 200 * 1024 * 1024  # 200 MB limit
-        if file_obj.size > max_size:
-            size_mb = file_obj.size / (1024 * 1024)
-            return Response(
-                {'error': f'File exceeds the 200 MB maximum size limit ({size_mb:.1f} MB). Please compress the PDF before uploading.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
         from django.core.files.base import ContentFile
         from .image_utils import CONVERTIBLE_EXTENSIONS, image_to_webp_bytes, webp_name
 
-        safe_name = "".join(c for c in file_obj.name if c.isalnum() or c in "._-")
-        filename = f"{uuid.uuid4().hex[:10]}_{safe_name}"
-        content = file_obj
-        display_name = file_obj.name
-        size = file_obj.size
+        # Support both single file and batch multi-file upload
+        file_list = request.FILES.getlist('files')
+        if not file_list:
+            single = request.FILES.get('file') or request.FILES.get('image')
+            if single:
+                file_list = [single]
 
-        # Convert raster images to optimised WebP (SVG/GIF/WebP/PDF stored as-is).
-        if ext in CONVERTIBLE_EXTENSIONS:
-            try:
-                webp_bytes = image_to_webp_bytes(file_obj)
-                filename = webp_name(file_obj.name)
-                content = ContentFile(webp_bytes)
-                display_name = filename
-                size = len(webp_bytes)
-            except Exception:
-                file_obj.seek(0)  # unreadable image: keep the original upload
+        if not file_list:
+            return Response({'error': 'No file uploaded'}, status=status.HTTP_400_BAD_REQUEST)
 
-        save_path = os.path.join('uploads', filename)
-        actual_path = default_storage.save(save_path, content)
-        file_url = f"{settings.MEDIA_URL}{actual_path}"
+        allowed_extensions = ['.jpg', '.jpeg', '.png', '.webp', '.pdf']
+        max_size = 200 * 1024 * 1024  # 200 MB limit
+
+        saved_results = []
+        for file_obj in file_list:
+            ext = os.path.splitext(file_obj.name)[1].lower()
+            if ext not in allowed_extensions or file_obj.size > max_size:
+                continue
+
+            safe_name = "".join(c for c in file_obj.name if c.isalnum() or c in "._-")
+            filename = f"{uuid.uuid4().hex[:10]}_{safe_name}"
+            content = file_obj
+            display_name = file_obj.name
+            size = file_obj.size
+
+            # Convert raster images to optimised WebP (SVG/GIF/WebP/PDF stored as-is).
+            if ext in CONVERTIBLE_EXTENSIONS:
+                try:
+                    webp_bytes = image_to_webp_bytes(file_obj)
+                    filename = webp_name(file_obj.name)
+                    content = ContentFile(webp_bytes)
+                    display_name = filename
+                    size = len(webp_bytes)
+                except Exception:
+                    file_obj.seek(0)
+
+            save_path = os.path.join('uploads', filename)
+            actual_path = default_storage.save(save_path, content)
+            file_url = f"{settings.MEDIA_URL}{actual_path}"
+            saved_results.append({
+                'url': file_url,
+                'name': display_name,
+                'size': size,
+            })
+
+        if not saved_results:
+            return Response({'error': 'No supported files could be processed.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # If caller sent single file, return single object for backward compatibility
+        if len(file_list) == 1 and not request.FILES.getlist('files'):
+            return Response(saved_results[0], status=status.HTTP_201_CREATED)
 
         return Response({
-            'url': file_url,
-            'name': display_name,
-            'size': size,
+            'url': saved_results[0]['url'],
+            'urls': [r['url'] for r in saved_results],
+            'files': saved_results,
+            'count': len(saved_results),
         }, status=status.HTTP_201_CREATED)
 
 

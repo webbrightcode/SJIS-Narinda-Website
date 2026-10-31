@@ -464,6 +464,11 @@ export const FALLBACK_GALLERY: GalleryItem[] = [
     media_type: "image",
     image_url: "https://images.unsplash.com/photo-1577896851231-70ef18881754?q=80&w=1200&auto=format&fit=crop",
     caption: "Junior scientists collaborating on autonomous robotic prototypes and AI sensors.",
+    gallery_images: [
+      "https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1581092335397-9583fe92d232?q=80&w=1200&auto=format&fit=crop"
+    ],
     is_featured: true,
     order: 2
   },
@@ -474,6 +479,11 @@ export const FALLBACK_GALLERY: GalleryItem[] = [
     category_display: "Sports & Athletics",
     media_type: "image",
     image_url: "https://images.unsplash.com/photo-1511629091441-ee46146481b6?q=80&w=1200&auto=format&fit=crop",
+    gallery_images: [
+      "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?q=80&w=1200&auto=format&fit=crop"
+    ],
     caption: "Electric atmosphere during the final showdown of the Inter-House Football League.",
     is_featured: true,
     order: 3

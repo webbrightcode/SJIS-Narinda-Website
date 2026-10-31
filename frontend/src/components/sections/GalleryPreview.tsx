@@ -2,33 +2,19 @@
 
 import React, { useState } from 'react';
 import { FadeImage as Image } from '@/components/ui/FadeImage';
-import { Eye, ArrowRight, Camera, Sparkles } from 'lucide-react';
+import { Eye, ArrowRight, Layers, Calendar } from 'lucide-react';
 import { GalleryItem } from '@/lib/types';
-import { SectionHeading } from '@/components/ui/SectionHeading';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { Lightbox } from '@/components/ui/Lightbox';
 import { ScrollReveal } from '@/components/ui/ScrollReveal';
+import { AlbumModal } from '@/components/gallery/AlbumModal';
 
 interface GalleryPreviewProps {
   items: GalleryItem[];
 }
 
 export const GalleryPreview: React.FC<GalleryPreviewProps> = ({ items }) => {
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-
-  const openLightbox = (index: number) => setLightboxIndex(index);
-  const closeLightbox = () => setLightboxIndex(null);
-  const nextItem = () => {
-    if (lightboxIndex !== null) {
-      setLightboxIndex((prev) => ((prev ?? 0) + 1) % items.length);
-    }
-  };
-  const prevItem = () => {
-    if (lightboxIndex !== null) {
-      setLightboxIndex((prev) => ((prev ?? 0) - 1 + items.length) % items.length);
-    }
-  };
+  const [selectedAlbum, setSelectedAlbum] = useState<GalleryItem | null>(null);
 
   return (
     <section className="py-24 bg-white relative">
@@ -58,74 +44,80 @@ export const GalleryPreview: React.FC<GalleryPreviewProps> = ({ items }) => {
           </div>
         </ScrollReveal>
 
-        {/* Gallery Masonry-style Grid */}
+        {/* Gallery Albums Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {items.slice(0, 6).map((item, index) => (
-            <ScrollReveal
-              key={item.id}
-              direction="zoom"
-              distance={15}
-              delay={index * 60}
-              duration={500}
-            >
-              <div
-                onClick={() => openLightbox(index)}
-                className="relative h-72 rounded-2xl overflow-hidden shadow-sm group cursor-pointer border border-slate-100 bg-slate-100"
+          {items.slice(0, 6).map((item, index) => {
+            const photoCount = (item.image_url ? 1 : 0) + (item.gallery_images?.length || 0);
+
+            return (
+              <ScrollReveal
+                key={item.id}
+                direction="zoom"
+                distance={15}
+                delay={index * 60}
+                duration={500}
               >
-                <Image
-                  src={item.image_url}
-                  alt={item.title}
-                  fill
-                  fallbackSrc="https://images.unsplash.com/photo-1546422904-90eab23c3d7e?q=80&w=1200&auto=format&fit=crop"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                />
+                <div
+                  onClick={() => setSelectedAlbum(item)}
+                  className="relative h-72 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl group cursor-pointer border border-slate-100 bg-slate-900 transition-all duration-300"
+                >
+                  <Image
+                    src={item.image_url}
+                    alt={item.title}
+                    fill
+                    fallbackSrc="https://images.unsplash.com/photo-1546422904-90eab23c3d7e?q=80&w=1200&auto=format&fit=crop"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="object-cover group-hover:scale-106 transition-transform duration-500"
+                  />
 
-                {/* Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent opacity-80 group-hover:opacity-95 transition-opacity" />
+                  {/* Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent opacity-80 group-hover:opacity-95 transition-opacity" />
 
-                {/* Top tag */}
-                {item.category ? (
-                  <div className="absolute top-4 left-4">
-                    <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-white/20 text-white backdrop-blur-md">
-                      {item.category_display || item.category}
+                  {/* Top badges */}
+                  <div className="absolute top-4 left-4 right-4 flex items-center justify-between gap-2 z-10">
+                    {item.category ? (
+                      <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-white/20 text-white backdrop-blur-md">
+                        {item.category_display || item.category}
+                      </span>
+                    ) : <span />}
+
+                    <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-[#D4AF37] text-[#00183F] shadow-sm flex items-center gap-1 backdrop-blur-md">
+                      <Layers className="w-3 h-3" />
+                      <span>{photoCount} {photoCount === 1 ? 'Photo' : 'Photos'}</span>
                     </span>
                   </div>
-                ) : null}
 
-                {/* Hover center icon */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <div className="p-3.5 rounded-full bg-[#D4AF37] text-[#00183F] shadow-lg transform group-hover:scale-110 transition-transform">
-                    <Eye className="w-6 h-6" />
+                  {/* Hover center icon */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 pointer-events-none">
+                    <div className="p-3.5 rounded-full bg-[#D4AF37] text-[#00183F] shadow-lg transform group-hover:scale-110 transition-transform">
+                      <Eye className="w-6 h-6" />
+                    </div>
+                  </div>
+
+                  {/* Bottom Title & Caption */}
+                  <div className="absolute bottom-4 left-4 right-4 text-white z-10">
+                    <h3 className="text-base font-bold line-clamp-1 group-hover:text-[#D4AF37] transition-colors">
+                      {item.title}
+                    </h3>
+                    {item.caption && (
+                      <p className="text-xs text-slate-300 line-clamp-1 mt-0.5">
+                        {item.caption}
+                      </p>
+                    )}
                   </div>
                 </div>
-
-                {/* Bottom Caption */}
-                <div className="absolute bottom-4 left-4 right-4 text-white">
-                  <h3 className="text-base font-bold line-clamp-1 group-hover:text-amber-300 transition-colors">
-                    {item.title}
-                  </h3>
-                  {item.caption && (
-                    <p className="text-xs text-slate-300 line-clamp-1 mt-0.5">
-                      {item.caption}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </ScrollReveal>
-          ))}
+              </ScrollReveal>
+            );
+          })}
         </div>
       </div>
 
-      {/* Lightbox */}
-      {lightboxIndex !== null && (
-        <Lightbox
-          items={items}
-          currentIndex={lightboxIndex}
-          isOpen={lightboxIndex !== null}
-          onClose={closeLightbox}
-          onPrev={prevItem}
-          onNext={nextItem}
+      {/* Album Modal (shows all photos in the clicked album) */}
+      {selectedAlbum && (
+        <AlbumModal
+          album={selectedAlbum}
+          isOpen={!!selectedAlbum}
+          onClose={() => setSelectedAlbum(null)}
         />
       )}
     </section>

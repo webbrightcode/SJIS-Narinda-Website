@@ -225,6 +225,7 @@ export interface GalleryItem {
   category_display?: string;
   media_type: 'image' | 'video';
   image_url: string;
+  gallery_images?: string[];
   video_url?: string;
   caption: string;
   event_date?: string;
