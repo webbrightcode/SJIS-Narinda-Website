@@ -749,7 +749,7 @@ class FileUploadView(APIView):
         if not file_list:
             return Response({'error': 'No file uploaded'}, status=status.HTTP_400_BAD_REQUEST)
 
-        allowed_extensions = ['.jpg', '.jpeg', '.png', '.webp', '.pdf']
+        allowed_extensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg', '.bmp', '.pdf']
         max_size = 200 * 1024 * 1024  # 200 MB limit
 
         saved_results = []

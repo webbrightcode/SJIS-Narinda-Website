@@ -11,6 +11,7 @@ import {
   ArrowRight,
   FileText,
   Filter,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { Notice } from '@/lib/types';
 import { SectionHeading } from '@/components/ui/SectionHeading';
@@ -165,8 +166,17 @@ export const NoticeBoardWidget: React.FC<NoticeBoardWidgetProps> = ({ notices })
 
                   {notice.attachment_url && (
                     <span className="flex items-center gap-1 text-amber-700 bg-amber-50 px-2 py-1 rounded-md font-medium">
-                      <Download className="w-3 h-3" />
-                      PDF
+                      {/\.(jpg|jpeg|png|webp|gif|avif)($|\?)/i.test(notice.attachment_url) || notice.attachment_url.startsWith('data:image/') ? (
+                        <>
+                          <ImageIcon className="w-3 h-3 text-sky-600" />
+                          Image
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-3 h-3" />
+                          PDF
+                        </>
+                      )}
                     </span>
                   )}
                 </div>

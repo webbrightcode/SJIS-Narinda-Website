@@ -13,6 +13,7 @@ import {
   Clock,
   Pin,
   Eye,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { Notice } from '@/lib/types';
 import { getNotices } from '@/lib/api';
@@ -189,8 +190,17 @@ export default function NoticesPage() {
                 <div className="flex items-center gap-3 shrink-0 self-start sm:self-center">
                   {notice.attachment_url && (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-900 border border-amber-200 text-xs font-semibold">
-                      <Download className="w-3.5 h-3.5 text-[#D4AF37]" />
-                      PDF
+                      {/\.(jpg|jpeg|png|webp|gif|avif)($|\?)/i.test(notice.attachment_url) || notice.attachment_url.startsWith('data:image/') ? (
+                        <>
+                          <ImageIcon className="w-3.5 h-3.5 text-sky-600" />
+                          Image
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-3.5 h-3.5 text-[#D4AF37]" />
+                          PDF
+                        </>
+                      )}
                     </span>
                   )}
                   <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100 group-hover:bg-[#00183F] group-hover:text-white transition-colors text-xs font-bold text-slate-700">

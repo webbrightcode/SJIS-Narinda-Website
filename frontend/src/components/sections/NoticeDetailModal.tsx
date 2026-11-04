@@ -18,6 +18,7 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCw,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { Notice } from '@/lib/types';
 import { Modal } from '@/components/ui/Modal';
@@ -104,7 +105,7 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
   const safeAttachmentUrl = rawAttachmentUrl.includes('w3.org') || rawAttachmentUrl.includes('dummy.pdf')
     ? '/circulars/sjis-official-circular.pdf'
     : rawAttachmentUrl;
-  const isImageAttachment = safeAttachmentUrl && /\.(jpg|jpeg|png|webp|gif)$/i.test(safeAttachmentUrl);
+  const isImageAttachment = safeAttachmentUrl && (/\.(jpg|jpeg|png|webp|gif|avif)($|\?)/i.test(safeAttachmentUrl) || safeAttachmentUrl.startsWith('data:image/'));
 
   return (
     <Modal
@@ -171,7 +172,7 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
                 className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-[#00183F] font-bold text-xs shadow-xs transition-colors cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span>Download Official PDF</span>
+                <span>{isImageAttachment ? 'Download Image' : 'Download Official PDF'}</span>
               </a>
             )}
             <Button variant="primary" size="sm" onClick={onClose}>
@@ -207,7 +208,7 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
                 }`}
               >
                 <Eye className="w-3.5 h-3.5 text-amber-400" />
-                <span>Document Attachment Preview</span>
+                <span>{isImageAttachment ? 'Circular Image Preview' : 'Document Attachment Preview'}</span>
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               </button>
             </div>
@@ -290,16 +291,32 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
             {notice.attachment_url && (
               <div className="rounded-2xl border border-amber-300 bg-gradient-to-r from-amber-50 via-amber-100/40 to-amber-50 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white border border-amber-300 flex items-center justify-center text-[#C8102E] shrink-0 shadow-2xs">
-                    <FileText className="w-5 h-5" />
+                  <div className="w-10 h-10 rounded-xl bg-white border border-amber-300 flex items-center justify-center shrink-0 shadow-2xs">
+                    {isImageAttachment ? (
+                      <ImageIcon className="w-5 h-5 text-sky-600" />
+                    ) : (
+                      <FileText className="w-5 h-5 text-[#C8102E]" />
+                    )}
                   </div>
                   <div>
                     <div className="text-xs font-bold text-[#00183F] flex items-center gap-2">
-                      <span>Official Signed Circular Attachment Available</span>
-                      <span className="px-1.5 py-0.2 rounded bg-rose-100 text-rose-800 text-[10px] font-black">PDF</span>
+                      <span>
+                        {isImageAttachment
+                          ? 'Official Circular Notice Image Available'
+                          : 'Official Signed Circular Attachment Available'}
+                      </span>
+                      <span
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-black ${
+                          isImageAttachment ? 'bg-sky-100 text-sky-800' : 'bg-rose-100 text-rose-800'
+                        }`}
+                      >
+                        {isImageAttachment ? 'IMAGE' : 'PDF'}
+                      </span>
                     </div>
                     <p className="text-[11px] text-slate-600 mt-0.5">
-                      View the complete formatted document with authorized stamp, signature, and annexures.
+                      {isImageAttachment
+                        ? 'View or download the official high-resolution circular image released by the school.'
+                        : 'View the complete formatted document with authorized stamp, signature, and annexures.'}
                     </p>
                   </div>
                 </div>
@@ -310,7 +327,7 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#00183F] hover:bg-[#071936] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
                   >
                     <Eye className="w-3.5 h-3.5 text-[#D4AF37]" />
-                    <span>Preview Document</span>
+                    <span>{isImageAttachment ? 'Preview Image' : 'Preview Document'}</span>
                   </button>
 
                   <a
@@ -320,7 +337,7 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-amber-300 bg-white hover:bg-amber-50 text-amber-900 text-xs font-bold transition-colors cursor-pointer"
                   >
                     <Download className="w-3.5 h-3.5" />
-                    <span>Download</span>
+                    <span>{isImageAttachment ? 'Download Image' : 'Download'}</span>
                   </a>
                 </div>
               </div>
@@ -360,8 +377,12 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
               <div className="space-y-3 pt-2">
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-[#C8102E]" />
-                    <span>Attached Official Document (Live Preview)</span>
+                    {isImageAttachment ? (
+                      <ImageIcon className="w-4 h-4 text-sky-600" />
+                    ) : (
+                      <FileText className="w-4 h-4 text-[#C8102E]" />
+                    )}
+                    <span>{isImageAttachment ? 'Attached Notice Image (Live Preview)' : 'Attached Official Document (Live Preview)'}</span>
                   </h4>
                   <a
                     href={safeAttachmentUrl}
@@ -412,7 +433,7 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
                               download
                               className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-[#00183F] font-bold text-xs"
                             >
-                              Download PDF
+                              {isImageAttachment ? 'Download Image' : 'Download PDF'}
                             </a>
                           </div>
                         </div>
@@ -445,15 +466,21 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
           <div className="space-y-4">
             <div className="bg-slate-900 text-white rounded-t-2xl p-4 flex flex-wrap items-center justify-between gap-3 border border-slate-800">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-amber-400 font-bold text-xs">
-                  PDF
+                <div
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs ${
+                    isImageAttachment
+                      ? 'bg-sky-500/20 text-sky-300 border border-sky-400/30'
+                      : 'bg-white/10 text-amber-400'
+                  }`}
+                >
+                  {isImageAttachment ? 'IMG' : 'PDF'}
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-white truncate max-w-md">
-                    {notice.title} (Official Signed Document)
+                    {notice.title} ({isImageAttachment ? 'Official Circular Image' : 'Official Signed Document'})
                   </h4>
                   <p className="text-[11px] text-slate-400">
-                    Format: Adobe Acrobat PDF • Certified St. Joseph Narinda Seal
+                    Format: {isImageAttachment ? 'High-Resolution Graphic Image (JPG / PNG / WebP)' : 'Adobe Acrobat PDF • Certified St. Joseph Narinda Seal'}
                   </p>
                 </div>
               </div>
@@ -475,7 +502,7 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
                   className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#00183F] text-xs font-bold transition-colors"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  <span>Download</span>
+                  <span>{isImageAttachment ? 'Download Image' : 'Download'}</span>
                 </a>
               </div>
             </div>
@@ -484,12 +511,20 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
               previewHeight === 'large' ? 'h-[750px]' : 'h-[560px]'
             }`}>
               {isImageAttachment ? (
-                <div className="w-full h-full flex items-center justify-center bg-slate-950 p-4">
-                  <img
-                    src={safeAttachmentUrl}
-                    alt={notice.title}
-                    className="max-h-full max-w-full object-contain rounded-xl"
-                  />
+                <div className="w-full h-full flex items-center justify-center bg-slate-950 p-4 overflow-auto">
+                  <a
+                    href={safeAttachmentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Click to view full resolution in a new tab"
+                    className="max-h-full max-w-full flex items-center justify-center cursor-zoom-in"
+                  >
+                    <img
+                      src={safeAttachmentUrl}
+                      alt={notice.title}
+                      className="max-h-full max-w-full object-contain rounded-xl shadow-2xl hover:opacity-95 transition-opacity"
+                    />
+                  </a>
                 </div>
               ) : (
                 <object
