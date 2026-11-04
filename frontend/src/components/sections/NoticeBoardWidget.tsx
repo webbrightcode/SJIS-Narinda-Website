@@ -169,7 +169,9 @@ export const NoticeBoardWidget: React.FC<NoticeBoardWidgetProps> = ({ notices })
                       {/\.(jpg|jpeg|png|webp|gif|avif)($|\?)/i.test(notice.attachment_url) || notice.attachment_url.startsWith('data:image/') ? (
                         <>
                           <ImageIcon className="w-3 h-3 text-sky-600" />
-                          Image
+                          {notice.gallery_images && notice.gallery_images.length > 0
+                            ? `${notice.gallery_images.length + 1} Images`
+                            : 'Image'}
                         </>
                       ) : (
                         <>

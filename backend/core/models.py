@@ -110,6 +110,7 @@ class Notice(models.Model):
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='general')
     content = models.TextField()
     attachment_url = models.TextField(blank=True, default="")
+    gallery_images = models.JSONField(blank=True, default=list, help_text="List of additional image or circular page URLs")
     publish_date = models.DateField()
     is_pinned = models.BooleanField(default=False, help_text="Pin to top of notice board")
     is_active = models.BooleanField(default=True)

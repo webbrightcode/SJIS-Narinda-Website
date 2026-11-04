@@ -105,7 +105,20 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
   const safeAttachmentUrl = rawAttachmentUrl.includes('w3.org') || rawAttachmentUrl.includes('dummy.pdf')
     ? '/circulars/sjis-official-circular.pdf'
     : rawAttachmentUrl;
-  const isImageAttachment = safeAttachmentUrl && (/\.(jpg|jpeg|png|webp|gif|avif)($|\?)/i.test(safeAttachmentUrl) || safeAttachmentUrl.startsWith('data:image/'));
+
+  const allAttachments = React.useMemo(() => {
+    const list = [safeAttachmentUrl, ...(notice.gallery_images || [])].filter(Boolean);
+    return Array.from(new Set(list));
+  }, [safeAttachmentUrl, notice.gallery_images]);
+
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [notice?.id]);
+
+  const activeAttachmentUrl = allAttachments[activeImageIndex] || safeAttachmentUrl;
+  const isImageAttachment = activeAttachmentUrl && (/\.(jpg|jpeg|png|webp|gif|avif)($|\?)/i.test(activeAttachmentUrl) || activeAttachmentUrl.startsWith('data:image/'));
 
   return (
     <Modal
@@ -164,15 +177,21 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
-            {safeAttachmentUrl && (
+            {activeAttachmentUrl && (
               <a
-                href={safeAttachmentUrl}
+                href={activeAttachmentUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-[#00183F] font-bold text-xs shadow-xs transition-colors cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span>{isImageAttachment ? 'Download Image' : 'Download Official PDF'}</span>
+                <span>
+                  {isImageAttachment
+                    ? allAttachments.length > 1
+                      ? `Download Page ${activeImageIndex + 1}`
+                      : 'Download Image'
+                    : 'Download Official PDF'}
+                </span>
               </a>
             )}
             <Button variant="primary" size="sm" onClick={onClose}>
@@ -398,16 +417,24 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
                 <div className="rounded-2xl border-2 border-slate-200 overflow-hidden shadow-md bg-slate-900">
                   {isImageAttachment ? (
                     <div className="p-4 flex items-center justify-center bg-slate-100">
-                      <img
-                        src={safeAttachmentUrl}
-                        alt={notice.title}
-                        className="max-h-[500px] w-auto object-contain rounded-xl shadow-xs"
-                      />
+                      <a
+                        href={activeAttachmentUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="cursor-zoom-in flex items-center justify-center max-h-[500px]"
+                        title="Click to view full image in a new tab"
+                      >
+                        <img
+                          src={activeAttachmentUrl}
+                          alt={`${notice.title} - Page ${activeImageIndex + 1}`}
+                          className="max-h-[500px] w-auto object-contain rounded-xl shadow-xs"
+                        />
+                      </a>
                     </div>
                   ) : (
                     <div className="relative w-full h-[520px] bg-slate-800">
                       <object
-                        data={`${safeAttachmentUrl}#toolbar=1&navpanes=0`}
+                        data={`${activeAttachmentUrl}#toolbar=1&navpanes=0`}
                         type="application/pdf"
                         className="w-full h-full border-0 bg-white"
                       >
@@ -421,7 +448,7 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
                           </p>
                           <div className="flex items-center gap-2 pt-1">
                             <a
-                              href={safeAttachmentUrl}
+                              href={activeAttachmentUrl}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs"
@@ -429,7 +456,7 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
                               Open External
                             </a>
                             <a
-                              href={safeAttachmentUrl}
+                              href={activeAttachmentUrl}
                               download
                               className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-[#00183F] font-bold text-xs"
                             >
@@ -438,6 +465,38 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
                           </div>
                         </div>
                       </object>
+                    </div>
+                  )}
+
+                  {/* Multi-page thumbnail selector strip */}
+                  {allAttachments.length > 1 && (
+                    <div className="bg-slate-950 border-t border-slate-800 p-2.5 flex items-center gap-2 overflow-x-auto">
+                      <span className="text-[11px] font-bold text-slate-400 shrink-0 px-1">
+                        Pages ({allAttachments.length}):
+                      </span>
+                      {allAttachments.map((url, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setActiveImageIndex(idx)}
+                          className={`relative shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                            activeImageIndex === idx
+                              ? 'border-amber-400 ring-2 ring-amber-400/40 scale-105'
+                              : 'border-slate-700 opacity-60 hover:opacity-100'
+                          }`}
+                        >
+                          {/\.(jpg|jpeg|png|webp|gif|avif)($|\?)/i.test(url) || url.startsWith('data:image/') ? (
+                            <img src={url} alt={`Page ${idx + 1}`} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-slate-800 flex items-center justify-center text-rose-400">
+                              <FileText className="w-4 h-4" />
+                            </div>
+                          )}
+                          <span className="absolute bottom-0 inset-x-0 bg-black/80 text-[9px] font-bold text-white text-center">
+                            #{idx + 1}
+                          </span>
+                        </button>
+                      ))}
                     </div>
                   )}
 
@@ -462,7 +521,7 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
         )}
 
         {/* VIEW 2: Dedicated Pro Document Preview Tab */}
-        {activeTab === 'preview' && safeAttachmentUrl && (
+        {activeTab === 'preview' && activeAttachmentUrl && (
           <div className="space-y-4">
             <div className="bg-slate-900 text-white rounded-t-2xl p-4 flex flex-wrap items-center justify-between gap-3 border border-slate-800">
               <div className="flex items-center gap-3">
@@ -477,7 +536,7 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-white truncate max-w-md">
-                    {notice.title} ({isImageAttachment ? 'Official Circular Image' : 'Official Signed Document'})
+                    {notice.title} {allAttachments.length > 1 ? `(Page ${activeImageIndex + 1} of ${allAttachments.length})` : (isImageAttachment ? '(Official Circular Image)' : '(Official Signed Document)')}
                   </h4>
                   <p className="text-[11px] text-slate-400">
                     Format: {isImageAttachment ? 'High-Resolution Graphic Image (JPG / PNG / WebP)' : 'Adobe Acrobat PDF • Certified St. Joseph Narinda Seal'}
@@ -487,7 +546,7 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
 
               <div className="flex items-center gap-2">
                 <a
-                  href={safeAttachmentUrl}
+                  href={activeAttachmentUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-colors"
@@ -497,12 +556,12 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
                 </a>
 
                 <a
-                  href={safeAttachmentUrl}
+                  href={activeAttachmentUrl}
                   download
                   className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#00183F] text-xs font-bold transition-colors"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  <span>{isImageAttachment ? 'Download Image' : 'Download'}</span>
+                  <span>{isImageAttachment ? (allAttachments.length > 1 ? `Download Page ${activeImageIndex + 1}` : 'Download Image') : 'Download'}</span>
                 </a>
               </div>
             </div>
@@ -511,24 +570,57 @@ export const NoticeDetailModal: React.FC<NoticeDetailModalProps> = ({
               previewHeight === 'large' ? 'h-[750px]' : 'h-[560px]'
             }`}>
               {isImageAttachment ? (
-                <div className="w-full h-full flex items-center justify-center bg-slate-950 p-4 overflow-auto">
-                  <a
-                    href={safeAttachmentUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Click to view full resolution in a new tab"
-                    className="max-h-full max-w-full flex items-center justify-center cursor-zoom-in"
-                  >
-                    <img
-                      src={safeAttachmentUrl}
-                      alt={notice.title}
-                      className="max-h-full max-w-full object-contain rounded-xl shadow-2xl hover:opacity-95 transition-opacity"
-                    />
-                  </a>
+                <div className="w-full h-full flex flex-col justify-between bg-slate-950">
+                  <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
+                    <a
+                      href={activeAttachmentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Click to view full resolution in a new tab"
+                      className="max-h-full max-w-full flex items-center justify-center cursor-zoom-in"
+                    >
+                      <img
+                        src={activeAttachmentUrl}
+                        alt={`${notice.title} - Page ${activeImageIndex + 1}`}
+                        className="max-h-full max-w-full object-contain rounded-xl shadow-2xl hover:opacity-95 transition-opacity"
+                      />
+                    </a>
+                  </div>
+
+                  {allAttachments.length > 1 && (
+                    <div className="bg-slate-900/90 border-t border-slate-800 p-2.5 flex items-center justify-center gap-2 overflow-x-auto shrink-0">
+                      <span className="text-[11px] font-bold text-slate-400 shrink-0 px-1">
+                        Pages ({allAttachments.length}):
+                      </span>
+                      {allAttachments.map((url, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setActiveImageIndex(idx)}
+                          className={`relative shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                            activeImageIndex === idx
+                              ? 'border-amber-400 ring-2 ring-amber-400/40 scale-105'
+                              : 'border-slate-700 opacity-60 hover:opacity-100'
+                          }`}
+                        >
+                          {/\.(jpg|jpeg|png|webp|gif|avif)($|\?)/i.test(url) || url.startsWith('data:image/') ? (
+                            <img src={url} alt={`Page ${idx + 1}`} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-slate-800 flex items-center justify-center text-rose-400">
+                              <FileText className="w-4 h-4" />
+                            </div>
+                          )}
+                          <span className="absolute bottom-0 inset-x-0 bg-black/80 text-[9px] font-bold text-white text-center">
+                            #{idx + 1}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <object
-                  data={`${safeAttachmentUrl}#toolbar=1&navpanes=0`}
+                  data={`${activeAttachmentUrl}#toolbar=1&navpanes=0`}
                   type="application/pdf"
                   className="w-full h-full border-0 bg-white"
                 >

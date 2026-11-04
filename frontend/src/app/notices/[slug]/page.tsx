@@ -82,6 +82,7 @@ export default async function NoticeDetailPage({ params }: NoticeDetailPageProps
   const safeAttachmentUrl = rawAttachmentUrl.includes('w3.org') || rawAttachmentUrl.includes('dummy.pdf')
     ? '/circulars/sjis-official-circular.pdf'
     : rawAttachmentUrl;
+  const allAttachments = [safeAttachmentUrl, ...(notice.gallery_images || [])].filter(Boolean);
   const isImageAttachment = safeAttachmentUrl && (/\.(jpg|jpeg|png|webp|gif|avif)($|\?)/i.test(safeAttachmentUrl) || safeAttachmentUrl.startsWith('data:image/'));
 
   const jsonLd = [
@@ -221,17 +222,21 @@ export default async function NoticeDetailPage({ params }: NoticeDetailPageProps
                           : 'bg-rose-50 border border-rose-200 text-[#C8102E]'
                       }`}
                     >
-                      {isImageAttachment ? 'IMG' : 'PDF'}
+                      {isImageAttachment ? (allAttachments.length > 1 ? `${allAttachments.length} IMG` : 'IMG') : 'PDF'}
                     </div>
                     <div>
                       <h3 className="text-base sm:text-lg font-black text-[#00183F]">
                         {isImageAttachment
-                          ? 'Official Circular Notice Image Attachment'
+                          ? allAttachments.length > 1
+                            ? `Official Circular Notice (${allAttachments.length} Pages Attached)`
+                            : 'Official Circular Notice Image Attachment'
                           : 'Official Signed Document Attachment'}
                       </h3>
                       <p className="text-xs text-slate-500">
                         {isImageAttachment
-                          ? 'Official high-resolution institutional announcement image.'
+                          ? allAttachments.length > 1
+                            ? 'High-resolution official circular announcement pages.'
+                            : 'Official high-resolution institutional announcement image.'
                           : 'Certified institutional copy with stamps and authorized signatures.'}
                       </p>
                     </div>
@@ -259,9 +264,62 @@ export default async function NoticeDetailPage({ params }: NoticeDetailPageProps
                   </div>
                 </div>
 
-                {/* Interactive Document Preview Container */}
-                <div className="rounded-2xl border-2 border-slate-200 overflow-hidden shadow-inner bg-slate-900">
-                  {isImageAttachment ? (
+                {/* Interactive Document / Multi-Page Image Container */}
+                <div className="rounded-2xl border-2 border-slate-200 overflow-hidden shadow-inner bg-slate-900 divide-y divide-slate-800">
+                  {allAttachments.length > 1 ? (
+                    allAttachments.map((url, idx) => {
+                      const isImg = /\.(jpg|jpeg|png|webp|gif|avif)($|\?)/i.test(url) || url.startsWith('data:image/');
+                      return (
+                        <div key={idx} className="p-4 flex flex-col items-center justify-center bg-slate-950">
+                          <div className="w-full flex items-center justify-between pb-3 text-xs text-slate-400 border-b border-slate-800/80 mb-3">
+                            <span className="font-bold text-amber-400">Page {idx + 1} of {allAttachments.length}</span>
+                            <div className="flex items-center gap-3">
+                              <a
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sky-400 hover:text-sky-300 flex items-center gap-1 font-semibold"
+                              >
+                                <span>Open Full Size</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                              <a
+                                href={url}
+                                download
+                                className="text-amber-400 hover:text-amber-300 flex items-center gap-1 font-semibold"
+                              >
+                                <span>Download</span>
+                                <Download className="w-3 h-3" />
+                              </a>
+                            </div>
+                          </div>
+                          {isImg ? (
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="Click to view full image in a new window"
+                              className="cursor-zoom-in flex items-center justify-center w-full"
+                            >
+                              <img
+                                src={url}
+                                alt={`${notice.title} - Page ${idx + 1}`}
+                                className="max-h-[750px] w-auto object-contain rounded-xl shadow-xl hover:opacity-95 transition-opacity"
+                              />
+                            </a>
+                          ) : (
+                            <div className="relative w-full h-[650px] sm:h-[750px] bg-slate-800 rounded-xl overflow-hidden">
+                              <object
+                                data={`${url}#toolbar=1&navpanes=0`}
+                                type="application/pdf"
+                                className="w-full h-full border-0 bg-white"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : isImageAttachment ? (
                     <div className="p-4 flex items-center justify-center bg-slate-950 min-h-[400px]">
                       <a
                         href={safeAttachmentUrl}
@@ -417,7 +475,9 @@ export default async function NoticeDetailPage({ params }: NoticeDetailPageProps
                           {/\.(jpg|jpeg|png|webp|gif|avif)($|\?)/i.test(item.attachment_url) || item.attachment_url.startsWith('data:image/') ? (
                             <>
                               <ImageIcon className="w-3 h-3 text-sky-600" />
-                              Image Attached
+                              {item.gallery_images && item.gallery_images.length > 0
+                                ? `${item.gallery_images.length + 1} Images Attached`
+                                : 'Image Attached'}
                             </>
                           ) : (
                             <>

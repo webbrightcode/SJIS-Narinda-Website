@@ -89,6 +89,7 @@ export interface Notice {
   category_display?: string;
   content: string;
   attachment_url?: string;
+  gallery_images?: string[];
   publish_date: string;
   is_pinned: boolean;
   is_active: boolean;

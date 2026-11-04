@@ -607,55 +607,89 @@ export default function AdminDashboardPage() {
   };
 
   const handleNoticePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !editingNotice) return;
+    const fileList = e.target.files;
+    if (!fileList || fileList.length === 0 || !editingNotice) return;
 
-    if (file.size > 200 * 1024 * 1024) {
-      showToast(`File is too large (${(file.size / (1024 * 1024)).toFixed(1)} MB). Maximum allowed size is 200 MB.`, 'error');
-      return;
-    }
-
-    const isImage = file.type.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif|avif)$/i.test(file.name);
-    const fileTypeLabel = isImage ? 'Image' : 'PDF';
-
+    const files = Array.from(fileList);
     setUploadingNoticePdf(true);
-    const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
-    try {
-      const res = await uploadMediaFile(file, token || undefined);
-      if (res && res.url) {
-        setEditingNotice((prev) => (prev ? { ...prev, attachment_url: res.url } : prev));
-        showToast(`${fileTypeLabel} notice attached successfully (${file.name}, ${sizeMb} MB)!`);
-        setUploadingNoticePdf(false);
-        e.target.value = '';
-        return;
-      } else if (res?.error) {
-        showToast(res.error, 'error');
+
+    const uploadedUrls: string[] = [];
+    let successCount = 0;
+
+    for (const file of files) {
+      if (file.size > 200 * 1024 * 1024) {
+        showToast(`Skipped ${file.name}: Exceeds 200 MB limit.`, 'error');
+        continue;
       }
-    } catch (err: any) {
-      console.warn('Backend upload failed, attempting local data URL fallback:', err);
+
+      let fileUrl = '';
+      try {
+        const res = await uploadMediaFile(file, token || undefined);
+        if (res && res.url) {
+          fileUrl = res.url;
+        }
+      } catch (err) {
+        console.warn('Backend upload failed for', file.name, err);
+      }
+
+      // Offline data URL fallback if file is <= 15MB
+      if (!fileUrl && file.size <= 15 * 1024 * 1024) {
+        try {
+          fileUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+        } catch {
+          console.warn('DataURL fallback failed for', file.name);
+        }
+      }
+
+      if (fileUrl) {
+        uploadedUrls.push(fileUrl);
+        successCount++;
+      }
     }
 
-    // Fallback if backend server is unreachable and file is <= 15MB: encode as Data URL
-    if (file.size <= 15 * 1024 * 1024) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const dataUrl = event.target?.result as string;
-        if (dataUrl) {
-          setEditingNotice((prev) => (prev ? { ...prev, attachment_url: dataUrl } : prev));
-          showToast(`${fileTypeLabel} attached via offline data stream (${file.name}).`);
+    if (uploadedUrls.length > 0) {
+      setEditingNotice((prev) => {
+        if (!prev) return prev;
+        const currentPrimary = prev.attachment_url || '';
+        const currentGallery = prev.gallery_images || [];
+
+        if (!currentPrimary) {
+          const [first, ...rest] = uploadedUrls;
+          return {
+            ...prev,
+            attachment_url: first,
+            gallery_images: [...currentGallery, ...rest],
+          };
         }
-        setUploadingNoticePdf(false);
-      };
-      reader.onerror = () => {
-        showToast(`Failed to read ${fileTypeLabel} file`, 'error');
-        setUploadingNoticePdf(false);
-      };
-      reader.readAsDataURL(file);
+
+        return {
+          ...prev,
+          gallery_images: [...currentGallery, ...uploadedUrls],
+        };
+      });
+
+      const label = successCount === 1 ? 'file' : `${successCount} files`;
+      showToast(`Successfully attached ${label} to notice!`);
     } else {
-      showToast(`Could not upload ${fileTypeLabel} to server. Please verify connection or use direct URL.`, 'error');
-      setUploadingNoticePdf(false);
+      showToast('Could not upload selected file(s). Please check server connection.', 'error');
     }
+
+    setUploadingNoticePdf(false);
     e.target.value = '';
+  };
+
+  const handleRemoveNoticeGalleryImage = (indexToRemove: number) => {
+    if (!editingNotice) return;
+    const current = editingNotice.gallery_images || [];
+    setEditingNotice({
+      ...editingNotice,
+      gallery_images: current.filter((_, idx) => idx !== indexToRemove),
+    });
   };
 
   const confirmDeleteNotice = (id: number, title: string) => {
@@ -929,6 +963,7 @@ export default function AdminDashboardPage() {
           category: 'academic',
           content: '',
           attachment_url: '',
+          gallery_images: [],
           publish_date: new Date().toISOString().split('T')[0],
           is_pinned: false,
           is_active: true,
@@ -1649,6 +1684,7 @@ export default function AdminDashboardPage() {
                           category: 'academic',
                           content: '',
                           attachment_url: '',
+                          gallery_images: [],
                           publish_date: new Date().toISOString().split('T')[0],
                           is_pinned: false,
                           is_active: true,
@@ -2007,6 +2043,7 @@ export default function AdminDashboardPage() {
                       category: 'academic',
                       content: '',
                       attachment_url: '',
+                      gallery_images: [],
                       publish_date: new Date().toISOString().split('T')[0],
                       is_pinned: false,
                       is_active: true,
@@ -2117,7 +2154,11 @@ export default function AdminDashboardPage() {
                                       onClick={(e) => e.stopPropagation()}
                                     >
                                       <ImageIcon className="w-3 h-3 text-sky-600" />
-                                      <span>IMG</span>
+                                      <span>
+                                        {n.gallery_images && n.gallery_images.length > 0
+                                          ? `${n.gallery_images.length + 1} IMGS`
+                                          : 'IMG'}
+                                      </span>
                                     </a>
                                   ) : (
                                     <a
@@ -4587,7 +4628,7 @@ export default function AdminDashboardPage() {
                   value={editingNotice.attachment_url || ''}
                   onChange={(e) => setEditingNotice({ ...editingNotice, attachment_url: e.target.value })}
                   className="flex-1 px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-mono bg-white focus:ring-2 focus:ring-[#00183F] outline-none"
-                  placeholder="https://... or upload local image (JPG, PNG) or PDF below"
+                  placeholder="https://... or select multiple images (JPG, PNG) or PDF"
                 />
                 <label
                   className={`px-4 py-2 border rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all shadow-sm ${
@@ -4601,9 +4642,10 @@ export default function AdminDashboardPage() {
                   ) : (
                     <Upload className="w-3.5 h-3.5" />
                   )}
-                  <span>{uploadingNoticePdf ? 'Uploading…' : 'Upload File / Image'}</span>
+                  <span>{uploadingNoticePdf ? 'Uploading…' : 'Upload File(s) / Image(s)'}</span>
                   <input
                     type="file"
+                    multiple
                     accept=".pdf,application/pdf,image/png,image/jpeg,image/jpg,image/webp,.png,.jpg,.jpeg,.webp"
                     disabled={uploadingNoticePdf}
                     className="hidden"
@@ -4631,7 +4673,7 @@ export default function AdminDashboardPage() {
                             : 'bg-rose-50 text-rose-700 border border-rose-200'
                         }`}
                       >
-                        {isImageAttachmentUrl(editingNotice.attachment_url) ? 'IMAGE' : 'PDF'}
+                        {isImageAttachmentUrl(editingNotice.attachment_url) ? 'COVER / PAGE 1' : 'PDF'}
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
@@ -4646,9 +4688,17 @@ export default function AdminDashboardPage() {
                       </a>
                       <button
                         type="button"
-                        onClick={() => setEditingNotice({ ...editingNotice, attachment_url: '' })}
+                        onClick={() => {
+                          const gallery = editingNotice.gallery_images || [];
+                          if (gallery.length > 0) {
+                            const [newCover, ...rest] = gallery;
+                            setEditingNotice({ ...editingNotice, attachment_url: newCover, gallery_images: rest });
+                          } else {
+                            setEditingNotice({ ...editingNotice, attachment_url: '' });
+                          }
+                        }}
                         className="px-2 py-1 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 font-bold text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
-                        title="Remove attachment"
+                        title="Remove cover attachment"
                       >
                         <Trash2 className="w-3 h-3" />
                         <span>Remove</span>
@@ -4669,18 +4719,70 @@ export default function AdminDashboardPage() {
                       <div className="text-[11px] text-slate-500 space-y-0.5">
                         <p className="font-bold text-slate-700 flex items-center gap-1">
                           <ImageIcon className="w-3.5 h-3.5 text-sky-600" />
-                          Image Notice Preview
+                          Primary Circular Image (Page 1)
                         </p>
                         <p>
-                          This image will be rendered directly inside the circular notice viewer for students, parents, and visitors.
+                          Main display page for this circular notice.
                         </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Additional Gallery / Multi-page Images Grid */}
+                  {editingNotice.gallery_images && editingNotice.gallery_images.length > 0 && (
+                    <div className="pt-2 border-t border-slate-100 space-y-2">
+                      <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
+                        <span className="flex items-center gap-1.5 text-slate-800">
+                          <ImageIcon className="w-3.5 h-3.5 text-sky-600" />
+                          Additional Pages / Images ({editingNotice.gallery_images.length})
+                        </span>
+                        <span className="text-[10px] text-slate-400">Hover to remove</span>
+                      </div>
+                      <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                        {editingNotice.gallery_images.map((imgUrl, idx) => (
+                          <div
+                            key={idx}
+                            className="relative group rounded-xl overflow-hidden border border-slate-200 bg-slate-100 aspect-square shadow-2xs"
+                          >
+                            {isImageAttachmentUrl(imgUrl) ? (
+                              <img src={imgUrl} alt={`Page ${idx + 2}`} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex flex-col items-center justify-center p-1 text-rose-500 bg-rose-50/50">
+                                <FileText className="w-5 h-5" />
+                                <span className="text-[9px] font-bold text-slate-600 truncate max-w-full">PDF</span>
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
+                              <a
+                                href={imgUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-1 rounded bg-white/20 hover:bg-white/30 text-white transition-colors"
+                                title="View full size"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveNoticeGalleryImage(idx)}
+                                className="p-1 rounded bg-rose-600 hover:bg-rose-700 text-white transition-colors cursor-pointer"
+                                title="Remove image"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                            <span className="absolute bottom-1 left-1 px-1 py-0.2 rounded text-[9px] font-bold bg-black/60 text-white backdrop-blur-xs">
+                              Page {idx + 2}
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}
                 </div>
               ) : (
                 <p className="text-[11px] text-slate-500">
-                  Upload an official PDF circular or image notice (JPG, JPEG, PNG, WebP up to 200 MB), or paste a direct image / document URL.
+                  Upload one or multiple official circular images (JPG, JPEG, PNG, WebP) or PDF documents (up to 200 MB per file), or paste a direct image URL.
                 </p>
               )}
             </div>
