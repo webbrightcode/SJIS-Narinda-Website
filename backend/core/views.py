@@ -149,6 +149,33 @@ class SliderSlideViewSet(viewsets.ModelViewSet):
             return SliderSlide.objects.filter(is_active=True).order_by('order', '-created_at')
         return SliderSlide.objects.all().order_by('order', '-created_at')
 
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        active_only = request.query_params.get('active')
+        if active_only and active_only.lower() in ['true', '1'] and isinstance(response.data, list):
+            featured_events = News.objects.filter(is_active=True, is_featured=True).order_by('-publish_date', '-created_at')[:4]
+            existing_links = {s.get('cta_link') for s in response.data if isinstance(s, dict)}
+            existing_titles = {s.get('title', '').strip().lower() for s in response.data if isinstance(s, dict)}
+            for item in featured_events:
+                link = f"/news/{item.slug or item.id}"
+                if link not in existing_links and item.title.strip().lower() not in existing_titles:
+                    cover_img = item.image_url or (item.gallery_images[0] if item.gallery_images else "")
+                    response.data.append({
+                        "id": 900000 + item.id,
+                        "title": item.title,
+                        "subtitle": item.summary or (item.content[:160] + "..." if len(item.content) > 160 else item.content),
+                        "badge": "⭐ Featured Event" if item.category == "events" else "⭐ Featured Story",
+                        "image_url": cover_img,
+                        "video_url": "",
+                        "cta_text": "Read Full Story",
+                        "cta_link": link,
+                        "secondary_cta_text": "All Events",
+                        "secondary_cta_link": "/news",
+                        "order": 2,
+                        "is_active": True,
+                    })
+        return response
+
 
 class AboutInfoView(APIView):
     def get(self, request):
@@ -543,6 +570,32 @@ class StaffMemberViewSet(viewsets.ModelViewSet):
 class LandingPageBundleView(APIView):
     def get(self, request):
         slides = SliderSlide.objects.filter(is_active=True).order_by('order')[:6]
+        slides_data = SliderSlideSerializer(slides, many=True).data
+
+        # Automatically incorporate active News stories & campus events marked as featured on home
+        featured_events = News.objects.filter(is_active=True, is_featured=True).order_by('-publish_date', '-created_at')[:4]
+        existing_titles = {s.get('title', '').strip().lower() for s in slides_data}
+        existing_links = {s.get('cta_link', '').strip().lower() for s in slides_data}
+
+        for item in featured_events:
+            link = f"/news/{item.slug or item.id}"
+            if item.title.strip().lower() not in existing_titles and link.lower() not in existing_links:
+                cover_img = item.image_url or (item.gallery_images[0] if item.gallery_images else "")
+                slides_data.append({
+                    "id": 900000 + item.id,
+                    "title": item.title,
+                    "subtitle": item.summary or (item.content[:160] + "..." if len(item.content) > 160 else item.content),
+                    "badge": "⭐ Featured Event" if item.category == "events" else "⭐ Featured Story",
+                    "image_url": cover_img,
+                    "video_url": "",
+                    "cta_text": "Read Full Story",
+                    "cta_link": link,
+                    "secondary_cta_text": "All Events",
+                    "secondary_cta_link": "/news",
+                    "order": 2,
+                    "is_active": True,
+                })
+
         about = AboutInfo.objects.first()
         about_data = None
         if about:
@@ -568,14 +621,14 @@ class LandingPageBundleView(APIView):
                 about_data['heritage_label'] = 'Years of Heritage'
 
         notices = Notice.objects.filter(is_active=True).order_by('-is_pinned', '-publish_date')[:6]
-        news = News.objects.filter(is_active=True).order_by('-is_featured', '-publish_date')[:3]
+        news = News.objects.filter(is_active=True).order_by('-is_featured', '-publish_date')[:6]
         clubs = Club.objects.filter(is_active=True).order_by('order')[:6]
         gallery = GalleryItem.objects.filter(is_featured=True).order_by('order')[:8]
         if not gallery.exists():
             gallery = GalleryItem.objects.all().order_by('order')[:8]
 
         response = Response({
-            "slides": SliderSlideSerializer(slides, many=True).data,
+            "slides": slides_data,
             "about": about_data,
             "notices": NoticeSerializer(notices, many=True).data,
             "news": NewsSerializer(news, many=True).data,

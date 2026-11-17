@@ -680,7 +680,7 @@ export const NewsManager: React.FC<NewsManagerProps> = ({ token }) => {
                 />
                 <span className="flex items-center gap-1.5">
                   <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
-                  Feature on Homepage News Showcase
+                  Feature on Homepage Slider &amp; News Showcase
                 </span>
               </label>
 

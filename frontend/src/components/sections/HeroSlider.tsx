@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
-import { ChevronLeft, ChevronRight, Play, Pause } from 'lucide-react';
+import Link from 'next/link';
+import { ChevronLeft, ChevronRight, Play, Pause, ArrowRight } from 'lucide-react';
 import { SliderSlide } from '@/lib/types';
 import { BLUR_DATA_URL } from '@/lib/blur';
 
@@ -115,12 +116,51 @@ export const HeroSlider: React.FC<HeroSliderProps> = ({ slides }) => {
         );
       })}
 
-      {/* Slide Content: Optional Title Only */}
-      {currentSlide?.title && currentSlide.title.trim().length > 0 && (
+      {/* Slide Content: Badge, Title, Subtitle & Interactive CTA */}
+      {(currentSlide?.title || currentSlide?.badge || currentSlide?.subtitle) && (
         <div className="relative z-20 max-w-7xl mx-auto h-full px-4 sm:px-6 lg:px-8 flex flex-col justify-end pb-24 sm:pb-28 pointer-events-none">
-          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-white leading-tight tracking-tight max-w-4xl drop-shadow-lg animate-in fade-in slide-in-from-bottom-3 duration-500">
-            {currentSlide.title}
-          </h1>
+          <div className="max-w-4xl space-y-3">
+            {currentSlide.badge && currentSlide.badge.trim().length > 0 && (
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-400 text-[#00183F] shadow-lg pointer-events-auto">
+                  {currentSlide.badge}
+                </span>
+              </div>
+            )}
+
+            {currentSlide.title && currentSlide.title.trim().length > 0 && (
+              <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-white leading-tight tracking-tight drop-shadow-xl animate-in fade-in slide-in-from-bottom-3 duration-500">
+                {currentSlide.title}
+              </h1>
+            )}
+
+            {currentSlide.subtitle && currentSlide.subtitle.trim().length > 0 && (
+              <p className="text-sm sm:text-base text-slate-100 line-clamp-2 max-w-2xl drop-shadow-md animate-in fade-in slide-in-from-bottom-4 duration-500 font-medium">
+                {currentSlide.subtitle}
+              </p>
+            )}
+
+            {currentSlide.cta_link && currentSlide.cta_link.trim().length > 0 && (
+              <div className="pt-2 flex flex-wrap items-center gap-3 animate-in fade-in slide-in-from-bottom-5 duration-500">
+                <Link
+                  href={currentSlide.cta_link}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#C8102E] hover:from-[#e5be3e] hover:to-[#d61937] text-white font-bold text-xs sm:text-sm shadow-xl transition-all active:scale-95 cursor-pointer pointer-events-auto"
+                >
+                  <span>{currentSlide.cta_text || 'Read Full Story'}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+
+                {currentSlide.secondary_cta_link && currentSlide.secondary_cta_text && (
+                  <Link
+                    href={currentSlide.secondary_cta_link}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 text-white font-semibold text-xs sm:text-sm backdrop-blur-md border border-white/20 transition-all cursor-pointer pointer-events-auto"
+                  >
+                    <span>{currentSlide.secondary_cta_text}</span>
+                  </Link>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
