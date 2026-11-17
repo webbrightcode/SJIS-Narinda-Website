@@ -222,6 +222,7 @@ export default function AdminDashboardPage() {
   const [noticeModalOpen, setNoticeModalOpen] = useState(false);
   const [editingNotice, setEditingNotice] = useState<Partial<Notice> | null>(null);
   const [uploadingNoticePdf, setUploadingNoticePdf] = useState(false);
+  const [noticeDragOver, setNoticeDragOver] = useState(false);
 
   const [clubModalOpen, setClubModalOpen] = useState(false);
   const [editingClub, setEditingClub] = useState<Partial<Club> | null>(null);
@@ -606,17 +607,37 @@ export default function AdminDashboardPage() {
     return /\.(jpg|jpeg|png|webp|gif|avif)($|\?)/i.test(url) || url.startsWith('data:image/');
   };
 
-  const handleNoticePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const fileList = e.target.files;
-    if (!fileList || fileList.length === 0 || !editingNotice) return;
+  const handleNoticeFileUpload = async (
+    input: React.ChangeEvent<HTMLInputElement> | FileList | File[]
+  ) => {
+    let files: File[] = [];
+    if ('target' in input) {
+      const fileList = input.target.files;
+      if (!fileList || fileList.length === 0 || !editingNotice) return;
+      files = Array.from(fileList);
+      input.target.value = '';
+    } else if (input instanceof FileList) {
+      files = Array.from(input);
+    } else if (Array.isArray(input)) {
+      files = input;
+    }
+    if (files.length === 0 || !editingNotice) return;
 
-    const files = Array.from(fileList);
     setUploadingNoticePdf(true);
 
     const uploadedUrls: string[] = [];
     let successCount = 0;
+    let hasImages = false;
+    let hasPdfs = false;
 
     for (const file of files) {
+      const isImg = file.type.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif|avif)$/i.test(file.name);
+      if (isImg) {
+        hasImages = true;
+      } else {
+        hasPdfs = true;
+      }
+
       if (file.size > 200 * 1024 * 1024) {
         showToast(`Skipped ${file.name}: Exceeds 200 MB limit.`, 'error');
         continue;
@@ -673,15 +694,23 @@ export default function AdminDashboardPage() {
         };
       });
 
-      const label = successCount === 1 ? 'file' : `${successCount} files`;
-      showToast(`Successfully attached ${label} to notice!`);
+      const typeLabel =
+        hasImages && hasPdfs
+          ? 'attachments'
+          : hasImages
+          ? successCount > 1
+            ? 'images'
+            : 'image'
+          : 'PDF document';
+      showToast(`Successfully attached ${successCount} ${typeLabel} to notice!`);
     } else {
       showToast('Could not upload selected file(s). Please check server connection.', 'error');
     }
 
     setUploadingNoticePdf(false);
-    e.target.value = '';
   };
+
+  const handleNoticePdfUpload = handleNoticeFileUpload;
 
   const handleRemoveNoticeGalleryImage = (indexToRemove: number) => {
     if (!editingNotice) return;
@@ -4609,53 +4638,127 @@ export default function AdminDashboardPage() {
             </div>
 
 
-            {/* Attachment / PDF & Image Upload Section */}
-            <div className="p-3.5 bg-slate-50/90 rounded-2xl border border-slate-200 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                  Attachment Document / Image / PDF (Optional)
-                </label>
+            {/* Attachment: Image / PDF Circular Upload Section */}
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setNoticeDragOver(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setNoticeDragOver(false);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setNoticeDragOver(false);
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                  handleNoticeFileUpload(e.dataTransfer.files);
+                }
+              }}
+              className={`p-4 rounded-2xl border transition-all space-y-3 ${
+                noticeDragOver
+                  ? 'bg-sky-50 border-sky-400 ring-2 ring-sky-300'
+                  : 'bg-slate-50/90 border-slate-200'
+              }`}
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                    Attachment: Circular Image(s) / Official PDF (Optional)
+                  </label>
+                  <p className="text-[11px] text-slate-500">
+                    Upload official notice photo, scan, graphic, or PDF document, or paste a direct URL.
+                  </p>
+                </div>
                 {uploadingNoticePdf && (
-                  <span className="text-xs text-amber-600 font-semibold flex items-center gap-1.5 animate-pulse">
+                  <span className="text-xs text-amber-600 font-semibold flex items-center gap-1.5 animate-pulse shrink-0">
                     <Loader2 className="w-3.5 h-3.5 animate-spin" /> Uploading attachment...
                   </span>
                 )}
               </div>
 
-              <div className="flex gap-2">
+              {/* Direct URL input bar with Dedicated Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="text"
                   value={editingNotice.attachment_url || ''}
                   onChange={(e) => setEditingNotice({ ...editingNotice, attachment_url: e.target.value })}
-                  className="flex-1 px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-mono bg-white focus:ring-2 focus:ring-[#00183F] outline-none"
-                  placeholder="https://... or select multiple images (JPG, PNG) or PDF"
+                  className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-mono bg-white focus:ring-2 focus:ring-[#00183F] outline-none"
+                  placeholder="https://... or select image(s) / PDF below"
                 />
-                <label
-                  className={`px-4 py-2 border rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all shadow-sm ${
-                    uploadingNoticePdf
-                      ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
-                      : 'bg-[#00183F] hover:bg-[#002868] text-white border-[#00183F] cursor-pointer'
-                  }`}
-                >
-                  {uploadingNoticePdf ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Upload className="w-3.5 h-3.5" />
-                  )}
-                  <span>{uploadingNoticePdf ? 'Uploading…' : 'Upload File(s) / Image(s)'}</span>
-                  <input
-                    type="file"
-                    multiple
-                    accept=".pdf,application/pdf,image/png,image/jpeg,image/jpg,image/webp,.png,.jpg,.jpeg,.webp"
-                    disabled={uploadingNoticePdf}
-                    className="hidden"
-                    onChange={handleNoticePdfUpload}
-                  />
-                </label>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Dedicated Image Upload Button */}
+                  <label
+                    className={`px-3.5 py-2.5 border rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs ${
+                      uploadingNoticePdf
+                        ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                        : 'bg-sky-600 hover:bg-sky-700 text-white border-sky-600 cursor-pointer active:scale-95'
+                    }`}
+                    title="Upload circular images or scans (JPG, JPEG, PNG, WebP)"
+                  >
+                    {uploadingNoticePdf ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <ImageIcon className="w-3.5 h-3.5" />
+                    )}
+                    <span>Upload Image(s)</span>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,.png,.jpg,.jpeg,.webp"
+                      disabled={uploadingNoticePdf}
+                      className="hidden"
+                      onChange={handleNoticeFileUpload}
+                    />
+                  </label>
+
+                  {/* Dedicated PDF Upload Button */}
+                  <label
+                    className={`px-3.5 py-2.5 border rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs ${
+                      uploadingNoticePdf
+                        ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                        : 'bg-[#00183F] hover:bg-[#002868] text-white border-[#00183F] cursor-pointer active:scale-95'
+                    }`}
+                    title="Upload official PDF circular routine, calendar or document"
+                  >
+                    {uploadingNoticePdf ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <FileText className="w-3.5 h-3.5 text-amber-300" />
+                    )}
+                    <span>Upload PDF</span>
+                    <input
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      disabled={uploadingNoticePdf}
+                      className="hidden"
+                      onChange={handleNoticeFileUpload}
+                    />
+                  </label>
+                </div>
               </div>
 
-              {editingNotice.attachment_url ? (
-                <div className="p-2.5 rounded-xl bg-white border border-slate-200 space-y-2.5">
+              {/* Drag & Drop Visual Prompt when no attachment is present */}
+              {!editingNotice.attachment_url ? (
+                <div className="py-4 px-3 border border-dashed border-slate-300 rounded-xl bg-white/70 text-center flex flex-col items-center justify-center gap-1.5 transition-colors">
+                  <div className="flex items-center gap-2 text-slate-400">
+                    <ImageIcon className="w-5 h-5 text-sky-500" />
+                    <span className="text-slate-300">•</span>
+                    <FileText className="w-5 h-5 text-rose-500" />
+                  </div>
+                  <p className="text-xs text-slate-700 font-medium">
+                    Drag &amp; drop circular <strong className="text-sky-700">Image(s)</strong> or <strong className="text-rose-700">PDF</strong> here, or use the upload buttons.
+                  </p>
+                  <p className="text-[10px] text-slate-400">
+                    JPG, JPEG, PNG, WebP or PDF up to 200 MB • Multi-page circular photos supported
+                  </p>
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-white border border-slate-200 space-y-3">
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2 truncate mr-2">
                       {isImageAttachmentUrl(editingNotice.attachment_url) ? (
@@ -4729,17 +4832,22 @@ export default function AdminDashboardPage() {
                   )}
 
                   {/* Additional Gallery / Multi-page Images Grid */}
-                  {editingNotice.gallery_images && editingNotice.gallery_images.length > 0 && (
-                    <div className="pt-2 border-t border-slate-100 space-y-2">
-                      <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
-                        <span className="flex items-center gap-1.5 text-slate-800">
-                          <ImageIcon className="w-3.5 h-3.5 text-sky-600" />
-                          Additional Pages / Images ({editingNotice.gallery_images.length})
-                        </span>
+                  <div className="pt-2 border-t border-slate-100 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
+                      <span className="flex items-center gap-1.5 text-slate-800">
+                        <ImageIcon className="w-3.5 h-3.5 text-sky-600" />
+                        {editingNotice.gallery_images && editingNotice.gallery_images.length > 0
+                          ? `Additional Pages / Images (${editingNotice.gallery_images.length})`
+                          : 'Additional Pages / Gallery (Optional)'}
+                      </span>
+                      {editingNotice.gallery_images && editingNotice.gallery_images.length > 0 && (
                         <span className="text-[10px] text-slate-400">Hover to remove</span>
-                      </div>
-                      <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
-                        {editingNotice.gallery_images.map((imgUrl, idx) => (
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                      {editingNotice.gallery_images &&
+                        editingNotice.gallery_images.map((imgUrl, idx) => (
                           <div
                             key={idx}
                             className="relative group rounded-xl overflow-hidden border border-slate-200 bg-slate-100 aspect-square shadow-2xs"
@@ -4776,14 +4884,23 @@ export default function AdminDashboardPage() {
                             </span>
                           </div>
                         ))}
-                      </div>
+
+                      {/* Quick Add More Images Button */}
+                      <label className="rounded-xl border-2 border-dashed border-sky-300 bg-sky-50/40 hover:bg-sky-50 text-sky-700 aspect-square flex flex-col items-center justify-center p-2 text-center transition-all cursor-pointer group shadow-2xs">
+                        <Plus className="w-5 h-5 text-sky-600 group-hover:scale-110 transition-transform" />
+                        <span className="text-[10px] font-bold mt-1 text-sky-800">Add Image</span>
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,.png,.jpg,.jpeg,.webp"
+                          disabled={uploadingNoticePdf}
+                          className="hidden"
+                          onChange={handleNoticeFileUpload}
+                        />
+                      </label>
                     </div>
-                  )}
+                  </div>
                 </div>
-              ) : (
-                <p className="text-[11px] text-slate-500">
-                  Upload one or multiple official circular images (JPG, JPEG, PNG, WebP) or PDF documents (up to 200 MB per file), or paste a direct image URL.
-                </p>
               )}
             </div>
 
